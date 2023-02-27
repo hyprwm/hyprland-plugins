@@ -6,7 +6,7 @@ The borders added are static.
 
 Config:
 ```
-plugins {
+plugin {
     borders-plus-plus {
         add_borders = 1 # 0 - 2
         col.border_1 = rgb(ffffff) # example col for border 1
