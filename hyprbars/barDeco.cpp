@@ -9,6 +9,9 @@ CHyprBar::CHyprBar(CWindow* pWindow) {
     m_pWindow         = pWindow;
     m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
+
+    const auto PMONITOR       = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    PMONITOR->scheduledRecalc = true;
 }
 
 CHyprBar::~CHyprBar() {
@@ -87,12 +90,11 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         0 :
         (m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying());
 
-    // title bar's extents are 0 because we cut into the window
-    m_seExtents = {{}, {}};
+    m_seExtents = {{0, *PHEIGHT + 1}, {}};
 
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
-    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE, (int)m_vLastWindowPos.y, (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE,
+    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE, (int)m_vLastWindowPos.y - *PHEIGHT, (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE,
                            *PHEIGHT + *PROUNDING * 2 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
@@ -112,28 +114,22 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        wlr_box windowBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE + offset.x, (int)m_vLastWindowPos.y - *PBORDERSIZE + offset.y, (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE,
-                             (int)m_vLastWindowSize.y + 2 * *PBORDERSIZE};
+        wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x, (int)m_vLastWindowPos.y + offset.y, (int)m_vLastWindowSize.x, (int)m_vLastWindowSize.y};
         scaleBox(&windowBox, pMonitor->scale);
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), *PROUNDING + *PBORDERSIZE);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-        glStencilFunc(GL_EQUAL, 1, -1);
+        glStencilFunc(GL_NOTEQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
     g_pHyprOpenGL->renderRect(&titleBarBox, color, *PROUNDING);
 
     // render title
-    if (m_szLastTitle != m_pWindow->m_szTitle) {
+    if (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged) {
         m_szLastTitle = m_pWindow->m_szTitle;
         renderBarTitle(BARBUF);
     }
-
-    wlr_box textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
-    g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
-
-    // TODO: buttons and shit
 
     if (*PROUNDING) {
         // cleanup stencil
@@ -144,7 +140,14 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
     }
 
+    wlr_box textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
+    g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
+
+    // TODO: buttons and shit
+
     g_pHyprOpenGL->scissor((wlr_box*)nullptr);
+
+    m_bWindowSizeChanged = false;
 }
 
 eDecorationType CHyprBar::getDecorationType() {
@@ -155,6 +158,9 @@ void CHyprBar::updateWindow(CWindow* pWindow) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+
+    if (m_vLastWindowSize != pWindow->m_vRealSize.vec())
+        m_bWindowSizeChanged = true;
 
     m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
     m_vLastWindowSize = pWindow->m_vRealSize.vec();

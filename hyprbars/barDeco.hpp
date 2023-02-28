@@ -32,6 +32,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     CTexture                 m_tTextTex;
 
+    bool                     m_bWindowSizeChanged = false;
+
     void                     renderBarTitle(const Vector2D& bufferSize);
     std::string              m_szLastTitle;
 };
