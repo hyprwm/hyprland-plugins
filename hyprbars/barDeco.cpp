@@ -76,8 +76,9 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
         return;
     }
 
-    // if we do this here the handler later will remove our mouse bind
-    m_bDragPending = true;
+    // if we call da dispatcher here the handler later will remove our mouse bind
+    if (VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x, *PHEIGHT))
+        m_bDragPending = true;
 }
 
 void CHyprBar::onMouseMove(Vector2D coords) {
