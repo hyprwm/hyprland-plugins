@@ -9,7 +9,7 @@ All config options are in `plugin:hyprbars`:
 ```
 plugin {
     hyprbars {
-        // config
+        # config
     }
 }
 ```
