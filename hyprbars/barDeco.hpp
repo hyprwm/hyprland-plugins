@@ -23,6 +23,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
+    virtual bool                     allowsInput();
+
   private:
     SWindowDecorationExtents m_seExtents;
 
@@ -41,8 +43,13 @@ class CHyprBar : public IHyprWindowDecoration {
     void                     renderBarTitle(const Vector2D& bufferSize);
     void                     renderBarButtons(const Vector2D& bufferSize);
     void                     onMouseDown(wlr_pointer_button_event* e);
+    void                     onMouseMove(Vector2D coords);
 
     HOOK_CALLBACK_FN*        m_pMouseButtonCallback;
+    HOOK_CALLBACK_FN*        m_pMouseMoveCallback;
 
     std::string              m_szLastTitle;
+
+    bool                     m_bDraggingThis = false;
+    bool                     m_bDragPending  = false;
 };

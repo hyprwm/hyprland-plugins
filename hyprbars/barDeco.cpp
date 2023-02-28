@@ -19,11 +19,17 @@ CHyprBar::CHyprBar(CWindow* pWindow) {
 
     m_pMouseButtonCallback =
         HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseButton", [&](void* self, std::any param) { onMouseDown(std::any_cast<wlr_pointer_button_event*>(param)); });
+
+    m_pMouseMoveCallback = HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
 }
 
 CHyprBar::~CHyprBar() {
     damageEntire();
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseButtonCallback);
+}
+
+bool CHyprBar::allowsInput() {
+    return true;
 }
 
 SWindowDecorationExtents CHyprBar::getWindowDecorationExtents() {
@@ -36,8 +42,16 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
 
     const auto COORDS = cursorRelativeToBar();
 
-    if (e->state != WLR_BUTTON_PRESSED)
+    if (e->state != WLR_BUTTON_PRESSED) {
+        if (m_bDraggingThis) {
+            g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
+            m_bDraggingThis = false;
+
+            Debug::log(LOG, "[hyprbars] Dragging ended on %x", m_pWindow);
+        }
+
         return;
+    }
 
     // check if on a button
     static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
@@ -59,6 +73,23 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
     if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + BUTTONS_SIZE + BUTTONS_PAD, currentPos.y + BUTTONS_SIZE + BUTTONS_PAD)) {
         // hit on maximize
         g_pKeybindManager->m_mDispatchers["fullscreen"]("1");
+        return;
+    }
+
+    // if we do this here the handler later will remove our mouse bind
+    m_bDragPending = true;
+}
+
+void CHyprBar::onMouseMove(Vector2D coords) {
+    static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+
+    if (m_bDragPending) {
+        m_bDragPending = false;
+        g_pKeybindManager->m_mDispatchers["mouse"]("1movewindow");
+        m_bDraggingThis = true;
+
+        Debug::log(LOG, "[hyprbars] Dragging initiated on %x", m_pWindow);
+
         return;
     }
 }
