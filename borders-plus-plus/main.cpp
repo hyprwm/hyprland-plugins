@@ -11,7 +11,9 @@
 #include "globals.hpp"
 
 // Do NOT change this function.
-APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
+APICALL EXPORT std::string PLUGIN_API_VERSION() {
+    return HYPRLAND_API_VERSION;
+}
 
 void onNewWindow(void* self, std::any data) {
     // data is guaranteed
@@ -23,9 +25,9 @@ void onNewWindow(void* self, std::any data) {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders", SConfigValue { .intValue = 1 });
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_1", SConfigValue { .intValue = configStringToInt("rgba(000000ee)") });
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_2", SConfigValue { .intValue = configStringToInt("rgba(000000ee)") });
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders", SConfigValue{.intValue = 1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_1", SConfigValue{.intValue = configStringToInt("rgba(000000ee)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_2", SConfigValue{.intValue = configStringToInt("rgba(000000ee)")});
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, std::any data) { onNewWindow(self, data); });
 
@@ -39,9 +41,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::reloadConfig();
 
-    HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CColor { 0.2, 1.0, 0.2, 1.0 }, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
-    return { "borders-plus-plus", "A plugin to add more borders to windows.", "Vaxry", "1.0" };
+    return {"borders-plus-plus", "A plugin to add more borders to windows.", "Vaxry", "1.0"};
 }
 
-APICALL EXPORT void PLUGIN_EXIT() { ; }
+APICALL EXPORT void PLUGIN_EXIT() {
+    ;
+}
