@@ -4,6 +4,7 @@
 
 #include <src/render/decorations/IHyprWindowDecoration.hpp>
 #include <src/render/OpenGL.hpp>
+#include "globals.hpp"
 
 class CHyprBar : public IHyprWindowDecoration {
   public:
@@ -31,9 +32,17 @@ class CHyprBar : public IHyprWindowDecoration {
     Vector2D                 m_vLastWindowSize;
 
     CTexture                 m_tTextTex;
+    CTexture                 m_tButtonsTex;
 
     bool                     m_bWindowSizeChanged = false;
 
+    Vector2D                 cursorRelativeToBar();
+
     void                     renderBarTitle(const Vector2D& bufferSize);
+    void                     renderBarButtons(const Vector2D& bufferSize);
+    void                     onMouseDown(wlr_pointer_button_event* e);
+
+    HOOK_CALLBACK_FN*        m_pMouseButtonCallback;
+
     std::string              m_szLastTitle;
 };
