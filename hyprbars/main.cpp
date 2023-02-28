@@ -1,0 +1,53 @@
+#define WLR_USE_UNSTABLE
+
+#include <unistd.h>
+
+#include <any>
+#include <src/Compositor.hpp>
+#include <src/Window.hpp>
+#include <src/config/ConfigManager.hpp>
+
+#include "barDeco.hpp"
+#include "globals.hpp"
+
+// Do NOT change this function.
+APICALL EXPORT std::string PLUGIN_API_VERSION() {
+    return HYPRLAND_API_VERSION;
+}
+
+void onNewWindow(void* self, std::any data) {
+    // data is guaranteed
+    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+
+    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CHyprBar(PWINDOW));
+}
+
+APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
+    PHANDLE = handle;
+
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, std::any data) { onNewWindow(self, data); });
+
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", SConfigValue{.intValue = configStringToInt("rgba(33333388)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", SConfigValue{.intValue = 15});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_color", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", SConfigValue{.intValue = 10});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
+
+    // add deco to existing windows
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() || !w->m_bIsMapped)
+            continue;
+
+        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), new CHyprBar(w.get()));
+    }
+
+    HyprlandAPI::reloadConfig();
+
+    HyprlandAPI::addNotification(PHANDLE, "[hyprbar] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
+
+    return {"hyprbars", "A plugin to add title bars to windows.", "Vaxry", "1.0"};
+}
+
+APICALL EXPORT void PLUGIN_EXIT() {
+    ;
+}
