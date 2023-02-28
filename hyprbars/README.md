@@ -2,6 +2,8 @@
 
 Adds simple title bars to windows.
 
+![preview](https://i.ibb.co/GkDTL4Q/20230228-23h20m36s-grim.png)
+
 ## Config
 
 All config options are in `plugin:hyprbars`:
