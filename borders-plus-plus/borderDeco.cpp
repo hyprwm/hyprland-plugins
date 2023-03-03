@@ -69,9 +69,6 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     fullBox = {(int)(m_vLastWindowPos.x - *PBORDERSIZE * 2), (int)(m_vLastWindowPos.y - *PBORDERSIZE * 2), (int)(m_vLastWindowSize.x + 2.0 * *PBORDERSIZE * 2),
                (int)(m_vLastWindowSize.y + 2.0 * *PBORDERSIZE * 2)};
 
-    scaleBox(&fullBox, pMonitor->scale);
-    g_pHyprOpenGL->renderBorder(&fullBox, CColor(*PCOLOR1), *PROUNDING * pMonitor->scale + *PBORDERSIZE * 2, a);
-
     fullBox.x -= pMonitor->vecPosition.x;
     fullBox.y -= pMonitor->vecPosition.y;
 
