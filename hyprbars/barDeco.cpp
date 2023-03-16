@@ -40,7 +40,15 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
     if (m_pWindow != g_pCompositor->m_pLastWindow)
         return;
 
-    const auto COORDS = cursorRelativeToBar();
+    const auto         COORDS = cursorRelativeToBar();
+
+    static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+
+    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x, *PHEIGHT)) {
+        m_bDraggingThis = false;
+        m_bDragPending  = false;
+        return;
+    }
 
     if (e->state != WLR_BUTTON_PRESSED) {
         if (m_bDraggingThis) {
@@ -55,7 +63,6 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
 
     // check if on a button
     static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
-    static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     const auto         BARBUF      = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT};
     Vector2D           currentPos  = Vector2D{BARBUF.x - BUTTONS_PAD - BUTTONS_SIZE, BARBUF.y / 2.0 - BUTTONS_SIZE / 2.0}.floor();
     currentPos.y -= BUTTONS_PAD / 2.0;
@@ -76,13 +83,7 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
         return;
     }
 
-    // if we call da dispatcher here the handler later will remove our mouse bind
-    if (VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x, *PHEIGHT))
-        m_bDragPending = true;
-    else {
-        m_bDraggingThis = false;
-        m_bDragPending  = false;
-    }
+    m_bDragPending = true;
 }
 
 void CHyprBar::onMouseMove(Vector2D coords) {
