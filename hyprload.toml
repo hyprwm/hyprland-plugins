@@ -1,0 +1,32 @@
+[borders-plus-plus]
+description ="A plugin to add more borders to windows."
+version = "1.0"
+authors = ["Vaxry"]
+
+[borders-plus-plus.build]
+output = "borders-plus-plus/borders-plus-plus.so"
+steps = [
+    "make -C borders-plus-plus all",
+]
+
+[csgo-vulkan-fix]
+description = "A plugin to fix incorrect mouse offsets on csgo in Vulkan"
+version = "1.0"
+authors = ["Vaxry"]
+
+[csgo-vulkan-fix.build]
+output = "csgo-vulkan-fix/csgo-vulkan-fix.so"
+steps = [
+    "make -C csgo-vulkan-fix all",
+]
+
+[hyprbars]
+description = "A plugin to add title bars to windows"
+version = "1.0"
+authors = ["Vaxry"]
+
+[hyprbars.build]
+output = "hyprbars/hyprbars.so"
+steps = [
+    "make -C hyprbars all",
+]
