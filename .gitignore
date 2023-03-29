@@ -32,3 +32,5 @@
 *.app
 
 .vscode/
+# Nix
+*result*
