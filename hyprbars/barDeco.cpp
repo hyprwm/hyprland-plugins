@@ -232,8 +232,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
-    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE, (int)m_vLastWindowPos.y - *PHEIGHT, (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE,
-                           *PHEIGHT + *PROUNDING * 2 /* to fill the bottom cuz we can't disable rounding there */};
+    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PHEIGHT - pMonitor->vecPosition.y,
+                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 2 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
@@ -252,7 +252,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x, (int)m_vLastWindowPos.y + offset.y, (int)m_vLastWindowSize.x, (int)m_vLastWindowSize.y};
+        wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y + offset.y - pMonitor->vecPosition.y, (int)m_vLastWindowSize.x,
+                             (int)m_vLastWindowSize.y};
         scaleBox(&windowBox, pMonitor->scale);
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), *PROUNDING + *PBORDERSIZE);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
