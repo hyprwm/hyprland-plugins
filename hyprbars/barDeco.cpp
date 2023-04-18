@@ -45,6 +45,12 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
     static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
 
     if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x, *PHEIGHT)) {
+
+        if (m_bDraggingThis) {
+            g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
+            Debug::log(LOG, "[hyprbars] Dragging ended on %x", m_pWindow);
+        }
+
         m_bDraggingThis = false;
         m_bDragPending  = false;
         return;
