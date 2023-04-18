@@ -1,7 +1,7 @@
 #include "barDeco.hpp"
 
-#include <src/Compositor.hpp>
-#include <src/Window.hpp>
+#include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/Window.hpp>
 
 #include "globals.hpp"
 

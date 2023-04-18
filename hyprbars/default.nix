@@ -1,39 +1,21 @@
 {
+  lib,
   stdenv,
   hyprland,
-  pkg-config,
-  pixman,
-  libdrm,
-  wlroots,
 }:
 stdenv.mkDerivation {
   name = "hyprbars";
+  version = "0.1";
   src = ./.;
-  preConfigure = "rm Makefile";
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+  inherit (hyprland) nativeBuildInputs;
 
-  buildInputs = [
-    pixman
-    libdrm
-    wlroots
-  ];
+  buildInputs = [hyprland] ++ hyprland.buildInputs;
 
-  buildPhase = ''
-    trap "set +x" err
-    set -xeu
-
-    $CXX --no-gnu-unique -shared \
-      -std=c++23 \
-      $(pkg-config --cflags pixman-1) \
-      $(pkg-config --cflags libdrm) \
-      $(pkg-config --cflags wlroots) \
-      -I${hyprland.src}/ \
-      main.cpp barDeco.cpp \
-      -o $out
-
-    set +x
-  '';
+  meta = with lib; {
+    homepage = "https://github.com/hyprwm/hyprland-plugins";
+    description = "Hyprland window bar plugin";
+    license = licenses.bsd3;
+    platforms = platforms.linux;
+  };
 }

@@ -1,5 +1,5 @@
 {
-  inputs.hyprland.url = "github:hyprwm/Hyprland";
+  inputs.hyprland.url = "github:horriblename/Hyprland/nix-pluginenv";
 
   outputs = {
     self,
@@ -11,7 +11,6 @@
     packages = withPkgsFor (system: pkgs: {
       hyprbars = pkgs.callPackage ./hyprbars {
         inherit (hyprland.packages.${system}) hyprland;
-        wlroots = hyprland.packages.${system}.wlroots-hyprland;
       };
     });
   };
