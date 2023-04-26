@@ -2,9 +2,9 @@
 
 #include <unistd.h>
 
-#include <src/Compositor.hpp>
-#include <src/Window.hpp>
-#include <src/config/ConfigManager.hpp>
+#include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/Window.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
 
 #include "globals.hpp"
 
