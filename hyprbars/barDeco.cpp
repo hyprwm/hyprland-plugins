@@ -26,6 +26,7 @@ CHyprBar::CHyprBar(CWindow* pWindow) {
 CHyprBar::~CHyprBar() {
     damageEntire();
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseButtonCallback);
+    HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseMoveCallback);
 }
 
 bool CHyprBar::allowsInput() {
