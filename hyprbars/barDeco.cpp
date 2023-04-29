@@ -176,9 +176,11 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
 }
 
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
+    static const int CLOSE_COLOR = HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:button_close_color")->intValue;
+    static const int MAX_COLOR   = HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:button_max_color")->intValue;
 
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
+    const auto       CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto       CAIRO        = cairo_create(CAIROSURFACE);
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -202,11 +204,11 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
 
     Vector2D currentPos = Vector2D{bufferSize.x - BUTTONS_PAD - BUTTONS_SIZE, bufferSize.y / 2.0 - BUTTONS_SIZE / 2.0}.floor();
 
-    drawButton(currentPos, CColor{1.0, 0.0, 0.0, 0.8});
+    drawButton(currentPos, CColor(CLOSE_COLOR));
 
     currentPos.x -= BUTTONS_PAD + BUTTONS_SIZE;
 
-    drawButton(currentPos, CColor{0.9, 0.9, 0.1, 0.8});
+    drawButton(currentPos, CColor(MAX_COLOR));
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);

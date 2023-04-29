@@ -25,3 +25,7 @@ plugin {
 `bar_text_size` -> (int) bar's title text font size (default 10)
 
 `bar_text_font` -> (str) bar's title text font (default "Sans")
+
+`button_max_color` -> (col) maximize button color
+
+`button_close_color` -> (col) close button color
