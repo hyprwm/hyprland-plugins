@@ -116,8 +116,9 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     const CColor       COLOR = *PCOLOR;
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    const auto         CAIRO = cairo_create(CAIROSURFACE);
+    const int          BAR_PADDING = 10;
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -134,12 +135,20 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     pango_layout_set_font_description(layout, font_desc);
     pango_font_description_free(font_desc);
 
+    const int left_padding  = BAR_PADDING;
+    const int right_padding = BUTTONS_SIZE * 5 + BUTTONS_PAD * 2 + (BAR_PADDING);
+    const int max_width     = bufferSize.x - left_padding - right_padding;
+
+    pango_layout_set_width(layout, max_width * PANGO_SCALE);
+    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
+
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     int layout_width, layout_height;
     pango_layout_get_size(layout, &layout_width, &layout_height);
-    auto x_offset = std::round((bufferSize.x / 2.0 - layout_width / PANGO_SCALE / 2.0));
-    auto y_offset = std::round((bufferSize.y / 2.0 - layout_height / PANGO_SCALE / 2.0));
+    const int x_offset = std::round((bufferSize.x / 2.0 - layout_width / PANGO_SCALE / 2.0));
+    const int y_offset = std::round((bufferSize.y / 2.0 - layout_height / PANGO_SCALE / 2.0));
+
     cairo_move_to(CAIRO, x_offset, y_offset);
     pango_cairo_show_layout(CAIRO, layout);
 
