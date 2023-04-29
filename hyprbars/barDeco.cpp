@@ -2,6 +2,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/Window.hpp>
+#include <pango/pangocairo.h>
 
 #include "globals.hpp"
 
@@ -124,16 +125,25 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    // draw title
-    cairo_select_font_face(CAIRO, PFONT->c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(CAIRO, *PSIZE);
+    // draw title using Pango
+    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    pango_layout_set_text(layout, m_szLastTitle.c_str(), -1);
+
+    PangoFontDescription* font_desc = pango_font_description_from_string(PFONT->c_str());
+    pango_font_description_set_size(font_desc, *PSIZE * PANGO_SCALE);
+    pango_layout_set_font_description(layout, font_desc);
+    pango_font_description_free(font_desc);
+
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
-    cairo_text_extents_t cairoExtents;
-    cairo_text_extents(CAIRO, m_szLastTitle.c_str(), &cairoExtents);
+    int layout_width, layout_height;
+    pango_layout_get_size(layout, &layout_width, &layout_height);
+    auto x_offset = std::round((bufferSize.x / 2.0 - layout_width / PANGO_SCALE / 2.0));
+    auto y_offset = std::round((bufferSize.y / 2.0 - layout_height / PANGO_SCALE / 2.0));
+    cairo_move_to(CAIRO, x_offset, y_offset);
+    pango_cairo_show_layout(CAIRO, layout);
 
-    cairo_move_to(CAIRO, std::round(bufferSize.x / 2.0 - cairoExtents.width / 2.0), *PSIZE + std::round(bufferSize.y / 2.0 - cairoExtents.height / 2.0));
-    cairo_show_text(CAIRO, m_szLastTitle.c_str());
+    g_object_unref(layout);
 
     cairo_surface_flush(CAIROSURFACE);
 
@@ -170,32 +180,24 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
     // draw buttons for close and max
 
     auto drawButton = [&](Vector2D pos, CColor col) -> void {
-        const int        X       = pos.x;
-        const int        Y       = pos.y;
-        const int        WIDTH   = BUTTONS_SIZE;
-        const int        HEIGHT  = BUTTONS_SIZE;
-        const int        RADIUS  = BUTTONS_ROUNDING;
-        constexpr double DEGREES = M_PI / 180.0;
+        const int X      = pos.x;
+        const int Y      = pos.y;
+        const int WIDTH  = BUTTONS_SIZE;
+        const int HEIGHT = BUTTONS_SIZE;
+        const int RADIUS = BUTTONS_ROUNDING;
 
         cairo_set_source_rgba(CAIRO, col.r, col.g, col.b, col.a);
-
-        cairo_new_sub_path(CAIRO);
-        cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
-        cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + HEIGHT - RADIUS, RADIUS, 0 * DEGREES, 90 * DEGREES);
-        cairo_arc(CAIRO, X + RADIUS, Y + HEIGHT - RADIUS, RADIUS, 90 * DEGREES, 180 * DEGREES);
-        cairo_arc(CAIRO, X + RADIUS, Y + RADIUS, RADIUS, 180 * DEGREES, 270 * DEGREES);
-        cairo_close_path(CAIRO);
-
-        cairo_fill_preserve(CAIRO);
+        cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
+        cairo_fill(CAIRO);
     };
 
     Vector2D currentPos = Vector2D{bufferSize.x - BUTTONS_PAD - BUTTONS_SIZE, bufferSize.y / 2.0 - BUTTONS_SIZE / 2.0}.floor();
 
-    drawButton(currentPos, CColor(1.0, 0.0, 0.0, 0.8));
+    drawButton(currentPos, CColor{1.0, 0.0, 0.0, 0.8});
 
     currentPos.x -= BUTTONS_PAD + BUTTONS_SIZE;
 
-    drawButton(currentPos, CColor(0.9, 0.9, 0.1, 0.8));
+    drawButton(currentPos, CColor{0.9, 0.9, 0.1, 0.8});
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
@@ -240,7 +242,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
     wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PHEIGHT - pMonitor->vecPosition.y,
-                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 2 /* to fill the bottom cuz we can't disable rounding there */};
+                              (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 2 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
