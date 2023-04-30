@@ -109,7 +109,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
-    static auto* const PCOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_color")->intValue;
+    static auto* const PCOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->intValue;
     static auto* const PSIZE  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->intValue;
     static auto* const PFONT  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->strValue;
 
@@ -118,7 +118,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    const int          BAR_PADDING = 10;
+    const int          BARPADDING = 10;
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -130,26 +130,26 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, m_szLastTitle.c_str(), -1);
 
-    PangoFontDescription* font_desc = pango_font_description_from_string(PFONT->c_str());
-    pango_font_description_set_size(font_desc, *PSIZE * PANGO_SCALE);
-    pango_layout_set_font_description(layout, font_desc);
-    pango_font_description_free(font_desc);
+    PangoFontDescription* fontDesc = pango_font_description_from_string(PFONT->c_str());
+    pango_font_description_set_size(fontDesc, *PSIZE * PANGO_SCALE);
+    pango_layout_set_font_description(layout, fontDesc);
+    pango_font_description_free(fontDesc);
 
-    const int left_padding  = BAR_PADDING;
-    const int right_padding = BUTTONS_SIZE * 5 + BUTTONS_PAD * 2 + (BAR_PADDING);
-    const int max_width     = bufferSize.x - left_padding - right_padding;
+    const int leftPadding  = BARPADDING;
+    const int rightPadding = BUTTONS_SIZE * 5 + BUTTONS_PAD * 2 + (BARPADDING);
+    const int maxWidth     = bufferSize.x - leftPadding - rightPadding;
 
-    pango_layout_set_width(layout, max_width * PANGO_SCALE);
+    pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
-    int layout_width, layout_height;
-    pango_layout_get_size(layout, &layout_width, &layout_height);
-    const int x_offset = std::round((bufferSize.x / 2.0 - layout_width / PANGO_SCALE / 2.0));
-    const int y_offset = std::round((bufferSize.y / 2.0 - layout_height / PANGO_SCALE / 2.0));
+    int layoutWidth, layoutHeight;
+    pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
+    const int xOffset = std::round((bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
+    const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
 
-    cairo_move_to(CAIRO, x_offset, y_offset);
+    cairo_move_to(CAIRO, xOffset, yOffset);
     pango_cairo_show_layout(CAIRO, layout);
 
     g_object_unref(layout);
@@ -176,11 +176,11 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
 }
 
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
-    static const int CLOSE_COLOR = HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:button_close_color")->intValue;
-    static const int MAX_COLOR   = HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:button_max_color")->intValue;
+    static auto* const PCLOSECOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close")->intValue;
+    static auto* const PMAXCOLOR   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize")->intValue;
 
-    const auto       CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto       CAIRO        = cairo_create(CAIROSURFACE);
+    const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -204,11 +204,11 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
 
     Vector2D currentPos = Vector2D{bufferSize.x - BUTTONS_PAD - BUTTONS_SIZE, bufferSize.y / 2.0 - BUTTONS_SIZE / 2.0}.floor();
 
-    drawButton(currentPos, CColor(CLOSE_COLOR));
+    drawButton(currentPos, CColor(*PCLOSECOLOR));
 
     currentPos.x -= BUTTONS_PAD + BUTTONS_SIZE;
 
-    drawButton(currentPos, CColor(MAX_COLOR));
+    drawButton(currentPos, CColor(*PMAXCOLOR));
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);

@@ -29,11 +29,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", SConfigValue{.intValue = configStringToInt("rgba(33333388)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", SConfigValue{.intValue = 15});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_color", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", SConfigValue{.intValue = 10});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:button_close_color", SConfigValue{.intValue = configStringToInt("rgba(cc0000cc)")});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:button_max_color", SConfigValue{.intValue = configStringToInt("rgba(ffff33cc)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close", SConfigValue{.intValue = configStringToInt("rgba(cc0000cc)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize", SConfigValue{.intValue = configStringToInt("rgba(ffff33cc)")});
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_vWindows) {
