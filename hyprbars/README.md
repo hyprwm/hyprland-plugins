@@ -31,6 +31,8 @@ plugin {
 
 ## Buttons Config
 
+`button_size` -> (int) the size of the buttons.
+
 `col.maximize` -> (col) maximize button color
 
 `col.close` -> (col) close button color
