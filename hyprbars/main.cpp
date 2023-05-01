@@ -34,6 +34,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close", SConfigValue{.intValue = configStringToInt("rgba(cc0000cc)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize", SConfigValue{.intValue = configStringToInt("rgba(ffff33cc)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size", SConfigValue{.intValue = 10});
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_vWindows) {
