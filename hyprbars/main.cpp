@@ -3,9 +3,9 @@
 #include <unistd.h>
 
 #include <any>
-#include <src/Compositor.hpp>
-#include <src/Window.hpp>
-#include <src/config/ConfigManager.hpp>
+#include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/Window.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
 
 #include "barDeco.hpp"
 #include "globals.hpp"

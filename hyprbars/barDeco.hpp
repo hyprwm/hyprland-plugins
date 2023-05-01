@@ -2,8 +2,8 @@
 
 #define WLR_USE_UNSTABLE
 
-#include <src/render/decorations/IHyprWindowDecoration.hpp>
-#include <src/render/OpenGL.hpp>
+#include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
+#include <hyprland/src/render/OpenGL.hpp>
 #include "globals.hpp"
 
 class CHyprBar : public IHyprWindowDecoration {
