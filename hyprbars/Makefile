@@ -13,3 +13,9 @@ $(TARGET): $(SRC)
 
 clean:
 	rm ./$(TARGET)
+
+meson-build:
+	mkdir -p build
+	cd build && meson .. && ninja
+
+.PHONY: all meson-build clean
