@@ -1,5 +1,4 @@
-CXX = g++
-CXXFLAGS = -shared -fPIC --no-gnu-unique -g -std=c++23
+CXXFLAGS = -shared -fPIC -Wl,--no-gnu-unique -g -std=c++2b
 INCLUDES = $(shell pkg-config --cflags pixman-1 libdrm hyprland pangocairo)
 LIBS = $(shell pkg-config --libs pangocairo)
 
