@@ -12,6 +12,12 @@ else
   error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
 endif
 
+add_project_arguments(
+  [
+    '-Wno-narrowing',
+  ],
+  language: 'cpp')
+
 globber = run_command('find', '.', '-name', '*.cpp', check: true)
 src = globber.stdout().strip().split('\n')
 

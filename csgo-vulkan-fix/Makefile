@@ -1,4 +1,4 @@
 all:
-	g++ -shared -fPIC --no-gnu-unique main.cpp -o csgo-vulkan-fix.so -g -I "/usr/include/pixman-1" -I "/usr/include/libdrm" $(shell pkg-config --cflags hyprland) -std=c++23
+	$(CXX) -shared -fPIC -Wl,--no-gnu-unique main.cpp -o csgo-vulkan-fix.so -g `pkg-config --cflags pixman-1 libdrm hyprland` -std=c++2b
 clean:
 	rm ./csgo-vulkan-fix.so
