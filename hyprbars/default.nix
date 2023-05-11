@@ -4,7 +4,7 @@
   hyprland,
 }:
 stdenv.mkDerivation {
-  name = "hyprbars";
+  pname = "hyprbars";
   version = "0.1";
   src = ./.;
 
