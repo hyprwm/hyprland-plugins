@@ -4,7 +4,7 @@
   hyprland,
 }:
 stdenv.mkDerivation {
-  name = "csgo-vulkan-fix";
+  pname = "csgo-vulkan-fix";
   version = "0.1";
   src = ./.;
 

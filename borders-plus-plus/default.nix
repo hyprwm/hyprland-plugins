@@ -4,7 +4,7 @@
   hyprland,
 }:
 stdenv.mkDerivation {
-  name = "borders-plus-plus";
+  pname = "borders-plus-plus";
   version = "0.1";
   src = ./.;
 
