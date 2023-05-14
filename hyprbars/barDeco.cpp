@@ -251,7 +251,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
     wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PBORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                              (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
@@ -283,7 +283,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     g_pHyprOpenGL->renderRect(&titleBarBox, color, *PROUNDING);
 
     // render title
-    if (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged) {
+    if (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0) {
         m_szLastTitle = m_pWindow->m_szTitle;
         renderBarTitle(BARBUF);
     }
