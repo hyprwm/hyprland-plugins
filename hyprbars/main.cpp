@@ -19,7 +19,8 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CHyprBar(PWINDOW));
+    if (!PWINDOW->m_bX11DoesntWantBorders)
+        HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CHyprBar(PWINDOW));
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
