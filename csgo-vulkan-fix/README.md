@@ -1,5 +1,7 @@
 # csgo-vulkan-fix
 
+Steam Overlay is unsupported.
+
 If you want to play CS:GO with `-vulkan`, you're locked to your native res.
 
 With this plugin, you aren't anymore.
