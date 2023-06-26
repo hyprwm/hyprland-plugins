@@ -251,7 +251,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
     wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PBORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                              (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
@@ -328,8 +328,8 @@ void CHyprBar::updateWindow(CWindow* pWindow) {
 }
 
 void CHyprBar::damageEntire() {
-    wlr_box dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
-                  (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
+    wlr_box dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x - 2), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y - 2),
+                  (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x + 4), (int)m_seExtents.topLeft.y + 4};
     g_pHyprRenderer->damageBox(&dm);
 }
 
