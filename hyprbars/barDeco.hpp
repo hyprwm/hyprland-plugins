@@ -41,7 +41,7 @@ class CHyprBar : public IHyprWindowDecoration {
     Vector2D                 cursorRelativeToBar();
 
     void                     renderBarTitle(const Vector2D& bufferSize);
-    void                     renderBarButtons(const Vector2D& bufferSize);
+    void                     renderBarButtons(const Vector2D& bufferSize, const float scale);
     void                     onMouseDown(wlr_pointer_button_event* e);
     void                     onMouseMove(Vector2D coords);
 

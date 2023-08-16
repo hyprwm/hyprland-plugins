@@ -174,10 +174,13 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
-void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
+void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     static auto* const PCLOSECOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close")->intValue;
     static auto* const PMAXCOLOR   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize")->intValue;
     static auto* const PBUTTONSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size")->intValue;
+
+    const auto scaledButtonSize = *PBUTTONSIZE * scale;
+    const auto scaledButtonPadding = BUTTONS_PAD * scale;
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
@@ -193,18 +196,18 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
     auto drawButton = [&](Vector2D pos, CColor col) -> void {
         const int X      = pos.x;
         const int Y      = pos.y;
-        const int RADIUS = static_cast<int>(std::ceil(*PBUTTONSIZE / 2.0));
+        const int RADIUS = static_cast<int>(std::ceil(scaledButtonSize / 2.0));
 
         cairo_set_source_rgba(CAIRO, col.r, col.g, col.b, col.a);
         cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
         cairo_fill(CAIRO);
     };
 
-    Vector2D currentPos = Vector2D{bufferSize.x - BUTTONS_PAD - *PBUTTONSIZE, bufferSize.y / 2.0 - *PBUTTONSIZE / 2.0}.floor();
+    Vector2D currentPos = Vector2D{bufferSize.x - scaledButtonPadding - scaledButtonSize, bufferSize.y / 2.0 - scaledButtonSize / 2.0}.floor();
 
     drawButton(currentPos, CColor(*PCLOSECOLOR));
 
-    currentPos.x -= BUTTONS_PAD + *PBUTTONSIZE;
+    currentPos.x -= scaledButtonPadding + scaledButtonSize;
 
     drawButton(currentPos, CColor(*PMAXCOLOR));
 
@@ -300,7 +303,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     wlr_box textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
     g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
 
-    renderBarButtons(BARBUF);
+    renderBarButtons(BARBUF, pMonitor->scale);
 
     g_pHyprOpenGL->renderTexture(m_tButtonsTex, &textBox, a);
 
