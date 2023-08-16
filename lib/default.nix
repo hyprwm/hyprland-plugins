@@ -1,0 +1,3 @@
+{
+  pluginBuilder = import ./builder.nix;
+}

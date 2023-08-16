@@ -7,22 +7,23 @@
     self,
     hyprland,
   }: let
-    inherit (hyprland.inputs) nixpkgs;
-    withPkgsFor = fn: nixpkgs.lib.genAttrs (builtins.attrNames hyprland.packages) (system: fn system nixpkgs.legacyPackages.${system});
+    inherit (hyprland.inputs) nixpkgs systems;
+    inherit (nixpkgs) lib;
+    inherit (import ./lib) pluginBuilder;
+    withPkgsFor = fn: lib.genAttrs (import systems) (system: fn system nixpkgs.legacyPackages.${system});
   in {
-    packages = withPkgsFor (system: pkgs: {
-      borders-plus-plus = pkgs.callPackage ./borders-plus-plus {
-        inherit (hyprland.packages.${system}) hyprland;
-        stdenv = pkgs.gcc13Stdenv;
-      };
-      csgo-vulkan-fix = pkgs.callPackage ./csgo-vulkan-fix {
-        inherit (hyprland.packages.${system}) hyprland;
-        stdenv = pkgs.gcc13Stdenv;
-      };
-      hyprbars = pkgs.callPackage ./hyprbars {
-        inherit (hyprland.packages.${system}) hyprland;
-        stdenv = pkgs.gcc13Stdenv;
-      };
+    packages = withPkgsFor (system: pkgs: let
+      builder = pluginBuilder hyprland pkgs.gcc13Stdenv;
+    in {
+      borders-plus-plus = builder (import ./borders-plus-plus lib);
+      csgo-vulkan-fix = builder (import ./csgo-vulkan-fix lib);
+      hyprbars = builder (import ./hyprbars lib);
+    });
+
+    legacyPackages = withPkgsFor (system: pkgs: let
+      builder = pluginBuilder hyprland pkgs.stdenv;
+    in {
+      all = import ./all.nix {inherit builder lib;};
     });
 
     devShells = withPkgsFor (system: pkgs: {
