@@ -6,6 +6,7 @@
 
 #include "globals.hpp"
 
+constexpr int BAR_PADDING = 10;
 constexpr int BUTTONS_PAD = 5;
 
 CHyprBar::CHyprBar(CWindow* pWindow) {
@@ -45,7 +46,7 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
     static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
 
-    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + *PBORDERSIZE * 2, *PHEIGHT)) {
+    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + *PBORDERSIZE * 2, *PHEIGHT + *PBORDERSIZE)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
@@ -70,21 +71,19 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
 
     // check if on a button
     static auto* const PBUTTONSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size")->intValue;
-    const auto         BARBUF      = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT};
-    Vector2D           currentPos  = Vector2D{BARBUF.x - BUTTONS_PAD - *PBUTTONSIZE, BARBUF.y / 2.0 - *PBUTTONSIZE / 2.0}.floor();
-    currentPos.y -= BUTTONS_PAD / 2.0;
+
+    const auto         BARBUF     = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PBORDERSIZE};
+    Vector2D           currentPos = Vector2D{BARBUF.x - 2 * BUTTONS_PAD - *PBUTTONSIZE, (BARBUF.y - *PBUTTONSIZE) / 2.0}.floor();
 
     currentPos.x -= BUTTONS_PAD / 2.0;
-
-    if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + *PBUTTONSIZE + BUTTONS_PAD, currentPos.y + *PBUTTONSIZE + BUTTONS_PAD)) {
+    if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + *PBUTTONSIZE + BUTTONS_PAD, currentPos.y + *PBUTTONSIZE)) {
         // hit on close
         g_pCompositor->closeWindow(m_pWindow);
         return;
     }
 
     currentPos.x -= BUTTONS_PAD + *PBUTTONSIZE;
-
-    if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + *PBUTTONSIZE + BUTTONS_PAD, currentPos.y + *PBUTTONSIZE + BUTTONS_PAD)) {
+    if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + *PBUTTONSIZE + BUTTONS_PAD, currentPos.y + *PBUTTONSIZE)) {
         // hit on maximize
         g_pKeybindManager->m_mDispatchers["fullscreen"]("1");
         return;
@@ -105,19 +104,23 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     }
 }
 
-void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
+void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->intValue;
     static auto* const PSIZE       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->intValue;
     static auto* const PFONT       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->strValue;
     static auto* const PBUTTONSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size")->intValue;
     static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
 
+    const auto         scaledSize       = *PSIZE * scale;
+    const auto         scaledButtonSize = *PBUTTONSIZE * scale;
+    const auto         scaledBorderSize = *PBORDERSIZE * scale;
+    const auto         scaledButtonsPad = BUTTONS_PAD * scale;
+    const auto         scaledBarPadding = BAR_PADDING * scale;
+
     const CColor       COLOR = *PCOLOR;
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
-
-    const int          BARPADDING = 10;
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -130,12 +133,12 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     pango_layout_set_text(layout, m_szLastTitle.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_from_string(PFONT->c_str());
-    pango_font_description_set_size(fontDesc, *PSIZE * PANGO_SCALE);
+    pango_font_description_set_size(fontDesc, scaledSize * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
-    const int leftPadding  = *PBORDERSIZE + BARPADDING;
-    const int rightPadding = (*PBUTTONSIZE * 2) + (BUTTONS_PAD * 3) + *PBORDERSIZE + BARPADDING;
+    const int leftPadding  = scaledBorderSize + scaledBarPadding;
+    const int rightPadding = (scaledButtonSize * 2) + (scaledButtonsPad * 3) + scaledBorderSize + scaledBarPadding;
     const int maxWidth     = bufferSize.x - leftPadding - rightPadding;
 
     pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
@@ -145,7 +148,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
 
     int layoutWidth, layoutHeight;
     pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
-    const int xOffset = std::round(((bufferSize.x - *PBORDERSIZE) / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
+    const int xOffset = std::round(((bufferSize.x - scaledBorderSize) / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
     const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
 
     cairo_move_to(CAIRO, xOffset, yOffset);
@@ -174,10 +177,13 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
-void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
+void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     static auto* const PCLOSECOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close")->intValue;
     static auto* const PMAXCOLOR   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize")->intValue;
     static auto* const PBUTTONSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size")->intValue;
+
+    const auto         scaledButtonSize = *PBUTTONSIZE * scale;
+    const auto         scaledButtonsPad = BUTTONS_PAD * scale;
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
@@ -193,18 +199,18 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize) {
     auto drawButton = [&](Vector2D pos, CColor col) -> void {
         const int X      = pos.x;
         const int Y      = pos.y;
-        const int RADIUS = static_cast<int>(std::ceil(*PBUTTONSIZE / 2.0));
+        const int RADIUS = static_cast<int>(std::ceil(scaledButtonSize / 2.0));
 
         cairo_set_source_rgba(CAIRO, col.r, col.g, col.b, col.a);
         cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
         cairo_fill(CAIRO);
     };
 
-    Vector2D currentPos = Vector2D{bufferSize.x - BUTTONS_PAD - *PBUTTONSIZE, bufferSize.y / 2.0 - *PBUTTONSIZE / 2.0}.floor();
+    Vector2D currentPos = Vector2D{bufferSize.x - scaledButtonsPad - scaledButtonSize, (bufferSize.y - scaledButtonSize) / 2.0}.floor();
 
     drawButton(currentPos, CColor(*PCLOSECOLOR));
 
-    currentPos.x -= BUTTONS_PAD + *PBUTTONSIZE;
+    currentPos.x -= scaledButtonsPad + scaledButtonSize;
 
     drawButton(currentPos, CColor(*PMAXCOLOR));
 
@@ -238,6 +244,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
     static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
     static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+
+    const auto         scaledRounding   = *PROUNDING * pMonitor->scale;
+    const auto         scaledBorderSize = *PBORDERSIZE * pMonitor->scale;
 
     CColor             color = *PCOLOR;
     color.a *= a;
@@ -273,19 +282,19 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y + offset.y - pMonitor->vecPosition.y, (int)m_vLastWindowSize.x,
                              (int)m_vLastWindowSize.y};
         scaleBox(&windowBox, pMonitor->scale);
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), *PROUNDING + *PBORDERSIZE);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding + scaledBorderSize);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
-    g_pHyprOpenGL->renderRect(&titleBarBox, color, *PROUNDING);
+    g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
     if (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0) {
         m_szLastTitle = m_pWindow->m_szTitle;
-        renderBarTitle(BARBUF);
+        renderBarTitle(BARBUF, pMonitor->scale);
     }
 
     if (*PROUNDING) {
@@ -300,7 +309,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     wlr_box textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
     g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
 
-    renderBarButtons(BARBUF);
+    renderBarButtons(BARBUF, pMonitor->scale);
 
     g_pHyprOpenGL->renderTexture(m_tButtonsTex, &textBox, a);
 
