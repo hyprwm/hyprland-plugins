@@ -9,7 +9,7 @@
 constexpr int BAR_PADDING = 10;
 constexpr int BUTTONS_PAD = 5;
 
-CHyprBar::CHyprBar(CWindow* pWindow) {
+CHyprBar::CHyprBar(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow         = pWindow;
     m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
@@ -50,7 +50,7 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
-            Debug::log(LOG, "[hyprbars] Dragging ended on %x", m_pWindow);
+            Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow);
         }
 
         m_bDraggingThis = false;
@@ -63,7 +63,7 @@ void CHyprBar::onMouseDown(wlr_pointer_button_event* e) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
             m_bDraggingThis = false;
 
-            Debug::log(LOG, "[hyprbars] Dragging ended on %x", m_pWindow);
+            Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow);
         }
 
         return;
@@ -98,7 +98,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
         g_pKeybindManager->m_mDispatchers["mouse"]("1movewindow");
         m_bDraggingThis = true;
 
-        Debug::log(LOG, "[hyprbars] Dragging initiated on %x", m_pWindow);
+        Debug::log(LOG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow);
 
         return;
     }
