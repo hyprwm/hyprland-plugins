@@ -11,19 +11,19 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationExtents();
 
-    virtual void draw(CMonitor*, float a, const Vector2D& offset);
+    virtual void                     draw(CMonitor*, float a, const Vector2D& offset);
 
-    virtual eDecorationType getDecorationType();
+    virtual eDecorationType          getDecorationType();
 
-    virtual void updateWindow(CWindow*);
+    virtual void                     updateWindow(CWindow*);
 
-    virtual void damageEntire();
+    virtual void                     damageEntire();
 
   private:
     SWindowDecorationExtents m_seExtents;
 
-    CWindow* m_pWindow = nullptr;
+    CWindow*                 m_pWindow = nullptr;
 
-    Vector2D m_vLastWindowPos;
-    Vector2D m_vLastWindowSize;
+    Vector2D                 m_vLastWindowPos;
+    Vector2D                 m_vLastWindowSize;
 };

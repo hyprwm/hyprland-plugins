@@ -5,8 +5,7 @@
 
 #include "globals.hpp"
 
-CBordersPlusPlus::CBordersPlusPlus(CWindow* pWindow) {
-    m_pWindow         = pWindow;
+CBordersPlusPlus::CBordersPlusPlus(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
 }
