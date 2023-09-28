@@ -74,7 +74,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     g_pSurfaceSizeHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_xwayland_surface_configure, (void*)&hkSetWindowSize);
     g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_surface_get_effective_damage, (void*)&hkSurfaceDamage);
-    bool hkResult        = hkResult && g_pSurfaceSizeHook->hook();
+    bool hkResult        = g_pSurfaceSizeHook->hook();
     hkResult             = hkResult && g_pSurfaceDamageHook->hook();
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, std::any data) { onNewWindow(self, data); });
