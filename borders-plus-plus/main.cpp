@@ -19,8 +19,6 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    HyprlandAPI::addNotification(PHANDLE, "a", CColor{0.2, 1.0, 0.2, 1.0}, 2000);
-
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CBordersPlusPlus(PWINDOW));
 }
 
