@@ -19,6 +19,8 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
+    HyprlandAPI::addNotification(PHANDLE, "a", CColor{0.2, 1.0, 0.2, 1.0}, 2000);
+
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CBordersPlusPlus(PWINDOW));
 }
 
@@ -35,6 +37,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
+
+        HyprlandAPI::addNotification(PHANDLE, "b", CColor{0.2, 1.0, 0.2, 1.0}, 2000);
 
         HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), new CBordersPlusPlus(w.get()));
     }
