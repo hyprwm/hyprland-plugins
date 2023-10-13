@@ -41,7 +41,7 @@ void hkNotifyMotion(wlr_seat* wlr_seat, uint32_t time_msec, double sx, double sy
     static auto* const RESX = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->intValue;
     static auto* const RESY = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->intValue;
 
-    if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_szInitialClass == "csgo_linux64" && g_pCompositor->m_pLastMonitor) {
+    if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_szInitialClass == "cs2" && g_pCompositor->m_pLastMonitor) {
         // fix the coords
         sx *= *RESX / g_pCompositor->m_pLastMonitor->vecSize.x;
         sy *= *RESY / g_pCompositor->m_pLastMonitor->vecSize.y;
