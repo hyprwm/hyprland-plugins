@@ -19,6 +19,8 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual void                     damageEntire();
 
+    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
+
   private:
     SWindowDecorationExtents m_seExtents;
 
