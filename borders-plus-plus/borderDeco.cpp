@@ -43,8 +43,8 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     if (*PBORDERS < 1)
         return;
 
-    auto       rounding      = m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
-    const auto ORIGINALROUND = m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
+    auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
     wlr_box    fullBox       = {(int)m_vLastWindowPos.x, (int)m_vLastWindowPos.y, (int)m_vLastWindowSize.x, (int)m_vLastWindowSize.y};
 
     fullBox.x -= pMonitor->vecPosition.x;
@@ -65,7 +65,7 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
         const int THISBORDERSIZE = *PSIZES[i] == -1 ? *PBORDERSIZE : *PSIZES[i];
 
         if (i != 0) {
-            rounding += PREVBORDERSIZE;
+            rounding += rounding == 0 ? 0 : PREVBORDERSIZE;
             fullBox.x -= PREVBORDERSIZE;
             fullBox.y -= PREVBORDERSIZE;
             fullBox.width += PREVBORDERSIZE * 2;
