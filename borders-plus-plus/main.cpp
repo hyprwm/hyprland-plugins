@@ -25,6 +25,14 @@ void onNewWindow(void* self, std::any data) {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
+    const std::string HASH = __hyprland_api_get_hash();
+
+    if (HASH != GIT_COMMIT_HASH) {
+        HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
+                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        throw std::runtime_error("[bpp] Version mismatch");
+    }
+
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders", SConfigValue{.intValue = 1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_1", SConfigValue{.intValue = configStringToInt("rgba(000000ee)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_2", SConfigValue{.intValue = configStringToInt("rgba(000000ee)")});
