@@ -65,6 +65,8 @@ void hkSetWindowSize(wlr_xwayland_surface* surface, int16_t x, int16_t y, uint16
     if (PWINDOW && PWINDOW->m_szInitialClass == "cs2") {
         width  = *RESX;
         height = *RESY;
+
+        CWLSurface::surfaceFromWlr(SURF)->m_bFillIgnoreSmall = true;
     }
 
     (*(origSurfaceSize)g_pSurfaceSizeHook->m_pOriginal)(surface, x, y, width, height);
