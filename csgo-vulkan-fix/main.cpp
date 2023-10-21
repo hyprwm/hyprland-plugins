@@ -96,7 +96,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     hkResult             = hkResult && g_pSurfaceSizeHook->hook();
     hkResult             = hkResult && g_pSurfaceDamageHook->hook();
 
-    HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, std::any data) { onNewWindow(self, data); });
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
     if (hkResult)
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (CS2 version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);

@@ -17,10 +17,11 @@ CHyprBar::CHyprBar(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     const auto PMONITOR       = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     PMONITOR->scheduledRecalc = true;
 
-    m_pMouseButtonCallback =
-        HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseButton", [&](void* self, std::any param) { onMouseDown(std::any_cast<wlr_pointer_button_event*>(param)); });
+    m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
+        PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseDown(std::any_cast<wlr_pointer_button_event*>(param)); });
 
-    m_pMouseMoveCallback = HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
+    m_pMouseMoveCallback =
+        HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
 }
 
 CHyprBar::~CHyprBar() {
@@ -260,7 +261,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
     wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PBORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                              (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
