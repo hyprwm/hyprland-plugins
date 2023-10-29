@@ -28,6 +28,7 @@ CHyprBar::~CHyprBar() {
     damageEntire();
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseButtonCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseMoveCallback);
+    std::erase(g_pGlobalState->bars, this);
 }
 
 bool CHyprBar::allowsInput() {
@@ -111,6 +112,63 @@ void CHyprBar::onMouseMove(Vector2D coords) {
 
         return;
     }
+}
+
+void CHyprBar::renderText(CTexture& out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    // clear the pixmap
+    cairo_save(CAIRO);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
+
+    // draw title using Pango
+    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    pango_layout_set_text(layout, text.c_str(), -1);
+
+    PangoFontDescription* fontDesc = pango_font_description_from_string("sans");
+    pango_font_description_set_size(fontDesc, fontSize * scale * PANGO_SCALE);
+    pango_layout_set_font_description(layout, fontDesc);
+    pango_font_description_free(fontDesc);
+
+    const int maxWidth = bufferSize.x;
+
+    pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
+    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_NONE);
+
+    cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
+
+    int layoutWidth, layoutHeight;
+    pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
+    const double xOffset = (bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0);
+    const double yOffset = (bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0);
+
+    cairo_move_to(CAIRO, xOffset, yOffset);
+    pango_cairo_show_layout(CAIRO, layout);
+
+    g_object_unref(layout);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    // copy the data to an OpenGL texture we have
+    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    out.allocate();
+    glBindTexture(GL_TEXTURE_2D, out.m_iTexID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+#ifndef GLES2
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+#endif
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+
+    // delete cairo
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
@@ -206,8 +264,8 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     // draw buttons
     int  offset = scaledButtonsPad;
 
-    auto drawButton = [&](SHyprButton& pButton) -> void {
-        const auto scaledButtonSize = pButton.size * scale;
+    auto drawButton = [&](SHyprButton& button) -> void {
+        const auto scaledButtonSize = button.size * scale;
 
         Vector2D   currentPos = Vector2D{bufferSize.x - offset - scaledButtonSize, (bufferSize.y - scaledButtonSize) / 2.0}.floor();
 
@@ -215,7 +273,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         const int  Y      = currentPos.y;
         const int  RADIUS = static_cast<int>(std::ceil(scaledButtonSize / 2.0));
 
-        cairo_set_source_rgba(CAIRO, pButton.col.r, pButton.col.g, pButton.col.b, pButton.col.a);
+        cairo_set_source_rgba(CAIRO, button.col.r, button.col.g, button.col.b, button.col.a);
         cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
         cairo_fill(CAIRO);
 
@@ -243,6 +301,37 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     // delete cairo
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
+}
+
+void CHyprBar::renderBarButtonsText(wlr_box* barBox, const float scale) {
+    const auto scaledButtonsPad = BUTTONS_PAD * scale;
+    int        offset           = scaledButtonsPad;
+
+    auto       drawButton = [&](SHyprButton& button) -> void {
+        const auto scaledButtonSize = button.size * scale;
+
+        if (button.iconTex.m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
+            // render icon
+            const Vector2D BUFSIZE = {scaledButtonSize, scaledButtonSize};
+
+            const bool     LIGHT = button.col.r + button.col.g + button.col.b < 1;
+
+            renderText(button.iconTex, button.icon, LIGHT ? CColor(0xFFFFFFFF) : CColor(0xFF000000), BUFSIZE, scale, scaledButtonSize * 0.62);
+        }
+
+        if (button.iconTex.m_iTexID == 0)
+            return;
+
+        wlr_box pos = {barBox->x + barBox->width - offset - scaledButtonSize * 1.5, barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize, scaledButtonSize};
+
+        g_pHyprOpenGL->renderTexture(button.iconTex, &pos, 1);
+
+        offset += scaledButtonsPad + scaledButtonSize;
+    };
+
+    for (auto& b : g_pGlobalState->buttons) {
+        drawButton(b);
+    }
 }
 
 void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
@@ -322,11 +411,16 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     wlr_box textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
     g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
 
-    renderBarButtons(BARBUF, pMonitor->scale);
+    if (m_bButtonsDirty || m_bWindowSizeChanged) {
+        renderBarButtons(BARBUF, pMonitor->scale);
+        m_bButtonsDirty = false;
+    }
 
     g_pHyprOpenGL->renderTexture(m_tButtonsTex, &textBox, a);
 
     g_pHyprOpenGL->scissor((wlr_box*)nullptr);
+
+    renderBarButtonsText(&textBox, pMonitor->scale);
 
     m_bWindowSizeChanged = false;
 }

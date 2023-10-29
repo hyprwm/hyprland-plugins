@@ -19,8 +19,11 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    if (!PWINDOW->m_bX11DoesntWantBorders)
-        HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CHyprBar(PWINDOW));
+    if (!PWINDOW->m_bX11DoesntWantBorders) {
+        CHyprBar* bar = new CHyprBar(PWINDOW);
+        HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, static_cast<IHyprWindowDecoration*>(bar));
+        g_pGlobalState->bars.push_back(bar);
+    }
 }
 
 void onPreConfigReload() {
@@ -30,7 +33,7 @@ void onPreConfigReload() {
 void onNewButton(const std::string& k, const std::string& v) {
     CVarList vars(v);
 
-    // hyprbars-button = color, size, action
+    // hyprbars-button = color, size, icon, action
 
     if (vars[0].empty() || vars[1].empty())
         return;
@@ -40,7 +43,11 @@ void onNewButton(const std::string& k, const std::string& v) {
         size = std::stof(vars[1]);
     } catch (std::exception& e) { return; }
 
-    g_pGlobalState->buttons.push_back(SHyprButton{vars[2], configStringToInt(vars[0]), size});
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], configStringToInt(vars[0]), size, vars[2]});
+
+    for (auto& b : g_pGlobalState->bars) {
+        b->m_bButtonsDirty = true;
+    }
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -72,7 +79,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), new CHyprBar(w.get()));
+        onNewWindow(nullptr /* unused */, std::any(w.get()));
     }
 
     HyprlandAPI::reloadConfig();

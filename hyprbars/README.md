@@ -2,7 +2,7 @@
 
 Adds simple title bars to windows.
 
-![preview](https://i.ibb.co/GkDTL4Q/20230228-23h20m36s-grim.png)
+![preview](https://i.ibb.co/hLDRCpT/20231029-22h30m05s.png)
 
 ## Config
 
@@ -16,8 +16,8 @@ plugin {
 
         # example buttons (R -> L)
         # hyprbars-button = color, size, on-click
-        hyprbars-button = rgb(ff4040), 10, hyprctl dispatch killactive
-        hyprbars-button = rgb(eeee11), 10, hyprctl dispatch fullscreen 1
+        hyprbars-button = rgb(ff4040), 10, 󰖭, hyprctl dispatch killactive
+        hyprbars-button = rgb(eeee11), 10, , hyprctl dispatch fullscreen 1
     }
 }
 ```
@@ -37,5 +37,5 @@ plugin {
 Use the `hyprbars-button` keyword.
 
 ```ini
-hyprbars-button = color, size, on-click
+hyprbars-button = color, size, icon, on-click
 ```
