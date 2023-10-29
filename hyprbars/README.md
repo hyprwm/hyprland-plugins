@@ -11,10 +11,13 @@ All config options are in `plugin:hyprbars`:
 ```
 plugin {
     hyprbars {
-        # config
-        buttons {
-            # button config
-        }
+        # example config
+        bar_height = 20
+
+        # example buttons (R -> L)
+        # hyprbars-button = color, size, on-click
+        hyprbars-button = rgb(ff4040), 10, hyprctl dispatch killactive
+        hyprbars-button = rgb(eeee11), 10, hyprctl dispatch fullscreen 1
     }
 }
 ```
@@ -31,8 +34,8 @@ plugin {
 
 ## Buttons Config
 
-`button_size` -> (int) the size of the buttons.
+Use the `hyprbars-button` keyword.
 
-`col.maximize` -> (col) maximize button color
-
-`col.close` -> (col) close button color
+```ini
+hyprbars-button = color, size, on-click
+```

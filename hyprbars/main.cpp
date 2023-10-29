@@ -23,8 +23,29 @@ void onNewWindow(void* self, std::any data) {
         HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CHyprBar(PWINDOW));
 }
 
+void onPreConfigReload() {
+    g_pGlobalState->buttons.clear();
+}
+
+void onNewButton(const std::string& k, const std::string& v) {
+    CVarList vars(v);
+
+    // hyprbars-button = color, size, action
+
+    if (vars[0].empty() || vars[1].empty())
+        return;
+
+    float size = 10;
+    try {
+        size = std::stof(vars[1]);
+    } catch (std::exception& e) { return; }
+
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[2], configStringToInt(vars[0]), size});
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
-    PHANDLE = handle;
+    PHANDLE        = handle;
+    g_pGlobalState = std::make_unique<SGlobalState>();
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
@@ -33,9 +54,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", SConfigValue{.intValue = 10});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.close", SConfigValue{.intValue = configStringToInt("rgba(cc0000cc)")});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:col.maximize", SConfigValue{.intValue = configStringToInt("rgba(ffff33cc)")});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:buttons:button_size", SConfigValue{.intValue = 10});
+
+    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprbars-button", [&](const std::string& k, const std::string& v) { onNewButton(k, v); });
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_vWindows) {

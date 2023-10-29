@@ -42,7 +42,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     void                     renderBarTitle(const Vector2D& bufferSize, const float scale);
     void                     renderBarButtons(const Vector2D& bufferSize, const float scale);
-    void                     onMouseDown(wlr_pointer_button_event* e);
+    void                     onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e);
     void                     onMouseMove(Vector2D coords);
 
     HOOK_CALLBACK_FN*        m_pMouseButtonCallback;
@@ -50,6 +50,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     std::string              m_szLastTitle;
 
-    bool                     m_bDraggingThis = false;
-    bool                     m_bDragPending  = false;
+    bool                     m_bDraggingThis  = false;
+    bool                     m_bDragPending   = false;
+    bool                     m_bCancelledDown = false;
 };
