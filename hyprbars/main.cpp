@@ -44,7 +44,16 @@ void onNewButton(const std::string& k, const std::string& v) {
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
-    PHANDLE        = handle;
+    PHANDLE = handle;
+
+    const std::string HASH = __hyprland_api_get_hash();
+
+    if (HASH != GIT_COMMIT_HASH) {
+        HyprlandAPI::addNotification(PHANDLE, "[hyprbars] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
+                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        throw std::runtime_error("[hb] Version mismatch");
+    }
+
     g_pGlobalState = std::make_unique<SGlobalState>();
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
