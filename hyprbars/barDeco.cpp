@@ -48,7 +48,7 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
     static auto* const PHEIGHT    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + BORDERSIZE * 2, *PHEIGHT + BORDERSIZE)) {
+    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + BORDERSIZE * 2, *PHEIGHT)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
