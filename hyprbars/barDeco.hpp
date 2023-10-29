@@ -57,4 +57,7 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                     m_bDraggingThis  = false;
     bool                     m_bDragPending   = false;
     bool                     m_bCancelledDown = false;
+
+    // for dynamic updates
+    int m_iLastHeight = 0;
 };

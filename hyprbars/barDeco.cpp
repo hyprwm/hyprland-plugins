@@ -345,12 +345,17 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     static auto* const PCOLOR    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
     static auto* const PHEIGHT   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
 
-    const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
+    if (*PHEIGHT < 1) {
+        m_iLastHeight = *PHEIGHT;
+        return;
+    }
 
-    const auto         scaledRounding   = *PROUNDING * pMonitor->scale;
-    const auto         scaledBorderSize = BORDERSIZE * pMonitor->scale;
+    const auto BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    CColor             color = *PCOLOR;
+    const auto scaledRounding   = *PROUNDING * pMonitor->scale;
+    const auto scaledBorderSize = BORDERSIZE * pMonitor->scale;
+
+    CColor     color = *PCOLOR;
     color.a *= a;
 
     const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ?
@@ -423,6 +428,12 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     renderBarButtonsText(&textBox, pMonitor->scale);
 
     m_bWindowSizeChanged = false;
+
+    // dynamic updates change the extents
+    if (m_iLastHeight != *PHEIGHT) {
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pWindow);
+        m_iLastHeight = *PHEIGHT;
+    }
 }
 
 eDecorationType CHyprBar::getDecorationType() {
