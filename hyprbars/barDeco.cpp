@@ -44,10 +44,10 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     const auto         COORDS = cursorRelativeToBar();
 
-    static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
-    static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
+    static auto* const PHEIGHT    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + *PBORDERSIZE * 2, *PHEIGHT + *PBORDERSIZE)) {
+    if (!VECINRECT(COORDS, 0, 0, m_vLastWindowSize.x + BORDERSIZE * 2, *PHEIGHT + BORDERSIZE)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
@@ -86,7 +86,7 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
     float offset = 0;
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PBORDERSIZE};
+        const auto BARBUF     = Vector2D{(int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT + BORDERSIZE};
         Vector2D   currentPos = Vector2D{BARBUF.x - 2 * BUTTONS_PAD - b.size - offset, (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BUTTONS_PAD, currentPos.y + b.size)) {
@@ -114,10 +114,11 @@ void CHyprBar::onMouseMove(Vector2D coords) {
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
-    static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->intValue;
-    static auto* const PSIZE       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->intValue;
-    static auto* const PFONT       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->strValue;
-    static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
+    static auto* const PCOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->intValue;
+    static auto* const PSIZE  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->intValue;
+    static auto* const PFONT  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->strValue;
+
+    const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
 
     float              buttonSizes = 0;
     for (auto& b : g_pGlobalState->buttons) {
@@ -125,7 +126,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     }
 
     const auto   scaledSize        = *PSIZE * scale;
-    const auto   scaledBorderSize  = *PBORDERSIZE * scale;
+    const auto   scaledBorderSize  = BORDERSIZE * scale;
     const auto   scaledButtonsSize = buttonSizes * scale;
     const auto   scaledButtonsPad  = BUTTONS_PAD * scale;
     const auto   scaledBarPadding  = BAR_PADDING * scale;
@@ -251,13 +252,14 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PROUNDING   = &HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->intValue;
-    static auto* const PBORDERSIZE = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
-    static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
-    static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const PROUNDING = &HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->intValue;
+    static auto* const PCOLOR    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
+    static auto* const PHEIGHT   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+
+    const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
 
     const auto         scaledRounding   = *PROUNDING * pMonitor->scale;
-    const auto         scaledBorderSize = *PBORDERSIZE * pMonitor->scale;
+    const auto         scaledBorderSize = BORDERSIZE * pMonitor->scale;
 
     CColor             color = *PCOLOR;
     color.a *= a;
@@ -268,10 +270,10 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     m_seExtents = {{0, *PHEIGHT + 1}, {}};
 
-    const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT} * pMonitor->scale;
+    const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
-    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - *PBORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - *PBORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                           (int)m_vLastWindowSize.x + 2 * *PBORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+    wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - BORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - BORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
+                           (int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
