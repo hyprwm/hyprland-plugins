@@ -100,8 +100,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     if (hkResult)
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (CS2 version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
-    else
+    else {
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization (hook failed)!", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        throw std::runtime_error("[csgo-vk-fix] Hooks failed");
+    }
 
     return {"csgo-vulkan-fix", "A plugin to fix incorrect mouse offsets on csgo in Vulkan", "Vaxry", "1.1"};
 }
