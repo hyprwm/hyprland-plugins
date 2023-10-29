@@ -316,7 +316,7 @@ void CHyprBar::renderBarButtonsText(wlr_box* barBox, const float scale) {
 
             const bool     LIGHT = button.col.r + button.col.g + button.col.b < 1;
 
-            renderText(button.iconTex, button.icon, LIGHT ? CColor(0xFFFFFFFF) : CColor(0xFF000000), BUFSIZE, scale, scaledButtonSize * 0.62);
+            renderText(button.iconTex, button.icon, LIGHT ? CColor(0xFFFFFFFF) : CColor(0xFF000000), BUFSIZE, scale, button.size * 0.62);
         }
 
         if (button.iconTex.m_iTexID == 0)
