@@ -1,6 +1,9 @@
 # csgo-vulkan-fix
 
-Updated for CS2.
+Originally meant for csgo / cs2, but can work with any app, really.
+
+csgo-vulkan-fix is a way to force apps to a fake resolution without
+them realizing it.
 
 If you want to play CS2, you're locked to your native res.
 Other resolutions (especially not 16:9) are wonky.
@@ -18,6 +21,9 @@ plugin {
     csgo-vulkan-fix {
         res_w = 1680
         res_h = 1050
+
+        # NOT a regex! This is a string and has to exactly match initial_class
+        class = cs2
     }
 }
 ```
