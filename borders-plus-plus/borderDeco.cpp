@@ -45,13 +45,9 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
 
     auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
     const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
-    wlr_box    fullBox       = {(int)m_vLastWindowPos.x, (int)m_vLastWindowPos.y, (int)m_vLastWindowSize.x, (int)m_vLastWindowSize.y};
+    CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
-    fullBox.x -= pMonitor->vecPosition.x;
-    fullBox.y -= pMonitor->vecPosition.y;
-
-    fullBox.x += offset.x;
-    fullBox.y += offset.y;
+    fullBox.translate(offset - pMonitor->vecPosition);
 
     double fullThickness = 0;
 
@@ -75,10 +71,9 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
         if (fullBox.width < 1 || fullBox.height < 1)
             break;
 
-        g_pHyprOpenGL->scissor((wlr_box*)nullptr);
-        wlr_box saveBox = fullBox;
-
-        scaleBox(&fullBox, pMonitor->scale);
+        g_pHyprOpenGL->scissor((CBox*)nullptr);
+        CBox saveBox = fullBox;
+        saveBox.scale(pMonitor->scale).round();
 
         g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t)*PCOLORS[i]}, *PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a, *PNATURALROUND ? ORIGINALROUND : -1);
 
@@ -106,7 +101,7 @@ void CBordersPlusPlus::updateWindow(CWindow* pWindow) {
 }
 
 void CBordersPlusPlus::damageEntire() {
-    wlr_box dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
-                  (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
+    CBox dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
+               (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }
