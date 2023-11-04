@@ -23,7 +23,9 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual SWindowDecorationExtents getWindowDecorationReservedArea();
 
-    virtual bool                     allowsInput();
+    virtual eDecorationLayer         getDecorationLayer();
+
+    virtual uint64_t                 getDecorationFlags();
 
     bool                             m_bButtonsDirty = true;
 
@@ -45,7 +47,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void                     renderBarTitle(const Vector2D& bufferSize, const float scale);
     void                     renderText(CTexture& out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
     void                     renderBarButtons(const Vector2D& bufferSize, const float scale);
-    void                     renderBarButtonsText(wlr_box* barBox, const float scale);
+    void                     renderBarButtonsText(wlr_box* barBox, const float scale, const float a);
     void                     onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e);
     void                     onMouseMove(Vector2D coords);
 

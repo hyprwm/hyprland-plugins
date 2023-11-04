@@ -31,10 +31,6 @@ CHyprBar::~CHyprBar() {
     std::erase(g_pGlobalState->bars, this);
 }
 
-bool CHyprBar::allowsInput() {
-    return true;
-}
-
 SWindowDecorationExtents CHyprBar::getWindowDecorationExtents() {
     return m_seExtents;
 }
@@ -303,7 +299,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
-void CHyprBar::renderBarButtonsText(wlr_box* barBox, const float scale) {
+void CHyprBar::renderBarButtonsText(wlr_box* barBox, const float scale, const float a) {
     const auto scaledButtonsPad = BUTTONS_PAD * scale;
     int        offset           = scaledButtonsPad;
 
@@ -324,7 +320,7 @@ void CHyprBar::renderBarButtonsText(wlr_box* barBox, const float scale) {
 
         wlr_box pos = {barBox->x + barBox->width - offset - scaledButtonSize * 1.5, barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize, scaledButtonSize};
 
-        g_pHyprOpenGL->renderTexture(button.iconTex, &pos, 1);
+        g_pHyprOpenGL->renderTexture(button.iconTex, &pos, a);
 
         offset += scaledButtonsPad + scaledButtonSize;
     };
@@ -341,9 +337,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PROUNDING = &HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->intValue;
-    static auto* const PCOLOR    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
-    static auto* const PHEIGHT   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const PCOLOR  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
+    static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
 
     if (*PHEIGHT < 1) {
         m_iLastHeight = *PHEIGHT;
@@ -351,23 +346,20 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     const auto BORDERSIZE = m_pWindow->getRealBorderSize();
+    const auto ROUNDING   = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
-    const auto scaledRounding   = *PROUNDING * pMonitor->scale;
+    const auto scaledRounding   = ROUNDING * pMonitor->scale;
     const auto scaledBorderSize = BORDERSIZE * pMonitor->scale;
 
     CColor     color = *PCOLOR;
     color.a *= a;
 
-    const auto ROUNDING = !m_pWindow->m_sSpecialRenderData.rounding ?
-        0 :
-        (m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_pWindow->m_sAdditionalConfigData.rounding.toUnderlying());
-
-    m_seExtents = {{0, *PHEIGHT + 1}, {}};
+    m_seExtents = {{0, *PHEIGHT}, {}};
 
     const auto BARBUF = Vector2D{(int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
     wlr_box    titleBarBox = {(int)m_vLastWindowPos.x - BORDERSIZE - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y - BORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                           (int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT + *PROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                           (int)m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.x += offset.x;
     titleBarBox.y += offset.y;
@@ -376,7 +368,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     g_pHyprOpenGL->scissor(&titleBarBox);
 
-    if (*PROUNDING) {
+    if (ROUNDING) {
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -404,7 +396,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         renderBarTitle(BARBUF, pMonitor->scale);
     }
 
-    if (*PROUNDING) {
+    if (ROUNDING) {
         // cleanup stencil
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
@@ -425,7 +417,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     g_pHyprOpenGL->scissor((wlr_box*)nullptr);
 
-    renderBarButtonsText(&textBox, pMonitor->scale);
+    renderBarButtonsText(&textBox, pMonitor->scale, a);
 
     m_bWindowSizeChanged = false;
 
@@ -469,4 +461,12 @@ Vector2D CHyprBar::cursorRelativeToBar() {
     static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     static auto* const PBORDER = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
     return g_pInputManager->getMouseCoordsInternal() - m_pWindow->m_vRealPosition.vec() + Vector2D{*PBORDER, *PHEIGHT + *PBORDER};
+}
+
+eDecorationLayer CHyprBar::getDecorationLayer() {
+    return DECORATION_LAYER_UNDER;
+}
+
+uint64_t CHyprBar::getDecorationFlags() {
+    return DECORATION_ALLOWS_MOUSE_INPUT | DECORATION_PART_OF_MAIN_WINDOW;
 }
