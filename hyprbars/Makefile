@@ -8,7 +8,7 @@ TARGET = hyprbars.so
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ $> -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ $> -o $@ $(LIBS) -O2
 
 clean:
 	rm ./$(TARGET)
