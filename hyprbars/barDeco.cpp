@@ -348,7 +348,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BORDERSIZE = m_pWindow->getRealBorderSize();
     const auto ROUNDING   = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
-    const auto scaledRounding   = ROUNDING * pMonitor->scale;
+    const auto scaledRounding   = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
     const auto scaledBorderSize = BORDERSIZE * pMonitor->scale;
 
     CColor     color = *PCOLOR;
@@ -378,10 +378,12 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x - pMonitor->vecPosition.x, (int)m_vLastWindowPos.y + offset.y - pMonitor->vecPosition.y, (int)m_vLastWindowSize.x,
-                             (int)m_vLastWindowSize.y};
+        // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
+        wlr_box windowBox = {(int)m_vLastWindowPos.x + offset.x - pMonitor->vecPosition.x - BORDERSIZE + 1,
+                             (int)m_vLastWindowPos.y + offset.y - pMonitor->vecPosition.y - BORDERSIZE + 1, (int)m_vLastWindowSize.x + 2 * BORDERSIZE - 2,
+                             (int)m_vLastWindowSize.y + 2 * BORDERSIZE - 2};
         scaleBox(&windowBox, pMonitor->scale);
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding + scaledBorderSize);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
