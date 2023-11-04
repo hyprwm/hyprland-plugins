@@ -95,6 +95,7 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     box thisbox =
         box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x, (float)m_pWindow->m_vRealSize.vec().y};
     CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
+    wlrbox.scale(pMonitor->scale).round();
 
     g_pHyprOpenGL->scissor((CBox*)nullptr); // allow the entire window and stencil to render
     glClearStencil(0);
@@ -112,7 +113,7 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     glStencilFunc(GL_NOTEQUAL, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    CBox  monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
+    CBox  monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
 
     float matrix[9];
     wlr_matrix_project_box(matrix, monbox.pWlr(), wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL), 0,
@@ -144,7 +145,7 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     };
 
     auto dist = [&](const point2& a, const point2& b) -> float {
-        Vector2D diff = Vector2D{a.x - b.x, a.y - b.y} * pMonitor->vecPixelSize;
+        Vector2D diff = Vector2D{a.x - b.x, a.y - b.y} * pMonitor->vecSize;
         return std::sqrt(diff.x * diff.x + diff.y * diff.y);
     };
 
@@ -155,14 +156,14 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     Vector2D mainVec      = {originalCoeff / pMonitor->vecSize.x, originalCoeff / pMonitor->vecSize.y};
     Vector2D windowMiddle = m_pWindow->middle() - pMonitor->vecPosition;
 
-    points.push_back(Vector2D{cos(0) * mainVec.x - sin(0) * mainVec.y + windowMiddle.x / pMonitor->vecPixelSize.x,
-                              sin(0) * mainVec.x + cos(0) * mainVec.y + windowMiddle.y / pMonitor->vecPixelSize.y});
-    points.push_back(Vector2D{cos(-M_PI_2) * mainVec.x - sin(-M_PI_2) * mainVec.y + windowMiddle.x / pMonitor->vecPixelSize.x,
-                              sin(-M_PI_2) * mainVec.x + cos(-M_PI_2) * mainVec.y + windowMiddle.y / pMonitor->vecPixelSize.y});
-    points.push_back(Vector2D{cos(M_PI_2) * mainVec.x - sin(M_PI_2) * mainVec.y + windowMiddle.x / pMonitor->vecPixelSize.x,
-                              sin(M_PI_2) * mainVec.x + cos(M_PI_2) * mainVec.y + windowMiddle.y / pMonitor->vecPixelSize.y});
-    points.push_back(Vector2D{cos(M_PI) * mainVec.x - sin(M_PI) * mainVec.y + windowMiddle.x / pMonitor->vecPixelSize.x,
-                              sin(M_PI) * mainVec.x + cos(M_PI) * mainVec.y + windowMiddle.y / pMonitor->vecPixelSize.y});
+    points.push_back(
+        Vector2D{cos(0) * mainVec.x - sin(0) * mainVec.y + windowMiddle.x / pMonitor->vecSize.x, sin(0) * mainVec.x + cos(0) * mainVec.y + windowMiddle.y / pMonitor->vecSize.y});
+    points.push_back(Vector2D{cos(-M_PI_2) * mainVec.x - sin(-M_PI_2) * mainVec.y + windowMiddle.x / pMonitor->vecSize.x,
+                              sin(-M_PI_2) * mainVec.x + cos(-M_PI_2) * mainVec.y + windowMiddle.y / pMonitor->vecSize.y});
+    points.push_back(Vector2D{cos(M_PI_2) * mainVec.x - sin(M_PI_2) * mainVec.y + windowMiddle.x / pMonitor->vecSize.x,
+                              sin(M_PI_2) * mainVec.x + cos(M_PI_2) * mainVec.y + windowMiddle.y / pMonitor->vecSize.y});
+    points.push_back(Vector2D{cos(M_PI) * mainVec.x - sin(M_PI) * mainVec.y + windowMiddle.x / pMonitor->vecSize.x,
+                              sin(M_PI) * mainVec.x + cos(M_PI) * mainVec.y + windowMiddle.y / pMonitor->vecSize.y});
 
     pointsForBezier.push_back(windowMiddle);
     agesForBezier.push_back(0);
@@ -229,17 +230,17 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
                 continue;
 
             // rotate by 90 and -90 and add middle
-            points.push_back(Vector2D{cos(M_PI_2) * newVec.x - sin(M_PI_2) * newVec.y + middle.x / pMonitor->vecPixelSize.x,
-                                      sin(M_PI_2) * newVec.x + cos(M_PI_2) * newVec.y + middle.y / pMonitor->vecPixelSize.y});
-            points.push_back(Vector2D{cos(-M_PI_2) * newVec.x - sin(-M_PI_2) * newVec.y + middle.x / pMonitor->vecPixelSize.x,
-                                      sin(-M_PI_2) * newVec.x + cos(-M_PI_2) * newVec.y + middle.y / pMonitor->vecPixelSize.y});
+            points.push_back(Vector2D{cos(M_PI_2) * newVec.x - sin(M_PI_2) * newVec.y + middle.x / pMonitor->vecSize.x,
+                                      sin(M_PI_2) * newVec.x + cos(M_PI_2) * newVec.y + middle.y / pMonitor->vecSize.y});
+            points.push_back(Vector2D{cos(-M_PI_2) * newVec.x - sin(-M_PI_2) * newVec.y + middle.x / pMonitor->vecSize.x,
+                                      sin(-M_PI_2) * newVec.x + cos(-M_PI_2) * newVec.y + middle.y / pMonitor->vecSize.y});
         }
     }
 
-    box thisboxopengl = box{(m_pWindow->m_vRealPosition.vec().x - pMonitor->vecPosition.x) / pMonitor->vecPixelSize.x,
-                            (m_pWindow->m_vRealPosition.vec().y - pMonitor->vecPosition.y) / pMonitor->vecPixelSize.y,
-                            (m_pWindow->m_vRealPosition.vec().x + m_pWindow->m_vRealSize.vec().x) / pMonitor->vecPixelSize.x,
-                            (m_pWindow->m_vRealPosition.vec().y + m_pWindow->m_vRealSize.vec().y) / pMonitor->vecPixelSize.y};
+    box thisboxopengl = box{(m_pWindow->m_vRealPosition.vec().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
+                            (m_pWindow->m_vRealPosition.vec().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
+                            (m_pWindow->m_vRealPosition.vec().x + m_pWindow->m_vRealSize.vec().x) / pMonitor->vecSize.x,
+                            (m_pWindow->m_vRealPosition.vec().y + m_pWindow->m_vRealSize.vec().y) / pMonitor->vecSize.y};
     glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -297,10 +298,10 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     // bring back to global coords
-    minX *= pMonitor->vecPixelSize.x;
-    minY *= pMonitor->vecPixelSize.y;
-    maxX *= pMonitor->vecPixelSize.x;
-    maxY *= pMonitor->vecPixelSize.y;
+    minX *= pMonitor->vecSize.x;
+    minY *= pMonitor->vecSize.y;
+    maxX *= pMonitor->vecSize.x;
+    maxY *= pMonitor->vecSize.y;
 
     m_bLastBox.x      = minX + pMonitor->vecPosition.x;
     m_bLastBox.y      = minY + pMonitor->vecPosition.y;
