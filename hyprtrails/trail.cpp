@@ -6,16 +6,17 @@
 #include "globals.hpp"
 
 void CTrail::onTick() {
-    static auto* const PHISTORYSTEP = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->intValue;
+    static auto* const PHISTORYSTEP   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->intValue;
     static auto* const PHISTORYPOINTS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_points")->intValue;
 
     m_iTimer++;
 
     if (m_iTimer > *PHISTORYSTEP) {
-        m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y,
-                                     (float)m_pWindow->m_vRealSize.vec().x, (float)m_pWindow->m_vRealSize.vec().y},
+        m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x,
+                                     (float)m_pWindow->m_vRealSize.vec().y},
                                  std::chrono::system_clock::now()});
-        while (m_dLastGeoms.size() > *PHISTORYPOINTS) m_dLastGeoms.pop_back();
+        while (m_dLastGeoms.size() > *PHISTORYPOINTS)
+            m_dLastGeoms.pop_back();
 
         m_iTimer = 0;
     }
@@ -27,7 +28,7 @@ void CTrail::onTick() {
 }
 
 CTrail::CTrail(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos = pWindow->m_vRealPosition.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
     pTickCb = g_pHookSystem->hookDynamic("trailTick", [this](void* self, SCallbackInfo& info, std::any data) { this->onTick(); });
@@ -38,9 +39,13 @@ CTrail::~CTrail() {
     g_pHookSystem->unhook(pTickCb);
 }
 
-SWindowDecorationExtents CTrail::getWindowDecorationExtents() { return m_seExtents; }
+SWindowDecorationExtents CTrail::getWindowDecorationExtents() {
+    return m_seExtents;
+}
 
-SWindowDecorationExtents CTrail::getWindowDecorationReservedArea() { return m_seExtents; }
+SWindowDecorationExtents CTrail::getWindowDecorationReservedArea() {
+    return m_seExtents;
+}
 
 void scaleBox2(box& box, float coeff) {
     float hwl = (box.w - (box.w * coeff)) / 2.0;
@@ -72,23 +77,26 @@ Vector2D vecForBezierT(const float& t, const std::vector<Vector2D>& verts) {
 }
 
 void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
-    if (!g_pCompositor->windowValidMapped(m_pWindow)) return;
+    if (!g_pCompositor->windowValidMapped(m_pWindow))
+        return;
 
-    if (!m_pWindow->m_sSpecialRenderData.decorate) return;
+    if (!m_pWindow->m_sSpecialRenderData.decorate)
+        return;
 
-    static auto* const PBEZIERSTEP = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->floatValue;
+    static auto* const PBEZIERSTEP    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->floatValue;
     static auto* const PPOINTSPERSTEP = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->intValue;
-    static auto* const PCOLOR = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:color")->intValue;
+    static auto* const PCOLOR         = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:color")->intValue;
 
-    const CColor COLOR = *PCOLOR;
+    const CColor       COLOR = *PCOLOR;
 
-    if (m_dLastGeoms.size() < 2) return;
+    if (m_dLastGeoms.size() < 2)
+        return;
 
-    box thisbox = box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x,
-                      (float)m_pWindow->m_vRealSize.vec().y};
-    wlr_box wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
+    box thisbox =
+        box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x, (float)m_pWindow->m_vRealSize.vec().y};
+    CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
 
-    g_pHyprOpenGL->scissor((wlr_box*)nullptr);  // allow the entire window and stencil to render
+    g_pHyprOpenGL->scissor((CBox*)nullptr); // allow the entire window and stencil to render
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -104,11 +112,11 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     glStencilFunc(GL_NOTEQUAL, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    wlr_box monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
+    CBox  monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, &monbox, wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL), 0,
-                           g_pHyprOpenGL->m_RenderData.pMonitor->output->transform_matrix);  // TODO: write own, don't use WLR here
+    wlr_matrix_project_box(matrix, monbox.pWlr(), wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL), 0,
+                           g_pHyprOpenGL->m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, g_pHyprOpenGL->m_RenderData.projection, matrix);
@@ -124,14 +132,14 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_FALSE, glMatrix);
 #endif
 
-    std::vector<point2> points;
+    std::vector<point2>   points;
     std::vector<Vector2D> bezierPts;
     std::vector<Vector2D> pointsForBezier;
-    std::vector<float> agesForBezier;
+    std::vector<float>    agesForBezier;
 
-    float originalCoeff = 50;
+    float                 originalCoeff = 50;
 
-    auto msFrom = [](std::chrono::system_clock::time_point t) -> float {
+    auto                  msFrom = [](std::chrono::system_clock::time_point t) -> float {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - t).count() / 1000.0;
     };
 
@@ -140,11 +148,11 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         return std::sqrt(diff.x * diff.x + diff.y * diff.y);
     };
 
-    float msMaxToLast = msFrom(m_dLastGeoms.back().second);
+    float    msMaxToLast = msFrom(m_dLastGeoms.back().second);
 
-    float dists[2] = {0, 0};
+    float    dists[2] = {0, 0};
 
-    Vector2D mainVec = {originalCoeff / pMonitor->vecSize.x, originalCoeff / pMonitor->vecSize.y};
+    Vector2D mainVec      = {originalCoeff / pMonitor->vecSize.x, originalCoeff / pMonitor->vecSize.y};
     Vector2D windowMiddle = m_pWindow->middle() - pMonitor->vecPosition;
 
     points.push_back(Vector2D{cos(0) * mainVec.x - sin(0) * mainVec.y + windowMiddle.x / pMonitor->vecPixelSize.x,
@@ -165,7 +173,8 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         box.y -= pMonitor->vecPosition.y;
         Vector2D middle = {box.x + box.w / 2.0, box.y + box.h / 2.0};
 
-        if (middle == pointsForBezier[pointsForBezier.size() - 1]) continue;
+        if (middle == pointsForBezier[pointsForBezier.size() - 1])
+            continue;
 
         pointsForBezier.push_back(middle);
         agesForBezier.push_back(msFrom(m_dLastGeoms[i].second));
@@ -178,26 +187,26 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
         glStencilMask(-1);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        g_pHyprOpenGL->scissor((wlr_box*)nullptr);
+        g_pHyprOpenGL->scissor((CBox*)nullptr);
         return;
     }
 
-    float maxAge = agesForBezier.back();
-    float tCoeff = *PBEZIERSTEP;
-    int pointsPerBezier = *PPOINTSPERSTEP;
+    float maxAge          = agesForBezier.back();
+    float tCoeff          = *PBEZIERSTEP;
+    int   pointsPerBezier = *PPOINTSPERSTEP;
     bezierPts.push_back(vecForBezierT(0, pointsForBezier));
     for (float t = tCoeff; t <= 1.0; t += tCoeff) {
         bezierPts.push_back(vecForBezierT(t, pointsForBezier));
 
-        const Vector2D& lastbezier = bezierPts.back();
+        const Vector2D& lastbezier     = bezierPts.back();
         const Vector2D& lastprevbezier = bezierPts[bezierPts.size() - 2];
 
         for (size_t i = 1; i < pointsPerBezier + 1; ++i) {
-            const float bezierPointStep = (1.0 / (pointsPerBezier + 2));
-            const Vector2D& middle = vecForT(lastprevbezier, lastbezier, bezierPointStep * (i + 1));
-            const Vector2D& lastmiddle = vecForT(lastprevbezier, lastbezier, bezierPointStep * i);
+            const float     bezierPointStep = (1.0 / (pointsPerBezier + 2));
+            const Vector2D& middle          = vecForT(lastprevbezier, lastbezier, bezierPointStep * (i + 1));
+            const Vector2D& lastmiddle      = vecForT(lastprevbezier, lastbezier, bezierPointStep * i);
 
-            Vector2D vecNormal = {middle.x - lastmiddle.x, middle.y - lastmiddle.y};
+            Vector2D        vecNormal = {middle.x - lastmiddle.x, middle.y - lastmiddle.y};
 
             // normalize vec
             float invlen = 1.0 / std::sqrt(vecNormal.x * vecNormal.x + vecNormal.y * vecNormal.y);
@@ -210,13 +219,14 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
             // extend by coeff
             float ageCoeff = t * (agesForBezier.size() - 1);
             float ageFloor = std::floor(ageCoeff);
-            float ageCeil = std::ceil(ageCoeff);
-            float approxAge = agesForBezier[static_cast<int>(ageFloor)] +
-                              (agesForBezier[static_cast<int>(ageCeil)] - agesForBezier[static_cast<int>(ageFloor)]) * (ageCoeff - ageFloor);
-            float coeff = originalCoeff * (1.0 - (approxAge / maxAge));
+            float ageCeil  = std::ceil(ageCoeff);
+            float approxAge =
+                agesForBezier[static_cast<int>(ageFloor)] + (agesForBezier[static_cast<int>(ageCeil)] - agesForBezier[static_cast<int>(ageFloor)]) * (ageCoeff - ageFloor);
+            float    coeff  = originalCoeff * (1.0 - (approxAge / maxAge));
             Vector2D newVec = {vecNormal.x * coeff / pMonitor->vecSize.x, vecNormal.y * coeff / pMonitor->vecSize.y};
 
-            if ((newVec.x == 0 && newVec.y == 0) || std::isnan(newVec.x) || std::isnan(newVec.y)) continue;
+            if ((newVec.x == 0 && newVec.y == 0) || std::isnan(newVec.x) || std::isnan(newVec.y))
+                continue;
 
             // rotate by 90 and -90 and add middle
             points.push_back(Vector2D{cos(M_PI_2) * newVec.x - sin(M_PI_2) * newVec.y + middle.x / pMonitor->vecPixelSize.x,
@@ -233,9 +243,9 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
-    wlr_box transformedBox;
-    wlr_box_transform(&transformedBox, &monbox, wlr_output_transform_invert(g_pHyprOpenGL->m_RenderData.pMonitor->transform),
-                      g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
+    CBox transformedBox = monbox;
+    transformedBox.transform(wlr_output_transform_invert(g_pHyprOpenGL->m_RenderData.pMonitor->transform), g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x,
+                             g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
 
     glVertexAttribPointer(g_pGlobalState->trailShader.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
 
@@ -267,7 +277,7 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    g_pHyprOpenGL->scissor((wlr_box*)nullptr);
+    g_pHyprOpenGL->scissor((CBox*)nullptr);
 
     // calculate damage
     float minX = 9999999;
@@ -276,10 +286,14 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     float maxY = -9999999;
 
     for (auto& p : points) {
-        if (p.x < minX) minX = p.x;
-        if (p.y < minY) minY = p.y;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y > maxY) maxY = p.y;
+        if (p.x < minX)
+            minX = p.x;
+        if (p.y < minY)
+            minY = p.y;
+        if (p.x > maxX)
+            maxX = p.x;
+        if (p.y > maxY)
+            maxY = p.y;
     }
 
     // bring back to global coords
@@ -288,29 +302,31 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     maxX *= pMonitor->vecPixelSize.x;
     maxY *= pMonitor->vecPixelSize.y;
 
-    m_bLastBox.x = minX + pMonitor->vecPosition.x;
-    m_bLastBox.y = minY + pMonitor->vecPosition.y;
-    m_bLastBox.width = maxX - minX;
+    m_bLastBox.x      = minX + pMonitor->vecPosition.x;
+    m_bLastBox.y      = minY + pMonitor->vecPosition.y;
+    m_bLastBox.width  = maxX - minX;
     m_bLastBox.height = maxY - minY;
 
     m_bNeedsDamage = true;
 }
 
-eDecorationType CTrail::getDecorationType() { return DECORATION_CUSTOM; }
+eDecorationType CTrail::getDecorationType() {
+    return DECORATION_CUSTOM;
+}
 
 void CTrail::updateWindow(CWindow* pWindow) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    m_vLastWindowPos = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
+    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
     damageEntire();
 }
 
 void CTrail::damageEntire() {
-    wlr_box dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
-                  (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
+    CBox dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
+               (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
     g_pHyprRenderer->damageBox(&dm);
 }
