@@ -349,7 +349,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto ROUNDING   = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
     const auto scaledRounding   = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
-    const auto scaledBorderSize = BORDERSIZE * pMonitor->scale;
+    const int  scaledBorderSize = BORDERSIZE * pMonitor->scale;
 
     CColor     color = *PCOLOR;
     color.a *= a;
@@ -358,10 +358,14 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     const auto BARBUF = Vector2D{m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT} * pMonitor->scale;
 
-    CBox       titleBarBox = {m_vLastWindowPos.x - BORDERSIZE - pMonitor->vecPosition.x, m_vLastWindowPos.y - BORDERSIZE - *PHEIGHT - pMonitor->vecPosition.y,
-                        m_vLastWindowSize.x + 2 * BORDERSIZE, *PHEIGHT + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+    CBox       titleBarBox = {m_vLastWindowPos.x - pMonitor->vecPosition.x, m_vLastWindowPos.y - pMonitor->vecPosition.y, m_vLastWindowSize.x,
+                        *PHEIGHT + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.translate(offset).scale(pMonitor->scale).round();
+
+    titleBarBox.x -= scaledBorderSize;
+    titleBarBox.y -= scaledBorderSize + static_cast<int>(*PHEIGHT * pMonitor->scale);
+    titleBarBox.w += 2 * scaledBorderSize;
 
     g_pHyprOpenGL->scissor(&titleBarBox);
 
