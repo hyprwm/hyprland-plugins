@@ -23,6 +23,10 @@
         inherit (hyprland.packages.${system}) hyprland;
         stdenv = pkgs.gcc13Stdenv;
       };
+      hyprtrails = pkgs.callPackage ./hyprtrails {
+        inherit (hyprland.packages.${system}) hyprland;
+        stdenv = pkgs.gcc13Stdenv;
+      };
     });
 
     devShells = withPkgsFor (system: pkgs: {
