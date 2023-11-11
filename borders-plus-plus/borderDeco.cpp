@@ -14,12 +14,46 @@ CBordersPlusPlus::~CBordersPlusPlus() {
     damageEntire();
 }
 
-SWindowDecorationExtents CBordersPlusPlus::getWindowDecorationExtents() {
-    return m_seExtents;
+SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
+    static auto* const           PBORDERS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->intValue;
+
+    static std::vector<int64_t*> PSIZES;
+    for (size_t i = 0; i < 9; ++i) {
+        PSIZES.push_back(&HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->intValue);
+    }
+
+    SDecorationPositioningInfo info;
+    info.policy   = DECORATION_POSITION_ABSOLUTE;
+    info.reserved = true;
+    info.priority = 1005;
+    info.edges    = DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP;
+
+    if (m_fLastThickness == 0) {
+        double size = 0;
+
+        for (size_t i = 0; i < *PBORDERS; ++i) {
+            size += *PSIZES[i];
+        }
+
+        info.desiredExtents = {{size, size}, {size, size}};
+        m_fLastThickness    = size;
+    } else {
+        info.desiredExtents = {{m_fLastThickness, m_fLastThickness}, {m_fLastThickness, m_fLastThickness}};
+    }
+
+    return info;
 }
 
-SWindowDecorationExtents CBordersPlusPlus::getWindowDecorationReservedArea() {
-    return m_seExtents;
+void CBordersPlusPlus::onPositioningReply(const SDecorationPositioningReply& reply) {
+    ; // ignored
+}
+
+uint64_t CBordersPlusPlus::getDecorationFlags() {
+    return 0;
+}
+
+eDecorationLayer CBordersPlusPlus::getDecorationLayer() {
+    return DECORATION_LAYER_OVER;
 }
 
 void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
@@ -83,6 +117,11 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
+
+    if (fullThickness != m_fLastThickness) {
+        m_fLastThickness = fullThickness;
+        g_pDecorationPositioner->repositionDeco(this);
+    }
 }
 
 eDecorationType CBordersPlusPlus::getDecorationType() {

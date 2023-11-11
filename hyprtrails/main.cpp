@@ -13,13 +13,15 @@
 #include "trail.hpp"
 
 // Do NOT change this function.
-APICALL EXPORT std::string PLUGIN_API_VERSION() { return HYPRLAND_API_VERSION; }
+APICALL EXPORT std::string PLUGIN_API_VERSION() {
+    return HYPRLAND_API_VERSION;
+}
 
 void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CTrail(PWINDOW));
+    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::make_unique<CTrail>(PWINDOW));
 }
 
 GLuint CompileShader(const GLuint& type, std::string src) {
@@ -33,7 +35,8 @@ GLuint CompileShader(const GLuint& type, std::string src) {
     GLint ok;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
 
-    if (ok == GL_FALSE) throw std::runtime_error("compileShader() failed!");
+    if (ok == GL_FALSE)
+        throw std::runtime_error("compileShader() failed!");
 
     return shader;
 }
@@ -41,11 +44,13 @@ GLuint CompileShader(const GLuint& type, std::string src) {
 GLuint CreateProgram(const std::string& vert, const std::string& frag) {
     auto vertCompiled = CompileShader(GL_VERTEX_SHADER, vert);
 
-    if (!vertCompiled) throw std::runtime_error("Compiling vshader failed.");
+    if (!vertCompiled)
+        throw std::runtime_error("Compiling vshader failed.");
 
     auto fragCompiled = CompileShader(GL_FRAGMENT_SHADER, frag);
 
-    if (!fragCompiled) throw std::runtime_error("Compiling fshader failed.");
+    if (!fragCompiled)
+        throw std::runtime_error("Compiling fshader failed.");
 
     auto prog = glCreateProgram();
     glAttachShader(prog, vertCompiled);
@@ -60,7 +65,8 @@ GLuint CreateProgram(const std::string& vert, const std::string& frag) {
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
 
-    if (ok == GL_FALSE) throw std::runtime_error("createProgram() failed! GL_LINK_STATUS not OK!");
+    if (ok == GL_FALSE)
+        throw std::runtime_error("createProgram() failed! GL_LINK_STATUS not OK!");
 
     return prog;
 }
@@ -75,21 +81,19 @@ int onTick(void* data) {
 }
 
 void initGlobal() {
-    RASSERT(
-        eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL)),
-        "Couldn't set current EGL!");
+    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL)),
+            "Couldn't set current EGL!");
 
-    GLuint prog = CreateProgram(QUADTRAIL, FRAGTRAIL);
-    g_pGlobalState->trailShader.program = prog;
-    g_pGlobalState->trailShader.proj = glGetUniformLocation(prog, "proj");
-    g_pGlobalState->trailShader.tex = glGetUniformLocation(prog, "tex");
-    g_pGlobalState->trailShader.color = glGetUniformLocation(prog, "color");
+    GLuint prog                           = CreateProgram(QUADTRAIL, FRAGTRAIL);
+    g_pGlobalState->trailShader.program   = prog;
+    g_pGlobalState->trailShader.proj      = glGetUniformLocation(prog, "proj");
+    g_pGlobalState->trailShader.tex       = glGetUniformLocation(prog, "tex");
+    g_pGlobalState->trailShader.color     = glGetUniformLocation(prog, "color");
     g_pGlobalState->trailShader.texAttrib = glGetAttribLocation(prog, "colors");
     g_pGlobalState->trailShader.posAttrib = glGetAttribLocation(prog, "pos");
-    g_pGlobalState->trailShader.gradient = glGetUniformLocation(prog, "snapshots");
+    g_pGlobalState->trailShader.gradient  = glGetUniformLocation(prog, "snapshots");
 
-    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT),
-            "Couldn't unset current EGL!");
+    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, &onTick, nullptr);
     wl_event_source_timer_update(g_pGlobalState->tick, 1);
@@ -101,8 +105,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     const std::string HASH = __hyprland_api_get_hash();
 
     if (HASH != GIT_COMMIT_HASH) {
-        HyprlandAPI::addNotification(PHANDLE, "[ht] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
-                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        HyprlandAPI::addNotification(PHANDLE, "[ht] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)", CColor{1.0, 0.2, 0.2, 1.0},
+                                     5000);
         throw std::runtime_error("[ht] Version mismatch");
     }
 
@@ -119,9 +123,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() || !w->m_bIsMapped) continue;
+        if (w->isHidden() || !w->m_bIsMapped)
+            continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), new CTrail(w.get()));
+        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), std::make_unique<CTrail>(w.get()));
     }
 
     HyprlandAPI::reloadConfig();
@@ -131,4 +136,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     return {"hyprtrails", "A plugin to add trails behind moving windows", "Vaxry", "1.0"};
 }
 
-APICALL EXPORT void PLUGIN_EXIT() { wl_event_source_remove(g_pGlobalState->tick); }
+APICALL EXPORT void PLUGIN_EXIT() {
+    wl_event_source_remove(g_pGlobalState->tick);
+}

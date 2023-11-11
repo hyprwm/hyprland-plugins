@@ -33,17 +33,17 @@ class CTrail : public IHyprWindowDecoration {
     CTrail(CWindow*);
     virtual ~CTrail();
 
-    virtual SWindowDecorationExtents getWindowDecorationExtents();
+    virtual SDecorationPositioningInfo getPositioningInfo();
 
-    virtual void                     draw(CMonitor*, float a, const Vector2D& offset);
+    virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual eDecorationType          getDecorationType();
+    virtual void                       draw(CMonitor*, float a, const Vector2D& offset);
 
-    virtual void                     updateWindow(CWindow*);
+    virtual eDecorationType            getDecorationType();
 
-    virtual void                     damageEntire();
+    virtual void                       updateWindow(CWindow*);
 
-    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
+    virtual void                       damageEntire();
 
   private:
     HOOK_CALLBACK_FN*                                                 pTickCb = nullptr;

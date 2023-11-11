@@ -19,7 +19,7 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
-    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, new CBordersPlusPlus(PWINDOW));
+    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::make_unique<CBordersPlusPlus>(PWINDOW));
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -41,6 +41,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1), SConfigValue{.intValue = -1});
     }
 
+    HyprlandAPI::reloadConfig();
+
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
     // add deco to existing windows
@@ -48,10 +50,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), new CBordersPlusPlus(w.get()));
+        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), std::make_unique<CBordersPlusPlus>(w.get()));
     }
-
-    HyprlandAPI::reloadConfig();
 
     HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
 

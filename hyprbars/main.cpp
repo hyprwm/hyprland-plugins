@@ -20,9 +20,9 @@ void onNewWindow(void* self, std::any data) {
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
     if (!PWINDOW->m_bX11DoesntWantBorders) {
-        CHyprBar* bar = new CHyprBar(PWINDOW);
-        HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, static_cast<IHyprWindowDecoration*>(bar));
-        g_pGlobalState->bars.push_back(bar);
+        std::unique_ptr<CHyprBar> bar = std::make_unique<CHyprBar>(PWINDOW);
+        g_pGlobalState->bars.push_back(bar.get());
+        HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::move(bar));
     }
 }
 

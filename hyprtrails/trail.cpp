@@ -39,12 +39,12 @@ CTrail::~CTrail() {
     g_pHookSystem->unhook(pTickCb);
 }
 
-SWindowDecorationExtents CTrail::getWindowDecorationExtents() {
-    return m_seExtents;
+SDecorationPositioningInfo CTrail::getPositioningInfo() {
+    return {DECORATION_POSITION_ABSOLUTE};
 }
 
-SWindowDecorationExtents CTrail::getWindowDecorationReservedArea() {
-    return m_seExtents;
+void CTrail::onPositioningReply(const SDecorationPositioningReply& reply) {
+    ; // ignored
 }
 
 void scaleBox2(box& box, float coeff) {

@@ -11,31 +11,30 @@ class CHyprBar : public IHyprWindowDecoration {
     CHyprBar(CWindow*);
     virtual ~CHyprBar();
 
-    virtual SWindowDecorationExtents getWindowDecorationExtents();
+    virtual SDecorationPositioningInfo getPositioningInfo();
 
-    virtual void                     draw(CMonitor*, float a, const Vector2D& offset);
+    virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual eDecorationType          getDecorationType();
+    virtual void                       draw(CMonitor*, float a, const Vector2D& offset);
 
-    virtual void                     updateWindow(CWindow*);
+    virtual eDecorationType            getDecorationType();
 
-    virtual void                     damageEntire();
+    virtual void                       updateWindow(CWindow*);
 
-    virtual SWindowDecorationExtents getWindowDecorationReservedArea();
+    virtual void                       damageEntire();
 
-    virtual eDecorationLayer         getDecorationLayer();
+    virtual eDecorationLayer           getDecorationLayer();
 
-    virtual uint64_t                 getDecorationFlags();
+    virtual uint64_t                   getDecorationFlags();
 
-    bool                             m_bButtonsDirty = true;
+    bool                               m_bButtonsDirty = true;
 
   private:
     SWindowDecorationExtents m_seExtents;
 
     CWindow*                 m_pWindow = nullptr;
 
-    Vector2D                 m_vLastWindowPos;
-    Vector2D                 m_vLastWindowSize;
+    CBox                     m_bAssignedBox;
 
     CTexture                 m_tTextTex;
     CTexture                 m_tButtonsTex;
@@ -50,6 +49,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void                     renderBarButtonsText(CBox* barBox, const float scale, const float a);
     void                     onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e);
     void                     onMouseMove(Vector2D coords);
+    CBox                     assignedBoxGlobal();
 
     HOOK_CALLBACK_FN*        m_pMouseButtonCallback;
     HOOK_CALLBACK_FN*        m_pMouseMoveCallback;
