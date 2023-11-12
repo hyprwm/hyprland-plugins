@@ -77,11 +77,14 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     if (*PBORDERS < 1)
         return;
 
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+
     auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
     const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
     CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
-    fullBox.translate(offset - pMonitor->vecPosition);
+    fullBox.translate(offset - pMonitor->vecPosition + WORKSPACEOFFSET);
 
     double fullThickness = 0;
 
@@ -129,11 +132,7 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
 }
 
 void CBordersPlusPlus::updateWindow(CWindow* pWindow) {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
-
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
+    m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
     m_vLastWindowSize = pWindow->m_vRealSize.vec();
 
     damageEntire();
