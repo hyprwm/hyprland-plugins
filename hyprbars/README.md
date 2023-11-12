@@ -32,6 +32,8 @@ plugin {
 
 `bar_text_font` -> (str) bar's title text font (default "Sans")
 
+`bar_part_of_window` -> (bool) whether the bar is a part of the main window (if it is, stuff like shadows render around it)
+
 ## Buttons Config
 
 Use the `hyprbars-button` keyword.

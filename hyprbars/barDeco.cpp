@@ -466,7 +466,8 @@ eDecorationLayer CHyprBar::getDecorationLayer() {
 }
 
 uint64_t CHyprBar::getDecorationFlags() {
-    return DECORATION_ALLOWS_MOUSE_INPUT | DECORATION_PART_OF_MAIN_WINDOW;
+    static auto* const PPART = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window")->intValue;
+    return DECORATION_ALLOWS_MOUSE_INPUT | (*PPART ? DECORATION_PART_OF_MAIN_WINDOW : 0);
 }
 
 CBox CHyprBar::assignedBoxGlobal() {
