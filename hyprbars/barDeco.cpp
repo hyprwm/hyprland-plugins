@@ -358,6 +358,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         return;
     }
 
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+
     const auto BORDERSIZE = m_pWindow->getRealBorderSize();
     const auto ROUNDING   = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
@@ -397,7 +400,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         CBox windowBox = {m_pWindow->m_vRealPosition.vec().x + offset.x - pMonitor->vecPosition.x - BORDERSIZE + 1,
                           m_pWindow->m_vRealPosition.vec().y + offset.y - pMonitor->vecPosition.y - BORDERSIZE + 1, m_pWindow->m_vRealSize.vec().x + 2 * BORDERSIZE - 2,
                           m_pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE - 2};
-        windowBox.scale(pMonitor->scale).round();
+        windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->scale).round();
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
@@ -472,5 +475,10 @@ uint64_t CHyprBar::getDecorationFlags() {
 
 CBox CHyprBar::assignedBoxGlobal() {
     CBox box = m_bAssignedBox;
-    return box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
+
+    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+
+    return box.translate(WORKSPACEOFFSET);
 }
