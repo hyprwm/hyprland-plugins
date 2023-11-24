@@ -27,6 +27,10 @@
         inherit (hyprland.packages.${system}) hyprland;
         stdenv = pkgs.gcc13Stdenv;
       };
+      hyprwinwrap = pkgs.callPackage ./hyprwinwrap {
+        inherit (hyprland.packages.${system}) hyprland;
+        stdenv = pkgs.gcc13Stdenv;
+      };
     });
 
     devShells = withPkgsFor (system: pkgs: {
