@@ -41,3 +41,14 @@ output = "hyprtrails/hyprtrails.so"
 steps = [
     "make -C hyprtrails all",
 ]
+
+[hyprwinwrap]
+description = "A clone of xwinwrap for Hyprland"
+version = "1.0"
+authors = ["Vaxry"]
+
+[hyprwinwrap.build]
+output = "hyprwinwrap/hyprwinwrap.so"
+steps = [
+    "make -C hyprwinwrap all",
+]
