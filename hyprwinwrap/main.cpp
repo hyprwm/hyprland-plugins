@@ -123,6 +123,14 @@ void onConfigReloaded() {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
+    const std::string HASH = __hyprland_api_get_hash();
+
+    if (HASH != GIT_COMMIT_HASH) {
+        HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
+                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        throw std::runtime_error("[hww] Version mismatch");
+    }
+
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(std::any_cast<CWindow*>(data)); });
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(std::any_cast<CWindow*>(data)); });
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "render", [&](void* self, SCallbackInfo& info, std::any data) { onRenderStage(std::any_cast<eRenderStage>(data)); });
