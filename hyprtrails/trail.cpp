@@ -117,7 +117,7 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     float matrix[9];
     wlr_matrix_project_box(matrix, monbox.pWlr(), wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL), 0,
-                           g_pHyprOpenGL->m_RenderData.pMonitor->output->transform_matrix); // TODO: write own, don't use WLR here
+                           g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, g_pHyprOpenGL->m_RenderData.projection, matrix);
