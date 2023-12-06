@@ -1,0 +1,46 @@
+[repository]
+name = "hyprland-plugins"
+authors = ["Vaxry"]
+commit_pins = [
+    ["3bb9c7c5cf4f2ee30bf821501499f2308d616f94", "efee74a7404495dbda70205824d6e9fc923ccdae"]
+]
+
+[borders-plus-plus]
+description = "A plugin to add more borders to windows."
+authors = ["Vaxry"]
+output = "borders-plus-plus/borders-plus-plus.so"
+build = [
+    "make -C borders-plus-plus all",
+]
+
+[csgo-vulkan-fix]
+description = "A plugin to fix incorrect mouse offsets on csgo in Vulkan"
+authors = ["Vaxry"]
+output = "csgo-vulkan-fix/csgo-vulkan-fix.so"
+build = [
+    "make -C csgo-vulkan-fix all",
+]
+
+[hyprbars]
+description = "A plugin to add title bars to windows"
+authors = ["Vaxry"]
+output = "hyprbars/hyprbars.so"
+build = [
+    "make -C hyprbars all",
+]
+
+[hyprtrails]
+description = "A plugin to add trails behind moving windows"
+authors = ["Vaxry"]
+output = "hyprtrails/hyprtrails.so"
+build = [
+    "make -C hyprtrails all",
+]
+
+[hyprwinwrap]
+description = "A clone of xwinwrap for Hyprland"
+authors = ["Vaxry"]
+output = "hyprwinwrap/hyprwinwrap.so"
+build = [
+    "make -C hyprwinwrap all",
+]
