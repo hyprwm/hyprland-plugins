@@ -361,11 +361,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    const auto BORDERSIZE = m_pWindow->getRealBorderSize();
-    const auto ROUNDING   = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
 
-    const auto scaledRounding   = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
-    const int  scaledBorderSize = BORDERSIZE * pMonitor->scale;
+    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
     CColor     color = *PCOLOR;
     color.a *= a;
@@ -377,7 +375,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto BARBUF = DECOBOX.size() * pMonitor->scale;
 
     CBox       titleBarBox = {DECOBOX.x - pMonitor->vecPosition.x, DECOBOX.y - pMonitor->vecPosition.y, DECOBOX.w,
-                        DECOBOX.h + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                              DECOBOX.h + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.translate(offset).scale(pMonitor->scale).round();
 
@@ -397,9 +395,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {m_pWindow->m_vRealPosition.vec().x + offset.x - pMonitor->vecPosition.x - BORDERSIZE + 1,
-                          m_pWindow->m_vRealPosition.vec().y + offset.y - pMonitor->vecPosition.y - BORDERSIZE + 1, m_pWindow->m_vRealSize.vec().x + 2 * BORDERSIZE - 2,
-                          m_pWindow->m_vRealSize.vec().y + 2 * BORDERSIZE - 2};
+        CBox windowBox = {m_pWindow->m_vRealPosition.vec().x + offset.x - pMonitor->vecPosition.x + 1, m_pWindow->m_vRealPosition.vec().y + offset.y - pMonitor->vecPosition.y + 1,
+                          m_pWindow->m_vRealSize.vec().x - 2, m_pWindow->m_vRealSize.vec().y - 2};
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->scale).round();
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
