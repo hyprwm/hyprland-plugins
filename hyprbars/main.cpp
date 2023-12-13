@@ -74,6 +74,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window", SConfigValue{.intValue = 1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border", SConfigValue{.intValue = 0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment", SConfigValue{.strValue = "right"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_padding", SConfigValue{.intValue = 7});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding", SConfigValue{.intValue = 5});
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprbars-button", [&](const std::string& k, const std::string& v) { onNewButton(k, v); });
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });

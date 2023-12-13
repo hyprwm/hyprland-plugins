@@ -40,6 +40,10 @@ plugin {
 
 `bar_precedence_over_border` -> (bool) whether the bar should have a higher priority than the border (border will be around the bar)
 
+`bar_padding` -> (int) left / right edge padding (default `7`)
+
+`bar_button_padding` -> (int) padding between the buttons (default `5`)
+
 ## Buttons Config
 
 Use the `hyprbars-button` keyword.
