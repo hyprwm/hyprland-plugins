@@ -30,12 +30,13 @@ CHyprBar::~CHyprBar() {
 }
 
 SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
-    static auto* const         PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const         PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const         PPRECEDENCE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->intValue;
 
     SDecorationPositioningInfo info;
     info.policy         = DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
-    info.priority       = 1000;
+    info.priority       = *PPRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
     info.desiredExtents = {{0, *PHEIGHT}, {0, 0}};
     return info;
@@ -351,8 +352,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PCOLOR  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
-    static auto* const PHEIGHT = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const PCOLOR      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
+    static auto* const PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
+    static auto* const PPRECEDENCE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->intValue;
 
     if (*PHEIGHT < 1) {
         m_iLastHeight = *PHEIGHT;
@@ -362,7 +364,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    const auto ROUNDING = m_pWindow->rounding() + m_pWindow->getRealBorderSize();
+    const auto ROUNDING = m_pWindow->rounding() + (*PPRECEDENCE ? 0 : m_pWindow->getRealBorderSize());
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
