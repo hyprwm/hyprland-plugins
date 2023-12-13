@@ -3,9 +3,9 @@
 This repo houses official plugins for Hyprland.
 
 > [!IMPORTANT]
-> hyprland-plugins follows hyprland-git and requires hyprland-git to work properly.
-> If you want to use a versioned hyprland, you'll have to reset hyprland-plugins
-> to a commit from before that hyprland version's release date.
+> hyprland-plugins only officially supports installation via `hyprpm`.
+> hyprland-plugins follows hyprland-git and requires you to be on hyprland-git
+> or tagged >= v0.33.1.
 
 # Plugin list
  - borders-plus-plus -> adds one or two additional borders to windows
