@@ -34,6 +34,8 @@ plugin {
 
 `bar_text_align` -> (str) bar's title text alignment (default `center`, can also be `left`)
 
+`bar_buttons_alignment` -> (str) bar's buttons alignment (default: `right`, can also be `left`)
+
 `bar_part_of_window` -> (bool) whether the bar is a part of the main window (if it is, stuff like shadows render around it)
 
 `bar_precedence_over_border` -> (bool) whether the bar should have a higher priority than the border (border will be around the bar)
