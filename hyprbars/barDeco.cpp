@@ -54,9 +54,12 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     static auto* const PHEIGHT           = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     static auto* const PBARBUTTONPADDING = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->intValue;
-    const auto         BORDERSIZE        = m_pWindow->getRealBorderSize();
+    static auto* const PBARPADDING       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->intValue;
+    static auto* const PALIGNBUTTONS     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
 
-    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w + BORDERSIZE * 2, *PHEIGHT)) {
+    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
+
+    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, *PHEIGHT)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
@@ -92,11 +95,11 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     // check if on a button
 
-    float offset = 0;
+    float offset = *PBARPADDING;
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, *PHEIGHT + BORDERSIZE};
-        Vector2D   currentPos = Vector2D{BARBUF.x - 2 * *PBARBUTTONPADDING - b.size - offset, (BARBUF.y - b.size) / 2.0}.floor();
+        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, *PHEIGHT};
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - *PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + *PBARBUTTONPADDING, currentPos.y + b.size)) {
             // hit on close
