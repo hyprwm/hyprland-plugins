@@ -59,7 +59,7 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
 
-    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, *PHEIGHT)) {
+    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, *PHEIGHT - 1)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
