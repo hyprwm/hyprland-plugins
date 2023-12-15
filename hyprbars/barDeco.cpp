@@ -380,6 +380,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     static auto* const PHEIGHT       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
     static auto* const PPRECEDENCE   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->intValue;
     static auto* const PALIGNBUTTONS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
+    static auto* const PENABLETITLE  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->intValue;
 
     const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
 
@@ -438,7 +439,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
-    if (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0) {
+    if (*PENABLETITLE && (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0)) {
         m_szLastTitle = m_pWindow->m_szTitle;
         renderBarTitle(BARBUF, pMonitor->scale);
     }
@@ -453,7 +454,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     CBox textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
-    g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
+    if (*PENABLETITLE)
+        g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
 
     if (m_bButtonsDirty || m_bWindowSizeChanged) {
         renderBarButtons(BARBUF, pMonitor->scale);

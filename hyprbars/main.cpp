@@ -69,6 +69,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", SConfigValue{.intValue = 15});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", SConfigValue{.intValue = 10});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled", SConfigValue{.intValue = 1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_align", SConfigValue{.strValue = "center"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window", SConfigValue{.intValue = 1});

@@ -28,6 +28,8 @@ plugin {
 
 `col.text` -> (col) bar's title text color
 
+`bar_title_enabled` -> (bool) whether to render the title (default `true`)
+
 `bar_text_size` -> (int) bar's title text font size (default `10`)
 
 `bar_text_font` -> (str) bar's title text font (default `Sans`)
