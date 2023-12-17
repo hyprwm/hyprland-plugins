@@ -25,7 +25,7 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_ABSOLUTE;
     info.reserved = true;
-    info.priority = 1005;
+    info.priority = 9990;
     info.edges    = DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP;
 
     if (m_fLastThickness == 0) {
