@@ -84,37 +84,33 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
     CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
-    fullBox.translate(offset - pMonitor->vecPosition + WORKSPACEOFFSET);
+    fullBox.translate(offset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale);
 
     double fullThickness = 0;
 
-    fullBox.x -= *PBORDERSIZE;
-    fullBox.y -= *PBORDERSIZE;
-    fullBox.width += *PBORDERSIZE * 2;
-    fullBox.height += *PBORDERSIZE * 2;
+    fullBox.x -= *PBORDERSIZE * pMonitor->scale;
+    fullBox.y -= *PBORDERSIZE * pMonitor->scale;
+    fullBox.width += *PBORDERSIZE * 2 * pMonitor->scale;
+    fullBox.height += *PBORDERSIZE * 2 * pMonitor->scale;
 
     for (size_t i = 0; i < *PBORDERS; ++i) {
-        const int PREVBORDERSIZE = i == 0 ? 0 : (*PSIZES[i - 1] == -1 ? *PBORDERSIZE : *PSIZES[i - 1]);
-        const int THISBORDERSIZE = *PSIZES[i] == -1 ? *PBORDERSIZE : *PSIZES[i];
+        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (*PSIZES[i - 1] == -1 ? *PBORDERSIZE : *PSIZES[i - 1]) * pMonitor->scale;
+        const int THISBORDERSIZE       = *PSIZES[i] == -1 ? *PBORDERSIZE : *PSIZES[i];
 
         if (i != 0) {
-            rounding += rounding == 0 ? 0 : PREVBORDERSIZE;
-            fullBox.x -= PREVBORDERSIZE;
-            fullBox.y -= PREVBORDERSIZE;
-            fullBox.width += PREVBORDERSIZE * 2;
-            fullBox.height += PREVBORDERSIZE * 2;
+            rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED / pMonitor->scale;
+            fullBox.x -= PREVBORDERSIZESCALED;
+            fullBox.y -= PREVBORDERSIZESCALED;
+            fullBox.width += PREVBORDERSIZESCALED * 2;
+            fullBox.height += PREVBORDERSIZESCALED * 2;
         }
 
         if (fullBox.width < 1 || fullBox.height < 1)
             break;
 
         g_pHyprOpenGL->scissor((CBox*)nullptr);
-        CBox saveBox = fullBox;
-        saveBox.scale(pMonitor->scale).round();
 
         g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t)*PCOLORS[i]}, *PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a, *PNATURALROUND ? ORIGINALROUND : -1);
-
-        fullBox = saveBox;
 
         fullThickness += THISBORDERSIZE;
     }
