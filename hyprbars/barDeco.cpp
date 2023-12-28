@@ -90,6 +90,9 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
         return;
     }
 
+    if (m_pWindow->m_bIsFloating)
+        g_pCompositor->changeWindowZOrder(m_pWindow, true);
+
     info.cancelled   = true;
     m_bCancelledDown = true;
 
