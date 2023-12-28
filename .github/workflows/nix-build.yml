@@ -1,0 +1,21 @@
+on:
+  workflow_call:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        package:
+          - borders-plus-plus
+          - csgo-vulkan-fix
+          - hyprbars
+          - hyprtrails
+          - hyprwinwrap
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix build .#${{ matrix.package }} -L
