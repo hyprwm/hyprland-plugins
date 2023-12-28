@@ -28,7 +28,10 @@ shared_module(meson.project_name(), src,
     dependency('hyprland'),
     dependency('pixman-1'),
     dependency('libdrm'),
-    dependency('pangocairo')
+    dependency('pangocairo'),
+    dependency('libinput'),
+    dependency('libudev'),
+    dependency('wayland-server'),
   ],
   install: true,
 )
