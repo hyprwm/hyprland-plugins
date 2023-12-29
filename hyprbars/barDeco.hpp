@@ -29,6 +29,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     bool                               m_bButtonsDirty = true;
 
+    virtual std::string                getDisplayName();
+
   private:
     SWindowDecorationExtents m_seExtents;
 

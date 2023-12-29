@@ -56,6 +56,10 @@ eDecorationLayer CBordersPlusPlus::getDecorationLayer() {
     return DECORATION_LAYER_OVER;
 }
 
+std::string CBordersPlusPlus::getDisplayName() {
+    return "Borders++";
+}
+
 void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;

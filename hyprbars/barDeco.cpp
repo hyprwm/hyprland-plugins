@@ -46,6 +46,10 @@ void CHyprBar::onPositioningReply(const SDecorationPositioningReply& reply) {
     m_bAssignedBox = reply.assignedGeometry;
 }
 
+std::string CHyprBar::getDisplayName() {
+    return "Hyprbar";
+}
+
 void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
     if (m_pWindow != g_pCompositor->m_pLastWindow)
         return;

@@ -25,6 +25,8 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual eDecorationLayer           getDecorationLayer();
 
+    virtual std::string                getDisplayName();
+
   private:
     SWindowDecorationExtents m_seExtents;
 
