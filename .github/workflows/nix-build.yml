@@ -3,15 +3,6 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        package:
-          - borders-plus-plus
-          - csgo-vulkan-fix
-          - hyprbars
-          - hyprtrails
-          - hyprwinwrap
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,4 +12,4 @@ jobs:
       - name: Update inputs
         run: nix flake update
 
-      - run: nix build .#${{ matrix.package }} -L
+      - run: nix flake check -L --keep-going
