@@ -18,4 +18,7 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Update inputs
+        run: nix flake update
+
       - run: nix build .#${{ matrix.package }} -L
