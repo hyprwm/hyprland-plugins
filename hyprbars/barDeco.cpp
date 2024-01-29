@@ -88,7 +88,17 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
             Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow);
         }
-
+      else{
+                if (e->button == 272) {
+                     g_pKeybindManager->m_mDispatchers["fullscreen"]("1");
+                }
+                else if (e->button == 273) {
+                    g_pKeybindManager->m_mDispatchers["togglegroup"]("");
+                }
+                else if (e->button == 274){
+                     g_pKeybindManager->m_mDispatchers["killactive"]("");
+                }
+            }
         m_bDragPending = false;
 
         return;
