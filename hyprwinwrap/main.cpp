@@ -52,7 +52,7 @@ void onNewWindow(CWindow* pWindow) {
 
     bgWindows.push_back(pWindow);
 
-    pWindow->setHidden(true); // so that hl doesn't render this
+    pWindow->m_bHidden = true; // no renderino hyprland pls
 
     g_pInputManager->refocus();
 
@@ -76,11 +76,12 @@ void onRenderStage(eRenderStage stage) {
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
 
-        bgw->setHidden(false);
+        // cant use setHidden cuz that sends suspended and shit too that would be laggy
+        bgw->m_bHidden = false;
 
         g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor, &now, false, RENDER_PASS_ALL, false, true);
 
-        bgw->setHidden(true);
+        bgw->m_bHidden = true;
     }
 }
 
@@ -92,11 +93,12 @@ void onDamage(void* owner, void* data) {
         return;
     }
 
-    PWINDOW->setHidden(false);
+    // cant use setHidden cuz that sends suspended and shit too that would be laggy
+    PWINDOW->m_bHidden = false;
 
     ((origDamage)damageHook->m_pOriginal)(owner, data);
 
-    PWINDOW->setHidden(true);
+    PWINDOW->m_bHidden = true;
 }
 
 void onCommit(void* owner, void* data) {
@@ -107,11 +109,12 @@ void onCommit(void* owner, void* data) {
         return;
     }
 
-    PWINDOW->setHidden(false);
+    // cant use setHidden cuz that sends suspended and shit too that would be laggy
+    PWINDOW->m_bHidden = false;
 
     ((origCommit)commitHook->m_pOriginal)(owner, data);
 
-    PWINDOW->setHidden(true);
+    PWINDOW->m_bHidden = true;
 }
 
 void onConfigReloaded() {
