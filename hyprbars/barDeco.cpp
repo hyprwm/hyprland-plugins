@@ -27,15 +27,15 @@ CHyprBar::~CHyprBar() {
 }
 
 SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
-    static auto* const         PHEIGHT     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
-    static auto* const         PPRECEDENCE = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->intValue;
+    static auto* const         PHEIGHT     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const         PPRECEDENCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
 
     SDecorationPositioningInfo info;
     info.policy         = DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
-    info.priority       = *PPRECEDENCE ? 10005 : 5000;
+    info.priority       = **PPRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
-    info.desiredExtents = {{0, *PHEIGHT}, {0, 0}};
+    info.desiredExtents = {{0, **PHEIGHT}, {0, 0}};
     return info;
 }
 
@@ -56,14 +56,14 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     const auto         COORDS = cursorRelativeToBar();
 
-    static auto* const PHEIGHT           = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
-    static auto* const PBARBUTTONPADDING = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->intValue;
-    static auto* const PBARPADDING       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->intValue;
-    static auto* const PALIGNBUTTONS     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
+    static auto* const PHEIGHT           = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
+    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
 
-    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
 
-    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, *PHEIGHT - 1)) {
+    if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, **PHEIGHT - 1)) {
 
         if (m_bDraggingThis) {
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
@@ -102,19 +102,19 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
 
     // check if on a button
 
-    float offset = *PBARPADDING;
+    float offset = **PBARPADDING;
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, *PHEIGHT};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - *PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
-        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + *PBARBUTTONPADDING, currentPos.y + b.size)) {
+        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + **PBARBUTTONPADDING, currentPos.y + b.size)) {
             // hit on close
             g_pKeybindManager->m_mDispatchers["exec"](b.cmd);
             return;
         }
 
-        offset += *PBARBUTTONPADDING + b.size;
+        offset += **PBARBUTTONPADDING + b.size;
     }
 
     m_bDragPending = true;
@@ -190,30 +190,30 @@ void CHyprBar::renderText(CTexture& out, const std::string& text, const CColor& 
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
-    static auto* const PCOLOR            = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->intValue;
-    static auto* const PSIZE             = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->intValue;
-    static auto* const PFONT             = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->strValue;
-    static auto* const PALIGN            = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_align")->strValue;
-    static auto* const PALIGNBUTTONS     = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
-    static auto* const PBARPADDING       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->intValue;
-    static auto* const PBARBUTTONPADDING = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->intValue;
+    static auto* const PCOLOR            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:col.text")->getDataStaticPtr();
+    static auto* const PSIZE             = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size")->getDataStaticPtr();
+    static auto* const PFONT             = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font")->getDataStaticPtr();
+    static auto* const PALIGN            = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_text_align")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
 
-    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
 
     const auto         BORDERSIZE = m_pWindow->getRealBorderSize();
 
-    float              buttonSizes = *PBARBUTTONPADDING;
+    float              buttonSizes = **PBARBUTTONPADDING;
     for (auto& b : g_pGlobalState->buttons) {
-        buttonSizes += b.size + *PBARBUTTONPADDING;
+        buttonSizes += b.size + **PBARBUTTONPADDING;
     }
 
-    const auto   scaledSize        = *PSIZE * scale;
+    const auto   scaledSize        = **PSIZE * scale;
     const auto   scaledBorderSize  = BORDERSIZE * scale;
     const auto   scaledButtonsSize = buttonSizes * scale;
-    const auto   scaledButtonsPad  = *PBARBUTTONPADDING * scale;
-    const auto   scaledBarPadding  = *PBARPADDING * scale;
+    const auto   scaledButtonsPad  = **PBARBUTTONPADDING * scale;
+    const auto   scaledBarPadding  = **PBARPADDING * scale;
 
-    const CColor COLOR = *PCOLOR;
+    const CColor COLOR = **PCOLOR;
 
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto   CAIRO        = cairo_create(CAIROSURFACE);
@@ -228,7 +228,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, m_szLastTitle.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string(PFONT->c_str());
+    PangoFontDescription* fontDesc = pango_font_description_from_string(*PFONT);
     pango_font_description_set_size(fontDesc, scaledSize * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
@@ -274,18 +274,18 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
 }
 
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
-    static auto* const PBARBUTTONPADDING = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->intValue;
-    static auto* const PBARPADDING       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->intValue;
+    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
+    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
 
-    const auto         scaledButtonsPad = *PBARBUTTONPADDING * scale;
-    const auto         scaledBarPadding = *PBARPADDING * scale;
+    const auto         scaledButtonsPad = **PBARBUTTONPADDING * scale;
+    const auto         scaledBarPadding = **PBARPADDING * scale;
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    static auto* const PALIGNBUTTONS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
+    static auto* const PALIGNBUTTONS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
 
-    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -337,18 +337,18 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
 }
 
 void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float a) {
-    static auto* const PBARBUTTONPADDING = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->intValue;
-    static auto* const PBARPADDING       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->intValue;
+    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
+    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
 
-    const auto         scaledButtonsPad = *PBARBUTTONPADDING * scale;
-    const auto         scaledBarPad     = *PBARPADDING * scale;
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
+
+    const auto         scaledButtonsPad = **PBARBUTTONPADDING * scale;
+    const auto         scaledBarPad     = **PBARPADDING * scale;
     int                offset           = scaledBarPad;
+    //
 
-    static auto* const PALIGNBUTTONS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
-
-    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
-
-    auto               drawButton = [&](SHyprButton& button) -> void {
+    auto drawButton = [&](SHyprButton& button) -> void {
         const auto scaledButtonSize = button.size * scale;
 
         if (button.iconTex.m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
@@ -383,16 +383,16 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PCOLOR        = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->intValue;
-    static auto* const PHEIGHT       = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->intValue;
-    static auto* const PPRECEDENCE   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->intValue;
-    static auto* const PALIGNBUTTONS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->strValue;
-    static auto* const PENABLETITLE  = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->intValue;
+    static auto* const PCOLOR        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+    static auto* const PHEIGHT       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PPRECEDENCE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PENABLETITLE  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
 
-    const bool         BUTTONSRIGHT = *PALIGNBUTTONS != "left";
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
 
-    if (*PHEIGHT < 1) {
-        m_iLastHeight = *PHEIGHT;
+    if (**PHEIGHT < 1) {
+        m_iLastHeight = **PHEIGHT;
         return;
     }
 
@@ -403,10 +403,10 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
-    CColor     color = *PCOLOR;
+    CColor     color = **PCOLOR;
     color.a *= a;
 
-    m_seExtents = {{0, *PHEIGHT}, {}};
+    m_seExtents = {{0, **PHEIGHT}, {}};
 
     const auto DECOBOX = assignedBoxGlobal();
 
@@ -446,7 +446,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
-    if (*PENABLETITLE && (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0)) {
+    if (**PENABLETITLE && (m_szLastTitle != m_pWindow->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0)) {
         m_szLastTitle = m_pWindow->m_szTitle;
         renderBarTitle(BARBUF, pMonitor->scale);
     }
@@ -461,7 +461,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     CBox textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
-    if (*PENABLETITLE)
+    if (**PENABLETITLE)
         g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
 
     if (m_bButtonsDirty || m_bWindowSizeChanged) {
@@ -478,9 +478,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     m_bWindowSizeChanged = false;
 
     // dynamic updates change the extents
-    if (m_iLastHeight != *PHEIGHT) {
+    if (m_iLastHeight != **PHEIGHT) {
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pWindow);
-        m_iLastHeight = *PHEIGHT;
+        m_iLastHeight = **PHEIGHT;
     }
 }
 
@@ -505,8 +505,8 @@ eDecorationLayer CHyprBar::getDecorationLayer() {
 }
 
 uint64_t CHyprBar::getDecorationFlags() {
-    static auto* const PPART = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window")->intValue;
-    return DECORATION_ALLOWS_MOUSE_INPUT | (*PPART ? DECORATION_PART_OF_MAIN_WINDOW : 0);
+    static auto* const PPART = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window")->getDataStaticPtr();
+    return DECORATION_ALLOWS_MOUSE_INPUT | (**PPART ? DECORATION_PART_OF_MAIN_WINDOW : 0);
 }
 
 CBox CHyprBar::assignedBoxGlobal() {

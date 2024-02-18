@@ -15,11 +15,11 @@ CBordersPlusPlus::~CBordersPlusPlus() {
 }
 
 SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
-    static auto* const           PBORDERS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->intValue;
+    static auto* const                        PBORDERS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->getDataStaticPtr();
 
-    static std::vector<int64_t*> PSIZES;
+    static std::vector<Hyprlang::INT* const*> PSIZES;
     for (size_t i = 0; i < 9; ++i) {
-        PSIZES.push_back(&HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->intValue);
+        PSIZES.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->getDataStaticPtr());
     }
 
     SDecorationPositioningInfo info;
@@ -31,8 +31,8 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
     if (m_fLastThickness == 0) {
         double size = 0;
 
-        for (size_t i = 0; i < *PBORDERS; ++i) {
-            size += *PSIZES[i];
+        for (size_t i = 0; i < **PBORDERS; ++i) {
+            size += **PSIZES[i];
         }
 
         info.desiredExtents = {{size, size}, {size, size}};
@@ -67,39 +67,39 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static std::vector<int64_t*> PCOLORS;
-    static std::vector<int64_t*> PSIZES;
+    static std::vector<Hyprlang::INT* const*> PCOLORS;
+    static std::vector<Hyprlang::INT* const*> PSIZES;
     for (size_t i = 0; i < 9; ++i) {
-        PCOLORS.push_back(&HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_" + std::to_string(i + 1))->intValue);
-        PSIZES.push_back(&HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->intValue);
+        PCOLORS.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_" + std::to_string(i + 1))->getDataStaticPtr());
+        PSIZES.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->getDataStaticPtr());
     }
-    static auto* const PBORDERS      = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->intValue;
-    static auto* const PNATURALROUND = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:natural_rounding")->intValue;
-    static auto* const PROUNDING     = &HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->intValue;
-    static auto* const PBORDERSIZE   = &HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->intValue;
+    static auto* const PBORDERS      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->getDataStaticPtr();
+    static auto* const PNATURALROUND = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:natural_rounding")->getDataStaticPtr();
+    static auto* const PROUNDING     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->getDataStaticPtr();
+    static auto* const PBORDERSIZE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->getDataStaticPtr();
 
-    if (*PBORDERS < 1)
+    if (**PBORDERS < 1)
         return;
 
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 
-    auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
-    const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + *PBORDERSIZE;
+    auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
     CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
     fullBox.translate(offset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale);
 
     double fullThickness = 0;
 
-    fullBox.x -= *PBORDERSIZE * pMonitor->scale;
-    fullBox.y -= *PBORDERSIZE * pMonitor->scale;
-    fullBox.width += *PBORDERSIZE * 2 * pMonitor->scale;
-    fullBox.height += *PBORDERSIZE * 2 * pMonitor->scale;
+    fullBox.x -= **PBORDERSIZE * pMonitor->scale;
+    fullBox.y -= **PBORDERSIZE * pMonitor->scale;
+    fullBox.width += **PBORDERSIZE * 2 * pMonitor->scale;
+    fullBox.height += **PBORDERSIZE * 2 * pMonitor->scale;
 
-    for (size_t i = 0; i < *PBORDERS; ++i) {
-        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (*PSIZES[i - 1] == -1 ? *PBORDERSIZE : *PSIZES[i - 1]) * pMonitor->scale;
-        const int THISBORDERSIZE       = *PSIZES[i] == -1 ? *PBORDERSIZE : *PSIZES[i];
+    for (size_t i = 0; i < **PBORDERS; ++i) {
+        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->scale;
+        const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
 
         if (i != 0) {
             rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED / pMonitor->scale;
@@ -114,7 +114,8 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
 
         g_pHyprOpenGL->scissor((CBox*)nullptr);
 
-        g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t)*PCOLORS[i]}, *PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a, *PNATURALROUND ? ORIGINALROUND : -1);
+        g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t) * *PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a,
+                                    **PNATURALROUND ? ORIGINALROUND : -1);
 
         fullThickness += THISBORDERSIZE;
     }

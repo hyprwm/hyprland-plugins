@@ -30,7 +30,7 @@ std::vector<CWindow*> bgWindows;
 
 //
 void onNewWindow(CWindow* pWindow) {
-    static auto* const PCLASS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->strValue;
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
 
     if (pWindow->m_szInitialClass != *PCLASS)
         return;
@@ -118,9 +118,9 @@ void onCommit(void* owner, void* data) {
 }
 
 void onConfigReloaded() {
-    static auto* const PCLASS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->strValue;
-    g_pConfigManager->parseKeyword("windowrulev2", "float, class:^(" + *PCLASS + ")$", true);
-    g_pConfigManager->parseKeyword("windowrulev2", "size 100\% 100\%, class:^(" + *PCLASS + ")$", true);
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
+    g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + *PCLASS + ")$");
+    g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + *PCLASS + ")$");
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -155,7 +155,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (!hkResult)
         throw std::runtime_error("hyprwinwrap: hooks failed");
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", SConfigValue{.strValue = "kitty-bg"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", Hyprlang::STRING{"kitty-bg"});
 
     HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
 

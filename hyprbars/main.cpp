@@ -30,24 +30,34 @@ void onPreConfigReload() {
     g_pGlobalState->buttons.clear();
 }
 
-void onNewButton(const std::string& k, const std::string& v) {
-    CVarList vars(v);
+Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
+    std::string            v = V;
+    CVarList               vars(v);
+
+    Hyprlang::CParseResult result;
 
     // hyprbars-button = color, size, icon, action
 
-    if (vars[0].empty() || vars[1].empty())
-        return;
+    if (vars[0].empty() || vars[1].empty()) {
+        result.setError("var 1 and 2 cannot be empty");
+        return result;
+    }
 
     float size = 10;
     try {
         size = std::stof(vars[1]);
-    } catch (std::exception& e) { return; }
+    } catch (std::exception& e) {
+        result.setError("failed parsing var 2 as int");
+        return result;
+    }
 
     g_pGlobalState->buttons.push_back(SHyprButton{vars[3], configStringToInt(vars[0]), size, vars[2]});
 
     for (auto& b : g_pGlobalState->bars) {
         b->m_bButtonsDirty = true;
     }
+
+    return result;
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -65,20 +75,20 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", SConfigValue{.intValue = configStringToInt("rgba(33333388)")});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", SConfigValue{.intValue = 15});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", SConfigValue{.intValue = configStringToInt("rgba(ffffffff)")});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", SConfigValue{.intValue = 10});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled", SConfigValue{.intValue = 1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", SConfigValue{.strValue = "Sans"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_align", SConfigValue{.strValue = "center"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window", SConfigValue{.intValue = 1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border", SConfigValue{.intValue = 0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment", SConfigValue{.strValue = "right"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_padding", SConfigValue{.intValue = 7});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding", SConfigValue{.intValue = 5});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{configStringToInt("rgba(33333388)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", Hyprlang::INT{15});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", Hyprlang::INT{configStringToInt("rgba(ffffffff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", Hyprlang::INT{10});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", Hyprlang::STRING{"Sans"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_align", Hyprlang::STRING{"center"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_part_of_window", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment", Hyprlang::STRING{"right"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_padding", Hyprlang::INT{7});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding", Hyprlang::INT{5});
 
-    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprbars-button", [&](const std::string& k, const std::string& v) { onNewButton(k, v); });
+    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });
 
     // add deco to existing windows

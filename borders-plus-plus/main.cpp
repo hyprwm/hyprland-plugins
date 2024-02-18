@@ -33,12 +33,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[bpp] Version mismatch");
     }
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders", SConfigValue{.intValue = 1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:natural_rounding", SConfigValue{.intValue = 1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:natural_rounding", Hyprlang::INT{1});
 
     for (size_t i = 0; i < 9; ++i) {
-        HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_" + std::to_string(i + 1), SConfigValue{.intValue = configStringToInt("rgba(000000ee)")});
-        HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1), SConfigValue{.intValue = -1});
+        HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_" + std::to_string(i + 1), Hyprlang::INT{configStringToInt("rgba(000000ee)")});
+        HyprlandAPI::addConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1), Hyprlang::INT{-1});
     }
 
     HyprlandAPI::reloadConfig();
