@@ -30,7 +30,7 @@ std::vector<CWindow*> bgWindows;
 
 //
 void onNewWindow(CWindow* pWindow) {
-    static auto* const PCLASS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->strValue;
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
 
     if (pWindow->m_szInitialClass != *PCLASS)
         return;
@@ -52,7 +52,7 @@ void onNewWindow(CWindow* pWindow) {
 
     bgWindows.push_back(pWindow);
 
-    pWindow->setHidden(true); // so that hl doesn't render this
+    pWindow->m_bHidden = true; // no renderino hyprland pls
 
     g_pInputManager->refocus();
 
@@ -76,11 +76,12 @@ void onRenderStage(eRenderStage stage) {
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
 
-        bgw->setHidden(false);
+        // cant use setHidden cuz that sends suspended and shit too that would be laggy
+        bgw->m_bHidden = false;
 
         g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor, &now, false, RENDER_PASS_ALL, false, true);
 
-        bgw->setHidden(true);
+        bgw->m_bHidden = true;
     }
 }
 
@@ -92,11 +93,12 @@ void onDamage(void* owner, void* data) {
         return;
     }
 
-    PWINDOW->setHidden(false);
+    // cant use setHidden cuz that sends suspended and shit too that would be laggy
+    PWINDOW->m_bHidden = false;
 
     ((origDamage)damageHook->m_pOriginal)(owner, data);
 
-    PWINDOW->setHidden(true);
+    PWINDOW->m_bHidden = true;
 }
 
 void onCommit(void* owner, void* data) {
@@ -107,17 +109,18 @@ void onCommit(void* owner, void* data) {
         return;
     }
 
-    PWINDOW->setHidden(false);
+    // cant use setHidden cuz that sends suspended and shit too that would be laggy
+    PWINDOW->m_bHidden = false;
 
     ((origCommit)commitHook->m_pOriginal)(owner, data);
 
-    PWINDOW->setHidden(true);
+    PWINDOW->m_bHidden = true;
 }
 
 void onConfigReloaded() {
-    static auto* const PCLASS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->strValue;
-    g_pConfigManager->parseKeyword("windowrulev2", "float, class:^(" + *PCLASS + ")$", true);
-    g_pConfigManager->parseKeyword("windowrulev2", "size 100\% 100\%, class:^(" + *PCLASS + ")$", true);
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
+    g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + *PCLASS + ")$");
+    g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + *PCLASS + ")$");
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -152,7 +155,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     if (!hkResult)
         throw std::runtime_error("hyprwinwrap: hooks failed");
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", SConfigValue{.strValue = "kitty-bg"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", Hyprlang::STRING{"kitty-bg"});
 
     HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
 

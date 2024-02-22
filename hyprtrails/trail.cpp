@@ -6,16 +6,16 @@
 #include "globals.hpp"
 
 void CTrail::onTick() {
-    static auto* const PHISTORYSTEP   = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->intValue;
-    static auto* const PHISTORYPOINTS = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_points")->intValue;
+    static auto* const PHISTORYSTEP   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->getDataStaticPtr();
+    static auto* const PHISTORYPOINTS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_points")->getDataStaticPtr();
 
     m_iTimer++;
 
-    if (m_iTimer > *PHISTORYSTEP) {
+    if (m_iTimer > **PHISTORYSTEP) {
         m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x,
                                      (float)m_pWindow->m_vRealSize.vec().y},
                                  std::chrono::system_clock::now()});
-        while (m_dLastGeoms.size() > *PHISTORYPOINTS)
+        while (m_dLastGeoms.size() > **PHISTORYPOINTS)
             m_dLastGeoms.pop_back();
 
         m_iTimer = 0;
@@ -83,11 +83,11 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (!m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    static auto* const PBEZIERSTEP    = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->floatValue;
-    static auto* const PPOINTSPERSTEP = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->intValue;
-    static auto* const PCOLOR         = &HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:color")->intValue;
+    static auto* const PBEZIERSTEP    = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->getDataStaticPtr();
+    static auto* const PPOINTSPERSTEP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->getDataStaticPtr();
+    static auto* const PCOLOR         = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:color")->getDataStaticPtr();
 
-    const CColor       COLOR = *PCOLOR;
+    const CColor       COLOR = **PCOLOR;
 
     if (m_dLastGeoms.size() < 2)
         return;
@@ -193,8 +193,8 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     float maxAge          = agesForBezier.back();
-    float tCoeff          = *PBEZIERSTEP;
-    int   pointsPerBezier = *PPOINTSPERSTEP;
+    float tCoeff          = **PBEZIERSTEP;
+    int   pointsPerBezier = **PPOINTSPERSTEP;
     bezierPts.push_back(vecForBezierT(0, pointsForBezier));
     for (float t = tCoeff; t <= 1.0; t += tCoeff) {
         bezierPts.push_back(vecForBezierT(t, pointsForBezier));

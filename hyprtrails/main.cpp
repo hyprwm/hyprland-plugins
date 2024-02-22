@@ -110,11 +110,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[ht] Version mismatch");
     }
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step", SConfigValue{.floatValue = 0.025});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step", SConfigValue{.intValue = 2});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_points", SConfigValue{.intValue = 20});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", SConfigValue{.intValue = 2});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", SConfigValue{.intValue = configStringToInt("rgba(ffaa00ff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step", Hyprlang::FLOAT{0.025});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_points", Hyprlang::INT{20});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{configStringToInt("rgba(ffaa00ff)")});
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
