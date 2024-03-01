@@ -21,9 +21,9 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 }
 
 // hooks
-inline CFunctionHook* damageHook = nullptr;
-inline CFunctionHook* commitHook = nullptr;
-typedef void (*origDamage)(void* owner, void* data);
+inline CFunctionHook* subsurfaceHook = nullptr;
+inline CFunctionHook* commitHook     = nullptr;
+typedef void (*origCommitSubsurface)(CSubsurface* thisptr);
 typedef void (*origCommit)(void* owner, void* data);
 
 std::vector<CWindow*> bgWindows;
@@ -85,18 +85,18 @@ void onRenderStage(eRenderStage stage) {
     }
 }
 
-void onDamage(void* owner, void* data) {
-    const auto PWINDOW = (CWindow*)owner;
+void onCommitSubsurface(CSubsurface* thisptr) {
+    const auto PWINDOW = thisptr->m_sWLSurface.getWindow();
 
-    if (std::find(bgWindows.begin(), bgWindows.end(), PWINDOW) == bgWindows.end()) {
-        ((origDamage)damageHook->m_pOriginal)(owner, data);
+    if (!PWINDOW || std::find(bgWindows.begin(), bgWindows.end(), PWINDOW) == bgWindows.end()) {
+        ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
         return;
     }
 
     // cant use setHidden cuz that sends suspended and shit too that would be laggy
     PWINDOW->m_bHidden = false;
 
-    ((origDamage)damageHook->m_pOriginal)(owner, data);
+    ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
 
     PWINDOW->m_bHidden = true;
 }
@@ -139,17 +139,21 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "render", [&](void* self, SCallbackInfo& info, std::any data) { onRenderStage(std::any_cast<eRenderStage>(data)); });
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "configReloaded", [&](void* self, SCallbackInfo& info, std::any data) { onConfigReloaded(); });
 
-    auto fns = HyprlandAPI::findFunctionsByName(PHANDLE, "listener_commitSubsurface");
+    auto fns = HyprlandAPI::findFunctionsByName(PHANDLE, "onCommit");
     if (fns.size() < 1)
-        throw std::runtime_error("hyprwinwrap: listener_commitSubsurface not found");
-    damageHook = HyprlandAPI::createFunctionHook(PHANDLE, fns[0].address, (void*)&onDamage);
+        throw std::runtime_error("hyprwinwrap: onCommit not found");
+    for (auto& fn : fns) {
+        if (!fn.demangled.contains("CSubsurface"))
+            continue;
+        subsurfaceHook = HyprlandAPI::createFunctionHook(PHANDLE, fns[0].address, (void*)&onCommitSubsurface);
+    }
 
     fns = HyprlandAPI::findFunctionsByName(PHANDLE, "listener_commitWindow");
     if (fns.size() < 1)
         throw std::runtime_error("hyprwinwrap: listener_commitWindow not found");
     commitHook = HyprlandAPI::createFunctionHook(PHANDLE, fns[0].address, (void*)&onCommit);
 
-    bool hkResult = damageHook->hook();
+    bool hkResult = subsurfaceHook->hook();
     hkResult      = hkResult && commitHook->hook();
 
     if (!hkResult)
