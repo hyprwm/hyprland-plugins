@@ -77,7 +77,7 @@ void hkSurfaceDamage(wlr_surface* surface, pixman_region32_t* damage) {
 }
 
 CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
-    const auto         RG = (*(origWLSurfaceDamage)g_pSurfaceDamageHook->m_pOriginal)(thisptr);
+    const auto         RG = (*(origWLSurfaceDamage)g_pWLSurfaceDamageHook->m_pOriginal)(thisptr);
 
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
 
