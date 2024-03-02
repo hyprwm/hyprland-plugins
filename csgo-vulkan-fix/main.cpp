@@ -9,12 +9,14 @@
 #include "globals.hpp"
 
 // Methods
-inline CFunctionHook* g_pMouseMotionHook   = nullptr;
-inline CFunctionHook* g_pSurfaceSizeHook   = nullptr;
-inline CFunctionHook* g_pSurfaceDamageHook = nullptr;
+inline CFunctionHook* g_pMouseMotionHook     = nullptr;
+inline CFunctionHook* g_pSurfaceSizeHook     = nullptr;
+inline CFunctionHook* g_pSurfaceDamageHook   = nullptr;
+inline CFunctionHook* g_pWLSurfaceDamageHook = nullptr;
 typedef void (*origMotion)(wlr_seat*, uint32_t, double, double);
 typedef void (*origSurfaceSize)(wlr_xwayland_surface*, int16_t, int16_t, uint16_t, uint16_t);
 typedef void (*origSurfaceDamage)(wlr_surface*, pixman_region32_t*);
+typedef CRegion (*origWLSurfaceDamage)(CWLSurface*);
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -74,6 +76,22 @@ void hkSurfaceDamage(wlr_surface* surface, pixman_region32_t* damage) {
     }
 }
 
+CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
+    const auto         RG = (*(origWLSurfaceDamage)g_pSurfaceDamageHook->m_pOriginal)(thisptr);
+
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+
+    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_szInitialClass == *PCLASS) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(thisptr->getWindow()->m_iMonitorID);
+        if (PMONITOR)
+            g_pHyprRenderer->damageMonitor(PMONITOR);
+        else
+            g_pHyprRenderer->damageWindow(thisptr->getWindow());
+    }
+
+    return RG;
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -81,12 +99,25 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
 
-    g_pMouseMotionHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_seat_pointer_notify_motion, (void*)&hkNotifyMotion);
-    g_pSurfaceSizeHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_xwayland_surface_configure, (void*)&hkSetWindowSize);
-    g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_surface_get_effective_damage, (void*)&hkSurfaceDamage);
-    bool hkResult        = g_pMouseMotionHook->hook();
-    hkResult             = hkResult && g_pSurfaceSizeHook->hook();
-    hkResult             = hkResult && g_pSurfaceDamageHook->hook();
+    g_pMouseMotionHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_seat_pointer_notify_motion, (void*)::hkNotifyMotion);
+    g_pSurfaceSizeHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_xwayland_surface_configure, (void*)::hkSetWindowSize);
+    g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_surface_get_effective_damage, (void*)::hkSurfaceDamage);
+
+    bool hkResult = true;
+
+    auto results = HyprlandAPI::findFunctionsByName(PHANDLE, "logicalDamage");
+    for (auto& r : results) {
+        if (!r.demangled.contains("CWLSurface"))
+            continue;
+
+        g_pWLSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, r.address, (void*)::hkWLSurfaceDamage);
+        break;
+    }
+
+    hkResult = hkResult && g_pWLSurfaceDamageHook->hook();
+    hkResult = hkResult && g_pMouseMotionHook->hook();
+    hkResult = hkResult && g_pSurfaceSizeHook->hook();
+    hkResult = hkResult && g_pSurfaceDamageHook->hook();
 
     if (hkResult)
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (Anything version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
