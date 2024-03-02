@@ -65,8 +65,13 @@ void hkSurfaceDamage(wlr_surface* surface, pixman_region32_t* damage) {
 
     const auto         SURF = CWLSurface::surfaceFromWlr(surface);
 
-    if (SURF && SURF->exists() && SURF->getWindow() && SURF->getWindow()->m_szInitialClass == *PCLASS)
-        g_pHyprRenderer->damageWindow(SURF->getWindow());
+    if (SURF && SURF->exists() && SURF->getWindow() && SURF->getWindow()->m_szInitialClass == *PCLASS) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(SURF->getWindow()->m_iMonitorID);
+        if (PMONITOR)
+            g_pHyprRenderer->damageMonitor(PMONITOR);
+        else
+            g_pHyprRenderer->damageWindow(SURF->getWindow());
+    }
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
