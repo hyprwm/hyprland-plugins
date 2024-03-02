@@ -48,7 +48,7 @@ void onNewWindow(CWindow* pWindow) {
     pWindow->m_vSize     = PMONITOR->vecSize;
     pWindow->m_vPosition = PMONITOR->vecPosition;
     pWindow->m_bPinned   = true;
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal(), true);
 
     bgWindows.push_back(pWindow);
 

@@ -12,8 +12,8 @@ void CTrail::onTick() {
     m_iTimer++;
 
     if (m_iTimer > **PHISTORYSTEP) {
-        m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x,
-                                     (float)m_pWindow->m_vRealSize.vec().y},
+        m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.value().x, (float)m_pWindow->m_vRealPosition.value().y, (float)m_pWindow->m_vRealSize.value().x,
+                                     (float)m_pWindow->m_vRealSize.value().y},
                                  std::chrono::system_clock::now()});
         while (m_dLastGeoms.size() > **PHISTORYPOINTS)
             m_dLastGeoms.pop_back();
@@ -28,8 +28,8 @@ void CTrail::onTick() {
 }
 
 CTrail::CTrail(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
-    m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.value();
+    m_vLastWindowSize = pWindow->m_vRealSize.value();
 
     pTickCb = g_pHookSystem->hookDynamic("trailTick", [this](void* self, SCallbackInfo& info, std::any data) { this->onTick(); });
 }
@@ -92,9 +92,9 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     if (m_dLastGeoms.size() < 2)
         return;
 
-    box thisbox =
-        box{(float)m_pWindow->m_vRealPosition.vec().x, (float)m_pWindow->m_vRealPosition.vec().y, (float)m_pWindow->m_vRealSize.vec().x, (float)m_pWindow->m_vRealSize.vec().y};
-    CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
+    box  thisbox = box{(float)m_pWindow->m_vRealPosition.value().x, (float)m_pWindow->m_vRealPosition.value().y, (float)m_pWindow->m_vRealSize.value().x,
+                      (float)m_pWindow->m_vRealSize.value().y};
+    CBox wlrbox  = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
     wlrbox.scale(pMonitor->scale).round();
 
     g_pHyprOpenGL->scissor((CBox*)nullptr); // allow the entire window and stencil to render
@@ -237,10 +237,10 @@ void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         }
     }
 
-    box thisboxopengl = box{(m_pWindow->m_vRealPosition.vec().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
-                            (m_pWindow->m_vRealPosition.vec().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
-                            (m_pWindow->m_vRealPosition.vec().x + m_pWindow->m_vRealSize.vec().x) / pMonitor->vecSize.x,
-                            (m_pWindow->m_vRealPosition.vec().y + m_pWindow->m_vRealSize.vec().y) / pMonitor->vecSize.y};
+    box thisboxopengl = box{(m_pWindow->m_vRealPosition.value().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
+                            (m_pWindow->m_vRealPosition.value().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
+                            (m_pWindow->m_vRealPosition.value().x + m_pWindow->m_vRealSize.value().x) / pMonitor->vecSize.x,
+                            (m_pWindow->m_vRealPosition.value().y + m_pWindow->m_vRealSize.value().y) / pMonitor->vecSize.y};
     glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -318,10 +318,10 @@ eDecorationType CTrail::getDecorationType() {
 void CTrail::updateWindow(CWindow* pWindow) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-    m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.value() + WORKSPACEOFFSET;
+    m_vLastWindowSize = pWindow->m_vRealSize.value();
 
     damageEntire();
 }

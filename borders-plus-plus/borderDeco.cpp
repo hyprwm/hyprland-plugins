@@ -6,8 +6,8 @@
 #include "globals.hpp"
 
 CBordersPlusPlus::CBordersPlusPlus(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
-    m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.value();
+    m_vLastWindowSize = pWindow->m_vRealSize.value();
 }
 
 CBordersPlusPlus::~CBordersPlusPlus() {
@@ -82,7 +82,7 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
         return;
 
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
     const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
@@ -133,8 +133,8 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
 }
 
 void CBordersPlusPlus::updateWindow(CWindow* pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition.vec();
-    m_vLastWindowSize = pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = pWindow->m_vRealPosition.value();
+    m_vLastWindowSize = pWindow->m_vRealSize.value();
 
     damageEntire();
 }

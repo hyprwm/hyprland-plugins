@@ -397,7 +397,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     }
 
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     const auto ROUNDING = m_pWindow->rounding() + (*PPRECEDENCE ? 0 : m_pWindow->getRealBorderSize());
 
@@ -433,8 +433,9 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {m_pWindow->m_vRealPosition.vec().x + offset.x - pMonitor->vecPosition.x + 1, m_pWindow->m_vRealPosition.vec().y + offset.y - pMonitor->vecPosition.y + 1,
-                          m_pWindow->m_vRealSize.vec().x - 2, m_pWindow->m_vRealSize.vec().y - 2};
+        CBox windowBox = {m_pWindow->m_vRealPosition.value().x + offset.x - pMonitor->vecPosition.x + 1,
+                          m_pWindow->m_vRealPosition.value().y + offset.y - pMonitor->vecPosition.y + 1, m_pWindow->m_vRealSize.value().x - 2,
+                          m_pWindow->m_vRealSize.value().y - 2};
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->scale).round();
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -514,7 +515,7 @@ CBox CHyprBar::assignedBoxGlobal() {
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
 
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     return box.translate(WORKSPACEOFFSET);
 }
