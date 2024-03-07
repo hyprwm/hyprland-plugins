@@ -1,16 +1,14 @@
 {
   lib,
-  stdenv,
   hyprland,
+  hyprlandPlugins,
 }:
-stdenv.mkDerivation {
-  pname = "hyprbars";
+hyprlandPlugins.mkHyprlandPlugin {
+  pluginName = "hyprbars";
   version = "0.1";
   src = ./.;
 
   inherit (hyprland) nativeBuildInputs;
-
-  buildInputs = [hyprland] ++ hyprland.buildInputs;
 
   meta = with lib; {
     homepage = "https://github.com/hyprwm/hyprland-plugins";

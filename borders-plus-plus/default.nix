@@ -1,16 +1,14 @@
 {
   lib,
-  stdenv,
   hyprland,
+  hyprlandPlugins,
 }:
-stdenv.mkDerivation {
-  pname = "borders-plus-plus";
+hyprlandPlugins.mkHyprlandPlugin {
+  pluginName = "borders-plus-plus";
   version = "0.1";
   src = ./.;
 
   inherit (hyprland) nativeBuildInputs;
-
-  buildInputs = [hyprland] ++ hyprland.buildInputs;
 
   meta = with lib; {
     homepage = "https://github.com/hyprwm/hyprland-plugins";
