@@ -97,6 +97,8 @@ void onCommitSubsurface(CSubsurface* thisptr) {
     PWINDOW->m_bHidden = false;
 
     ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
+    if (const auto MON = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); MON)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
     PWINDOW->m_bHidden = true;
 }
@@ -113,6 +115,8 @@ void onCommit(void* owner, void* data) {
     PWINDOW->m_bHidden = false;
 
     ((origCommit)commitHook->m_pOriginal)(owner, data);
+    if (const auto MON = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); MON)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
     PWINDOW->m_bHidden = true;
 }
