@@ -99,14 +99,21 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
 
-    g_pMouseMotionHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_seat_pointer_notify_motion, (void*)::hkNotifyMotion);
-    g_pSurfaceSizeHook   = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_xwayland_surface_configure, (void*)::hkSetWindowSize);
-    g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, (void*)&wlr_surface_get_effective_damage, (void*)::hkSurfaceDamage);
+    auto FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "wlr_seat_pointer_notify_motion");
+    bool success = !FNS.empty();
+    if (success)
+        g_pMouseMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkNotifyMotion);
+    FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "wlr_xwayland_surface_configure");
+    success = success && !FNS.empty();
+    if (success)
+        g_pSurfaceSizeHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkSetWindowSize);
+    FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "wlr_surface_get_effective_damage");
+    success = success && !FNS.empty();
+    if (success)
+        g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkSurfaceDamage);
 
-    bool hkResult = true;
-
-    auto results = HyprlandAPI::findFunctionsByName(PHANDLE, "logicalDamage");
-    for (auto& r : results) {
+    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "logicalDamage");
+    for (auto& r : FNS) {
         if (!r.demangled.contains("CWLSurface"))
             continue;
 
@@ -114,12 +121,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         break;
     }
 
-    hkResult = hkResult && g_pWLSurfaceDamageHook->hook();
-    hkResult = hkResult && g_pMouseMotionHook->hook();
-    hkResult = hkResult && g_pSurfaceSizeHook->hook();
-    hkResult = hkResult && g_pSurfaceDamageHook->hook();
+    success = success && g_pWLSurfaceDamageHook->hook();
+    success = success && g_pMouseMotionHook->hook();
+    success = success && g_pSurfaceSizeHook->hook();
+    success = success && g_pSurfaceDamageHook->hook();
 
-    if (hkResult)
+    if (success)
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (Anything version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
     else {
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization (hook failed)!", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
