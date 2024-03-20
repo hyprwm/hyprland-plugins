@@ -8,7 +8,7 @@
 
 #define private public
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/Window.hpp>
+#include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #undef private

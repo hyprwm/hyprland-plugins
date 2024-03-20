@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/Window.hpp>
+#include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 
 #include "globals.hpp"
