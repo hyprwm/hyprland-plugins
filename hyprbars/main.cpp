@@ -15,7 +15,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-void onNewWindow(void* self, std::any data) {
+static void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     auto* const PWINDOW = std::any_cast<CWindow*>(data);
 
@@ -24,6 +24,19 @@ void onNewWindow(void* self, std::any data) {
         g_pGlobalState->bars.push_back(bar.get());
         HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::move(bar));
     }
+}
+
+static void onCloseWindow(void* self, std::any data) {
+    // data is guaranteed
+    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+
+    const auto  BARIT = std::find_if(g_pGlobalState->bars.begin(), g_pGlobalState->bars.end(), [PWINDOW](const auto& bar) { return bar->getOwner() == PWINDOW; });
+
+    if (BARIT == g_pGlobalState->bars.end())
+        return;
+
+    // we could use the API but this is faster + it doesn't matter here that much.
+    PWINDOW->removeWindowDeco(*BARIT);
 }
 
 void onPreConfigReload() {
@@ -74,6 +87,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState = std::make_unique<SGlobalState>();
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(self, data); });
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{configStringToInt("rgba(33333388)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", Hyprlang::INT{15});

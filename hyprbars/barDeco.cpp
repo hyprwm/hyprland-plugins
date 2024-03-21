@@ -519,3 +519,7 @@ CBox CHyprBar::assignedBoxGlobal() {
 
     return box.translate(WORKSPACEOFFSET);
 }
+
+CWindow* CHyprBar::getOwner() {
+    return m_pWindow;
+}

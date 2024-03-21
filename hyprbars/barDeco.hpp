@@ -31,6 +31,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    CWindow*                           getOwner();
+
   private:
     SWindowDecorationExtents m_seExtents;
 
