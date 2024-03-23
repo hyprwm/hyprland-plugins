@@ -417,7 +417,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     titleBarBox.translate(offset).scale(pMonitor->scale).round();
 
-    if (titleBarBox.w < 1 || titleBarBox.h < 0)
+    if (titleBarBox.w < 1 || titleBarBox.h < 1)
         return;
 
     g_pHyprOpenGL->scissor(&titleBarBox);
