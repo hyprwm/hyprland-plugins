@@ -423,6 +423,14 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     g_pHyprOpenGL->scissor(&titleBarBox);
 
     if (ROUNDING) {
+        // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
+        CBox windowBox = {m_pWindow->m_vRealPosition.value().x + offset.x - pMonitor->vecPosition.x + 1,
+                          m_pWindow->m_vRealPosition.value().y + offset.y - pMonitor->vecPosition.y + 1, m_pWindow->m_vRealSize.value().x - 2,
+                          m_pWindow->m_vRealSize.value().y - 2};
+
+        if (windowBox.w < 1 || windowBox.h < 1)
+            return;
+
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -432,10 +440,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {m_pWindow->m_vRealPosition.value().x + offset.x - pMonitor->vecPosition.x + 1,
-                          m_pWindow->m_vRealPosition.value().y + offset.y - pMonitor->vecPosition.y + 1, m_pWindow->m_vRealSize.value().x - 2,
-                          m_pWindow->m_vRealSize.value().y - 2};
+
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->scale).round();
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 0), scaledRounding);
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
