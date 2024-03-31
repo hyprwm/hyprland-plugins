@@ -76,7 +76,7 @@ Vector2D vecForBezierT(const float& t, const std::vector<Vector2D>& verts) {
         return pts[0];
 }
 
-void CTrail::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CTrail::draw(CMonitor* pMonitor, float a) {
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
 

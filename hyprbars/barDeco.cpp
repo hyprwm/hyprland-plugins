@@ -376,7 +376,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     }
 }
 
-void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CHyprBar::draw(CMonitor* pMonitor, float a) {
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
@@ -415,7 +415,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     CBox       titleBarBox = {DECOBOX.x - pMonitor->vecPosition.x, DECOBOX.y - pMonitor->vecPosition.y, DECOBOX.w,
                               DECOBOX.h + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
-    titleBarBox.translate(offset).scale(pMonitor->scale).round();
+    titleBarBox.translate(m_pWindow->m_vFloatingOffset).scale(pMonitor->scale).round();
 
     if (titleBarBox.w < 1 || titleBarBox.h < 1)
         return;
@@ -424,8 +424,8 @@ void CHyprBar::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
 
     if (ROUNDING) {
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {m_pWindow->m_vRealPosition.value().x + offset.x - pMonitor->vecPosition.x + 1,
-                          m_pWindow->m_vRealPosition.value().y + offset.y - pMonitor->vecPosition.y + 1, m_pWindow->m_vRealSize.value().x - 2,
+        CBox windowBox = {m_pWindow->m_vRealPosition.value().x + m_pWindow->m_vFloatingOffset.x - pMonitor->vecPosition.x + 1,
+                          m_pWindow->m_vRealPosition.value().y + m_pWindow->m_vFloatingOffset.y - pMonitor->vecPosition.y + 1, m_pWindow->m_vRealSize.value().x - 2,
                           m_pWindow->m_vRealSize.value().y - 2};
 
         if (windowBox.w < 1 || windowBox.h < 1)

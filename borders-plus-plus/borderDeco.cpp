@@ -60,7 +60,7 @@ std::string CBordersPlusPlus::getDisplayName() {
     return "Borders++";
 }
 
-void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
@@ -88,7 +88,7 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a, const Vector2D& offset)
     const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
     CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
-    fullBox.translate(offset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale);
+    fullBox.translate(m_pWindow->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale);
 
     double fullThickness = 0;
 
