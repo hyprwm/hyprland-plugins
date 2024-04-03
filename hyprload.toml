@@ -52,3 +52,15 @@ output = "hyprwinwrap/hyprwinwrap.so"
 steps = [
     "make -C hyprwinwrap all",
 ]
+
+
+[hyprexpo]
+description = "Overview plugin like gnome kde or wf"
+version = "1.0"
+authors = ["Vaxry"]
+
+[hyprexpo.build]
+output = "hyprexpo/hyprexpo.so"
+steps = [
+    "make -C hyprexpo all",
+]
