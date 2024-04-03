@@ -63,16 +63,21 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
 
 static float gestured = 0;
 
-static void  hkSwipeBegin(void* thisptr, wlr_pointer_swipe_begin_event* e) {
+//
+static void swipeBegin(void* self, SCallbackInfo& info, std::any param) {
     static auto* const* PENABLE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture")->getDataStaticPtr();
 
-    if (g_pOverview)
-        return;
-
-    if (!**PENABLE || e->fingers != 4) {
-        ((origSwipeBegin)g_pSwipeBeginHook->m_pOriginal)(thisptr, e);
+    if (g_pOverview) {
+        info.cancelled = true;
         return;
     }
+
+    auto e = std::any_cast<wlr_pointer_swipe_begin_event*>(param);
+
+    if (!**PENABLE || e->fingers != 4)
+        return;
+
+    info.cancelled = true;
 
     renderingOverview = true;
     g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
@@ -81,22 +86,26 @@ static void  hkSwipeBegin(void* thisptr, wlr_pointer_swipe_begin_event* e) {
     gestured = 0;
 }
 
-static void hkSwipeUpdate(void* thisptr, wlr_pointer_swipe_update_event* e) {
-    if (!g_pOverview) {
-        ((origSwipeUpdate)g_pSwipeUpdateHook->m_pOriginal)(thisptr, e);
+static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
+    if (!g_pOverview)
         return;
-    }
 
-    gestured += e->dy;
+    static auto* const* PPOSITIVE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive")->getDataStaticPtr();
+
+    info.cancelled = true;
+
+    auto e = std::any_cast<wlr_pointer_swipe_update_event*>(param);
+
+    gestured += (**PPOSITIVE ? 1.0 : -1.0) * e->dy;
 
     g_pOverview->onSwipeUpdate(gestured);
 }
 
-static void hkSwipeEnd(void* thisptr, wlr_pointer_swipe_end_event* e) {
-    if (!g_pOverview) {
-        ((origSwipeEnd)g_pSwipeEndHook->m_pOriginal)(thisptr, e);
+static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
+    if (!g_pOverview)
         return;
-    }
+
+    info.cancelled = true;
 
     g_pOverview->onSwipeEnd();
 }
@@ -157,31 +166,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     g_pAddDamageHookA = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageA);
 
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "onSwipeBegin");
-    if (FNS.empty())
-        throw std::runtime_error("[he] No fns for hook onSwipeBegin");
-
-    g_pSwipeBeginHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkSwipeBegin);
-
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "onSwipeEnd");
-    if (FNS.empty())
-        throw std::runtime_error("[he] No fns for hook onSwipeEnd");
-
-    g_pSwipeEndHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkSwipeEnd);
-
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "onSwipeUpdate");
-    if (FNS.empty())
-        throw std::runtime_error("[he] No fns for hook onSwipeUpdate");
-
-    g_pSwipeUpdateHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkSwipeUpdate);
-
     bool success = g_pRenderWorkspaceHook->hook();
     success      = success && g_pAddDamageHookA->hook();
     success      = success && g_pAddDamageHookB->hook();
-    // mega buggy, I'll have to fix it one day.
-    // success      = success && g_pSwipeBeginHook->hook();
-    // success      = success && g_pSwipeEndHook->hook();
-    // success      = success && g_pSwipeUpdateHook->hook();
 
     if (!success)
         throw std::runtime_error("[he] Failed initializing hooks");
@@ -192,6 +179,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         g_pOverview->onPreRender();
     });
 
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeBegin", [](void* self, SCallbackInfo& info, std::any data) { swipeBegin(self, info, data); });
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeEnd", [](void* self, SCallbackInfo& info, std::any data) { swipeEnd(self, info, data); });
+    HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeUpdate", [](void* self, SCallbackInfo& info, std::any data) { swipeUpdate(self, info, data); });
+
     HyprlandAPI::addDispatcher(PHANDLE, "hyprexpo:expo", onExpoDispatcher);
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
@@ -200,6 +191,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive", Hyprlang::INT{1});
 
     HyprlandAPI::reloadConfig();
 

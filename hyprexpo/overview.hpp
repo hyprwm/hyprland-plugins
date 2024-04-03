@@ -71,7 +71,8 @@ class COverview {
     HOOK_CALLBACK_FN*            mouseMoveHook   = nullptr;
     HOOK_CALLBACK_FN*            mouseButtonHook = nullptr;
 
-    bool                         swipe = false;
+    bool                         swipe             = false;
+    bool                         swipeWasCommenced = false;
 };
 
 inline std::unique_ptr<COverview> g_pOverview;

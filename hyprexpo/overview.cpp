@@ -388,12 +388,17 @@ static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc)
 }
 
 void COverview::onSwipeUpdate(double delta) {
-    const float PERC = std::clamp(delta / 300.0, 0.0, 1.0);
+    if (swipeWasCommenced)
+        return;
 
-    Vector2D    tileSize = (pMonitor->vecSize / SIDE_LENGTH);
+    static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
 
-    const auto  SIZEMAX = pMonitor->vecSize * pMonitor->vecSize / tileSize;
-    const auto  POSMAX =
+    const float         PERC = 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+
+    Vector2D            tileSize = (pMonitor->vecSize / SIDE_LENGTH);
+
+    const auto          SIZEMAX = pMonitor->vecSize * pMonitor->vecSize / tileSize;
+    const auto          POSMAX =
         (-((pMonitor->vecSize / (double)SIDE_LENGTH) * Vector2D{openedID % SIDE_LENGTH, openedID / SIDE_LENGTH}) * pMonitor->scale) * (pMonitor->vecSize / tileSize);
 
     const auto SIZEMIN = pMonitor->vecSize;
@@ -408,4 +413,6 @@ void COverview::onSwipeEnd() {
     pos  = {0, 0};
 
     size.setCallbackOnEnd([this](void*) { redrawAll(true); });
+
+    swipeWasCommenced = true;
 }
