@@ -78,12 +78,21 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     } else {
         int currentID         = methodStartID;
         images[0].workspaceID = currentID;
+
+        auto PWORKSPACESTART = g_pCompositor->getWorkspaceByID(currentID);
+        if (!PWORKSPACESTART)
+            PWORKSPACESTART = CWorkspace::create(currentID, pMonitor->ID, std::to_string(currentID));
+
+        pMonitor->activeWorkspace = PWORKSPACESTART;
+
         for (size_t i = 1; i < SIDE_LENGTH * SIDE_LENGTH; ++i) {
             auto&       image = images[i];
             std::string s;
             currentID         = getWorkspaceIDFromString("r+" + std::to_string(i), s);
             image.workspaceID = currentID;
         }
+
+        pMonitor->activeWorkspace = startedOn;
     }
 
     g_pHyprRenderer->makeEGLCurrent();
