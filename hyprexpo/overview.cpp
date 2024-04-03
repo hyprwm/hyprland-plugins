@@ -141,6 +141,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH, (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x,
                      tileRenderSize.y};
 
+        g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
     }
 
@@ -257,6 +258,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     } else
         g_pHyprRenderer->renderWorkspace(pMonitor, PWORKSPACE, &now, monbox);
 
+    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     pMonitor->activeSpecialWorkspace = openSpecial;
