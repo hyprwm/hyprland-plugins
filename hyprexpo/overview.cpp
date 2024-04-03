@@ -334,12 +334,15 @@ void COverview::close() {
 
         const auto NEWIDWS = g_pCompositor->getWorkspaceByID(TILE.workspaceID);
 
+        const auto OLDWS = pMonitor->activeWorkspace;
+
         if (!NEWIDWS)
             g_pKeybindManager->changeworkspace(std::to_string(TILE.workspaceID));
         else
             g_pKeybindManager->changeworkspace(NEWIDWS->getConfigName());
 
         pMonitor->activeWorkspace->startAnim(true, true, true);
+        OLDWS->startAnim(false, false, true);
 
         startedOn = pMonitor->activeWorkspace;
     }
