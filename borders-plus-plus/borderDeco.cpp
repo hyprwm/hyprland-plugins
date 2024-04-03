@@ -81,7 +81,7 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
     if (**PBORDERS < 1)
         return;
 
-    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;

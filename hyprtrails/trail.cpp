@@ -316,7 +316,7 @@ eDecorationType CTrail::getDecorationType() {
 }
 
 void CTrail::updateWindow(CWindow* pWindow) {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
