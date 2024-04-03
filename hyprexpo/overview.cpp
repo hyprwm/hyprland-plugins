@@ -370,7 +370,7 @@ void COverview::render() {
     Vector2D tileSize       = (SIZE / SIDE_LENGTH);
     Vector2D tileRenderSize = (SIZE - Vector2D{GAPSIZE, GAPSIZE} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
 
-    g_pHyprOpenGL->clear(CColor{0.1, 0.1, 0.1, 1.0});
+    g_pHyprOpenGL->clear(BG_COLOR.stripA());
 
     for (size_t y = 0; y < SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < SIDE_LENGTH; ++x) {
