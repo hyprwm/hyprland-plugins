@@ -5,6 +5,8 @@ Overview plugin like gnome kde or wf.
 ## Config
 
 ```ini
+# example
+bind = SUPER,tab,hyprexpo:expo
 
 plugin {
     hyprexpo {
