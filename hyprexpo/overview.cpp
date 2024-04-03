@@ -15,6 +15,8 @@ static void removeOverview(void*) {
 }
 
 COverview::~COverview() {
+    g_pHyprRenderer->makeEGLCurrent();
+    images.clear(); // otherwise we get a vram leak
     g_pHookSystem->unhook(mouseButtonHook);
     g_pHookSystem->unhook(mouseMoveHook);
     g_pInputManager->unsetCursorImage();
