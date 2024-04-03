@@ -23,7 +23,7 @@
       });
   in {
     packages = eachSystem (system: {
-      inherit (pkgsFor.${system}) borders-plus-plus csgo-vulkan-fix hyprbars hyprtrails hyprwinwrap;
+      inherit (pkgsFor.${system}) borders-plus-plus csgo-vulkan-fix hyprbars hyprexpo hyprtrails hyprwinwrap;
     });
 
     overlays = {
@@ -46,6 +46,7 @@
           borders-plus-plus = callPackage ./borders-plus-plus {};
           csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
           hyprbars = callPackage ./hyprbars {};
+          hyprexpo = callPackage ./hyprexpo {};
           hyprtrails = callPackage ./hyprtrails {};
           hyprwinwrap = callPackage ./hyprwinwrap {};
         })
