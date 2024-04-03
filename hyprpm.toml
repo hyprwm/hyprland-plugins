@@ -51,3 +51,11 @@ output = "hyprwinwrap/hyprwinwrap.so"
 build = [
     "make -C hyprwinwrap all",
 ]
+
+[hyprexpo]
+description = "A plugin to add expo (overlay) for workspaces"
+authors = ["Vaxry"]
+output = "hyprexpo/hyprexpo.so"
+build = [
+    "make -C hyprexpo all",
+]
