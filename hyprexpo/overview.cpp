@@ -335,7 +335,7 @@ void COverview::close() {
 void COverview::onPreRender() {
     if (damageDirty) {
         damageDirty = false;
-        redrawID(openedID);
+        redrawID(closing ? (closeOnID == -1 ? openedID : closeOnID) : openedID);
     }
 }
 
