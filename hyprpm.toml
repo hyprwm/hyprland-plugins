@@ -59,3 +59,4 @@ output = "hyprexpo/hyprexpo.so"
 build = [
     "make -C hyprexpo all",
 ]
+since_hyprland = 4364
