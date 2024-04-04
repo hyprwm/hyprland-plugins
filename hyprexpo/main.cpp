@@ -33,7 +33,7 @@ static bool renderingOverview = false;
 
 //
 static void hkRenderWorkspace(void* thisptr, CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
-    if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering)
+    if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering || g_pOverview->pMonitor != pMonitor)
         ((origRenderWorkspace)(g_pRenderWorkspaceHook->m_pOriginal))(thisptr, pMonitor, pWorkspace, now, geometry);
     else
         g_pOverview->render();
