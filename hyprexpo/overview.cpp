@@ -209,6 +209,11 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
+    if (pMonitor->activeWorkspace != startedOn && !closing) {
+        // likely user changed.
+        onWorkspaceChange();
+    }
+
     blockOverviewRendering = true;
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -356,8 +361,11 @@ void COverview::onPreRender() {
 }
 
 void COverview::onWorkspaceChange() {
-    startedOn->startAnim(false, false, true);
-    startedOn = pMonitor->activeWorkspace;
+    if (valid(startedOn))
+        startedOn->startAnim(false, false, true);
+    else
+        startedOn = pMonitor->activeWorkspace;
+
     for (size_t i = 0; i < SIDE_LENGTH * SIDE_LENGTH; ++i) {
         if (images[i].workspaceID != pMonitor->activeWorkspaceID())
             continue;
@@ -365,14 +373,16 @@ void COverview::onWorkspaceChange() {
         openedID = i;
         break;
     }
-    startedOn->startAnim(true, true, true);
+
+    closeOnID = openedID;
+    close();
 }
 
 void COverview::render() {
 
     const auto GAPSIZE = (closing ? (1.0 - size.getPercent()) : size.getPercent()) * GAP_WIDTH;
 
-    if (pMonitor->activeWorkspace != startedOn) {
+    if (pMonitor->activeWorkspace != startedOn && !closing) {
         // likely user changed.
         onWorkspaceChange();
     }
