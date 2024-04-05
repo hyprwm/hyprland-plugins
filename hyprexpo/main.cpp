@@ -137,32 +137,42 @@ static void onExpoDispatcher(std::string arg) {
     renderingOverview = false;
 }
 
+static void failNotif(const std::string& reason) {
+    HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason,
+                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
     const std::string HASH = __hyprland_api_get_hash();
 
     if (HASH != GIT_COMMIT_HASH) {
-        HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
-                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        failNotif("Version mismatch (headers ver is not equal to running hyprland ver)");
         throw std::runtime_error("[he] Version mismatch");
     }
 
     auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "renderWorkspace");
-    if (FNS.empty())
+    if (FNS.empty()) {
+        failNotif("no fns for hook renderWorkspace");
         throw std::runtime_error("[he] No fns for hook renderWorkspace");
+    }
 
     g_pRenderWorkspaceHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkRenderWorkspace);
 
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "addDamageEPK15pixman_region32");
-    if (FNS.empty())
+    if (FNS.empty()) {
+        failNotif("no fns for hook addDamageEPK15pixman_region32");
         throw std::runtime_error("[he] No fns for hook addDamageEPK15pixman_region32");
+    }
 
     g_pAddDamageHookB = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageB);
 
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "addDamageEPK4CBox");
-    if (FNS.empty())
+    if (FNS.empty()) {
+        failNotif("no fns for hook addDamageEPK4CBox");
         throw std::runtime_error("[he] No fns for hook addDamageEPK4CBox");
+    }
 
     g_pAddDamageHookA = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageA);
 
@@ -170,8 +180,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     success      = success && g_pAddDamageHookA->hook();
     success      = success && g_pAddDamageHookB->hook();
 
-    if (!success)
+    if (!success) {
+        failNotif("Failed initializing hooks");
         throw std::runtime_error("[he] Failed initializing hooks");
+    }
 
     HyprlandAPI::registerCallbackDynamic(PHANDLE, "preRender", [](void* self, SCallbackInfo& info, std::any param) {
         if (!g_pOverview)
