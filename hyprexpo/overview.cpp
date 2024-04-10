@@ -17,6 +17,8 @@ static void removeOverview(void*) {
 COverview::~COverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
+    g_pHookSystem->unhook(touchUpHook);
+    g_pHookSystem->unhook(touchMoveHook);
     g_pHookSystem->unhook(mouseButtonHook);
     g_pHookSystem->unhook(mouseMoveHook);
     g_pInputManager->unsetCursorImage();
@@ -193,6 +195,29 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     });
 
     mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any param) {
+        if (closing)
+            return;
+
+        info.cancelled = true;
+
+        // get tile x,y
+        int x = lastMousePosLocal.x / pMonitor->vecSize.x * SIDE_LENGTH;
+        int y = lastMousePosLocal.y / pMonitor->vecSize.y * SIDE_LENGTH;
+
+        closeOnID = x + y * SIDE_LENGTH;
+
+        close();
+    });
+
+    touchMoveHook = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any param) {
+        if (closing)
+            return;
+
+        info.cancelled    = true;
+        lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition;
+    });
+
+    touchUpHook = g_pHookSystem->hookDynamic("touchUp", [this](void* self, SCallbackInfo& info, std::any param) {
         if (closing)
             return;
 

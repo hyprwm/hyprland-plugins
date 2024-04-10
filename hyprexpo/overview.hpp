@@ -70,6 +70,8 @@ class COverview {
 
     HOOK_CALLBACK_FN*            mouseMoveHook   = nullptr;
     HOOK_CALLBACK_FN*            mouseButtonHook = nullptr;
+    HOOK_CALLBACK_FN*            touchMoveHook   = nullptr;
+    HOOK_CALLBACK_FN*            touchUpHook     = nullptr;
 
     bool                         swipe             = false;
     bool                         swipeWasCommenced = false;
