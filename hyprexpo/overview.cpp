@@ -186,15 +186,15 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition;
 
-    mouseMoveHook = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any param) {
+    auto onCursorMove = [this](void* self, SCallbackInfo& info, std::any param) {
         if (closing)
             return;
 
         info.cancelled    = true;
         lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition;
-    });
+    };
 
-    mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any param) {
+    auto onCursorSelect = [this](void* self, SCallbackInfo& info, std::any param) {
         if (closing)
             return;
 
@@ -207,30 +207,13 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         closeOnID = x + y * SIDE_LENGTH;
 
         close();
-    });
+    };
 
-    touchMoveHook = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any param) {
-        if (closing)
-            return;
+    mouseMoveHook = g_pHookSystem->hookDynamic("mouseMove", onCursorMove);
+    touchMoveHook = g_pHookSystem->hookDynamic("touchMove", onCursorMove);
 
-        info.cancelled    = true;
-        lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition;
-    });
-
-    touchUpHook = g_pHookSystem->hookDynamic("touchUp", [this](void* self, SCallbackInfo& info, std::any param) {
-        if (closing)
-            return;
-
-        info.cancelled = true;
-
-        // get tile x,y
-        int x = lastMousePosLocal.x / pMonitor->vecSize.x * SIDE_LENGTH;
-        int y = lastMousePosLocal.y / pMonitor->vecSize.y * SIDE_LENGTH;
-
-        closeOnID = x + y * SIDE_LENGTH;
-
-        close();
-    });
+    mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", onCursorSelect);
+    touchUpHook = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
