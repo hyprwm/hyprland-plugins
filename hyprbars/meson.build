@@ -32,6 +32,7 @@ shared_module(meson.project_name(), src,
     dependency('libinput'),
     dependency('libudev'),
     dependency('wayland-server'),
+    dependency('xkbcommon'),
   ],
   install: true,
 )
