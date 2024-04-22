@@ -46,7 +46,7 @@ class CTrail : public IHyprWindowDecoration {
     virtual void                       damageEntire();
 
   private:
-    HOOK_CALLBACK_FN*                                                 pTickCb = nullptr;
+    std::shared_ptr<HOOK_CALLBACK_FN>                                 pTickCb;
     void                                                              onTick();
 
     std::deque<std::pair<box, std::chrono::system_clock::time_point>> m_dLastGeoms;

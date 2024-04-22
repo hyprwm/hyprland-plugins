@@ -54,27 +54,27 @@ class COverview {
         CBox         box;
     };
 
-    Vector2D                     lastMousePosLocal = Vector2D{};
+    Vector2D                          lastMousePosLocal = Vector2D{};
 
-    int                          openedID  = -1;
-    int                          closeOnID = -1;
+    int                               openedID  = -1;
+    int                               closeOnID = -1;
 
-    std::vector<SWorkspaceImage> images;
+    std::vector<SWorkspaceImage>      images;
 
-    PHLWORKSPACE                 startedOn;
+    PHLWORKSPACE                      startedOn;
 
-    CAnimatedVariable<Vector2D>  size;
-    CAnimatedVariable<Vector2D>  pos;
+    CAnimatedVariable<Vector2D>       size;
+    CAnimatedVariable<Vector2D>       pos;
 
-    bool                         closing = false;
+    bool                              closing = false;
 
-    HOOK_CALLBACK_FN*            mouseMoveHook   = nullptr;
-    HOOK_CALLBACK_FN*            mouseButtonHook = nullptr;
-    HOOK_CALLBACK_FN*            touchMoveHook   = nullptr;
-    HOOK_CALLBACK_FN*            touchUpHook     = nullptr;
+    std::shared_ptr<HOOK_CALLBACK_FN> mouseMoveHook;
+    std::shared_ptr<HOOK_CALLBACK_FN> mouseButtonHook;
+    std::shared_ptr<HOOK_CALLBACK_FN> touchMoveHook;
+    std::shared_ptr<HOOK_CALLBACK_FN> touchUpHook;
 
-    bool                         swipe             = false;
-    bool                         swipeWasCommenced = false;
+    bool                              swipe             = false;
+    bool                              swipeWasCommenced = false;
 };
 
 inline std::unique_ptr<COverview> g_pOverview;

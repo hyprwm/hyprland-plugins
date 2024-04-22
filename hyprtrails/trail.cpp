@@ -31,12 +31,12 @@ CTrail::CTrail(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWi
     m_vLastWindowPos  = pWindow->m_vRealPosition.value();
     m_vLastWindowSize = pWindow->m_vRealSize.value();
 
-    pTickCb = g_pHookSystem->hookDynamic("trailTick", [this](void* self, SCallbackInfo& info, std::any data) { this->onTick(); });
+    pTickCb = HyprlandAPI::registerCallbackDynamic(PHANDLE, "trailTick", [this](void* self, SCallbackInfo& info, std::any data) { this->onTick(); });
 }
 
 CTrail::~CTrail() {
     damageEntire();
-    g_pHookSystem->unhook(pTickCb);
+    HyprlandAPI::unregisterCallback(PHANDLE, pTickCb);
 }
 
 SDecorationPositioningInfo CTrail::getPositioningInfo() {
