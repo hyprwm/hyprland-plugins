@@ -233,7 +233,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
-    const int paddingTotal = scaledBarPadding * 2 + scaledButtonsSize + (*PALIGN != "left" ? scaledButtonsSize : 0);
+    const int paddingTotal = scaledBarPadding * 2 + scaledButtonsSize + (std::string{*PALIGN} != "left" ? scaledButtonsSize : 0);
     const int maxWidth     = std::clamp(static_cast<int>(bufferSize.x - paddingTotal), 0, INT_MAX);
 
     pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
@@ -243,7 +243,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
 
     int layoutWidth, layoutHeight;
     pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
-    const int xOffset = *PALIGN == "left" ? std::round(scaledBarPadding + (BUTTONSRIGHT ? 0 : scaledButtonsSize)) :
+    const int xOffset = std::string{*PALIGN} == "left" ? std::round(scaledBarPadding + (BUTTONSRIGHT ? 0 : scaledButtonsSize)) :
                                             std::round(((bufferSize.x - scaledBorderSize) / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
     const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
 
