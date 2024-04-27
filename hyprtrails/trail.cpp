@@ -11,9 +11,11 @@ void CTrail::onTick() {
 
     m_iTimer++;
 
+    const auto PWINDOW = m_pWindow.lock();
+
     if (m_iTimer > **PHISTORYSTEP) {
-        m_dLastGeoms.push_front({box{(float)m_pWindow->m_vRealPosition.value().x, (float)m_pWindow->m_vRealPosition.value().y, (float)m_pWindow->m_vRealSize.value().x,
-                                     (float)m_pWindow->m_vRealSize.value().y},
+        m_dLastGeoms.push_front({box{(float)PWINDOW->m_vRealPosition.value().x, (float)PWINDOW->m_vRealPosition.value().y, (float)PWINDOW->m_vRealSize.value().x,
+                                     (float)PWINDOW->m_vRealSize.value().y},
                                  std::chrono::system_clock::now()});
         while (m_dLastGeoms.size() > **PHISTORYPOINTS)
             m_dLastGeoms.pop_back();
@@ -27,7 +29,7 @@ void CTrail::onTick() {
     }
 }
 
-CTrail::CTrail(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
+CTrail::CTrail(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     m_vLastWindowPos  = pWindow->m_vRealPosition.value();
     m_vLastWindowSize = pWindow->m_vRealSize.value();
 
@@ -77,10 +79,12 @@ Vector2D vecForBezierT(const float& t, const std::vector<Vector2D>& verts) {
 }
 
 void CTrail::draw(CMonitor* pMonitor, float a) {
-    if (!g_pCompositor->windowValidMapped(m_pWindow))
+    if (!validMapped(m_pWindow))
         return;
 
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    const auto PWINDOW = m_pWindow.lock();
+
+    if (!PWINDOW->m_sSpecialRenderData.decorate)
         return;
 
     static auto* const PBEZIERSTEP    = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->getDataStaticPtr();
@@ -92,9 +96,9 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     if (m_dLastGeoms.size() < 2)
         return;
 
-    box  thisbox = box{(float)m_pWindow->m_vRealPosition.value().x, (float)m_pWindow->m_vRealPosition.value().y, (float)m_pWindow->m_vRealSize.value().x,
-                      (float)m_pWindow->m_vRealSize.value().y};
-    CBox wlrbox  = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
+    box thisbox =
+        box{(float)PWINDOW->m_vRealPosition.value().x, (float)PWINDOW->m_vRealPosition.value().y, (float)PWINDOW->m_vRealSize.value().x, (float)PWINDOW->m_vRealSize.value().y};
+    CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
     wlrbox.scale(pMonitor->scale).round();
 
     g_pHyprOpenGL->scissor((CBox*)nullptr); // allow the entire window and stencil to render
@@ -107,7 +111,7 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    g_pHyprOpenGL->renderRect(&wlrbox, CColor(0, 0, 0, 0), m_pWindow->rounding() * pMonitor->scale);
+    g_pHyprOpenGL->renderRect(&wlrbox, CColor(0, 0, 0, 0), PWINDOW->rounding() * pMonitor->scale);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -154,7 +158,7 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     float    dists[2] = {0, 0};
 
     Vector2D mainVec      = {originalCoeff / pMonitor->vecSize.x, originalCoeff / pMonitor->vecSize.y};
-    Vector2D windowMiddle = m_pWindow->middle() - pMonitor->vecPosition;
+    Vector2D windowMiddle = PWINDOW->middle() - pMonitor->vecPosition;
 
     points.push_back(
         Vector2D{cos(0) * mainVec.x - sin(0) * mainVec.y + windowMiddle.x / pMonitor->vecSize.x, sin(0) * mainVec.x + cos(0) * mainVec.y + windowMiddle.y / pMonitor->vecSize.y});
@@ -237,10 +241,10 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
         }
     }
 
-    box thisboxopengl = box{(m_pWindow->m_vRealPosition.value().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
-                            (m_pWindow->m_vRealPosition.value().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
-                            (m_pWindow->m_vRealPosition.value().x + m_pWindow->m_vRealSize.value().x) / pMonitor->vecSize.x,
-                            (m_pWindow->m_vRealPosition.value().y + m_pWindow->m_vRealSize.value().y) / pMonitor->vecSize.y};
+    box thisboxopengl = box{(PWINDOW->m_vRealPosition.value().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
+                            (PWINDOW->m_vRealPosition.value().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
+                            (PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x) / pMonitor->vecSize.x,
+                            (PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y) / pMonitor->vecSize.y};
     glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -315,7 +319,7 @@ eDecorationType CTrail::getDecorationType() {
     return DECORATION_CUSTOM;
 }
 
-void CTrail::updateWindow(CWindow* pWindow) {
+void CTrail::updateWindow(PHLWINDOW pWindow) {
     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();

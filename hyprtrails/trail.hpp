@@ -30,7 +30,7 @@ struct point2 {
 
 class CTrail : public IHyprWindowDecoration {
   public:
-    CTrail(CWindow*);
+    CTrail(PHLWINDOW);
     virtual ~CTrail();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -41,7 +41,7 @@ class CTrail : public IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType();
 
-    virtual void                       updateWindow(CWindow*);
+    virtual void                       updateWindow(PHLWINDOW);
 
     virtual void                       damageEntire();
 
@@ -55,7 +55,7 @@ class CTrail : public IHyprWindowDecoration {
 
     SWindowDecorationExtents                                          m_seExtents;
 
-    CWindow*                                                          m_pWindow = nullptr;
+    PHLWINDOWREF                                                      m_pWindow;
 
     Vector2D                                                          m_vLastWindowPos;
     Vector2D                                                          m_vLastWindowSize;

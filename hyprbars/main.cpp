@@ -17,7 +17,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 
 static void onNewWindow(void* self, std::any data) {
     // data is guaranteed
-    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+    const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
     if (!PWINDOW->m_bX11DoesntWantBorders) {
         std::unique_ptr<CHyprBar> bar = std::make_unique<CHyprBar>(PWINDOW);
@@ -28,7 +28,7 @@ static void onNewWindow(void* self, std::any data) {
 
 static void onCloseWindow(void* self, std::any data) {
     // data is guaranteed
-    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+    const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
     const auto  BARIT = std::find_if(g_pGlobalState->bars.begin(), g_pGlobalState->bars.end(), [PWINDOW](const auto& bar) { return bar->getOwner() == PWINDOW; });
 
@@ -110,7 +110,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        onNewWindow(nullptr /* unused */, std::any(w.get()));
+        onNewWindow(nullptr /* unused */, std::any(w));
     }
 
     HyprlandAPI::reloadConfig();

@@ -5,7 +5,7 @@
 
 #include "globals.hpp"
 
-CBordersPlusPlus::CBordersPlusPlus(CWindow* pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
+CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     m_vLastWindowPos  = pWindow->m_vRealPosition.value();
     m_vLastWindowSize = pWindow->m_vRealSize.value();
 }
@@ -37,9 +37,8 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
 
         info.desiredExtents = {{size, size}, {size, size}};
         m_fLastThickness    = size;
-    } else {
+    } else
         info.desiredExtents = {{m_fLastThickness, m_fLastThickness}, {m_fLastThickness, m_fLastThickness}};
-    }
 
     return info;
 }
@@ -61,10 +60,12 @@ std::string CBordersPlusPlus::getDisplayName() {
 }
 
 void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
-    if (!g_pCompositor->windowValidMapped(m_pWindow))
+    if (!validMapped(m_pWindow))
         return;
 
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    const auto PWINDOW = m_pWindow.lock();
+
+    if (!PWINDOW->m_sSpecialRenderData.decorate)
         return;
 
     static std::vector<Hyprlang::INT* const*> PCOLORS;
@@ -81,21 +82,16 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
     if (**PBORDERS < 1)
         return;
 
-    const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
+    const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
-    auto       rounding      = m_pWindow->rounding() == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
-    const auto ORIGINALROUND = rounding == 0 ? 0 : m_pWindow->rounding() * pMonitor->scale + **PBORDERSIZE;
+    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : PWINDOW->rounding() * pMonitor->scale + **PBORDERSIZE;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : PWINDOW->rounding() * pMonitor->scale + **PBORDERSIZE;
     CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
 
-    fullBox.translate(m_pWindow->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale);
+    fullBox.translate(PWINDOW->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).expand(**PBORDERSIZE * pMonitor->scale);
 
     double fullThickness = 0;
-
-    fullBox.x -= **PBORDERSIZE * pMonitor->scale;
-    fullBox.y -= **PBORDERSIZE * pMonitor->scale;
-    fullBox.width += **PBORDERSIZE * 2 * pMonitor->scale;
-    fullBox.height += **PBORDERSIZE * 2 * pMonitor->scale;
 
     for (size_t i = 0; i < **PBORDERS; ++i) {
         const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->scale;
@@ -122,6 +118,8 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
 
+    m_bLastRelativeBox = CBox{0, 0, m_vLastWindowSize.x, m_vLastWindowSize.y}.expand(**PBORDERSIZE).addExtents(m_seExtents);
+
     if (fullThickness != m_fLastThickness) {
         m_fLastThickness = fullThickness;
         g_pDecorationPositioner->repositionDeco(this);
@@ -132,7 +130,7 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
     return DECORATION_CUSTOM;
 }
 
-void CBordersPlusPlus::updateWindow(CWindow* pWindow) {
+void CBordersPlusPlus::updateWindow(PHLWINDOW pWindow) {
     m_vLastWindowPos  = pWindow->m_vRealPosition.value();
     m_vLastWindowSize = pWindow->m_vRealSize.value();
 
@@ -140,7 +138,6 @@ void CBordersPlusPlus::updateWindow(CWindow* pWindow) {
 }
 
 void CBordersPlusPlus::damageEntire() {
-    CBox dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
-               (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
+    CBox dm = m_bLastRelativeBox.copy().translate(m_vLastWindowPos).expand(2);
     g_pHyprRenderer->damageBox(&dm);
 }

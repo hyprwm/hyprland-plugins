@@ -8,7 +8,7 @@
 
 class CHyprBar : public IHyprWindowDecoration {
   public:
-    CHyprBar(CWindow*);
+    CHyprBar(PHLWINDOW);
     virtual ~CHyprBar();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -19,7 +19,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType();
 
-    virtual void                       updateWindow(CWindow*);
+    virtual void                       updateWindow(PHLWINDOW);
 
     virtual void                       damageEntire();
 
@@ -31,12 +31,12 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
-    CWindow*                           getOwner();
+    PHLWINDOW                          getOwner();
 
   private:
     SWindowDecorationExtents          m_seExtents;
 
-    CWindow*                          m_pWindow = nullptr;
+    PHLWINDOWREF                      m_pWindow;
 
     CBox                              m_bAssignedBox;
 

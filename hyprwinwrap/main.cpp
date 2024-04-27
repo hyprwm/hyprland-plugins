@@ -26,10 +26,10 @@ inline CFunctionHook* commitHook     = nullptr;
 typedef void (*origCommitSubsurface)(CSubsurface* thisptr);
 typedef void (*origCommit)(void* owner, void* data);
 
-std::vector<CWindow*> bgWindows;
+std::vector<PHLWINDOWREF> bgWindows;
 
 //
-void onNewWindow(CWindow* pWindow) {
+void onNewWindow(PHLWINDOW pWindow) {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
 
     if (pWindow->m_szInitialClass != *PCLASS)
@@ -59,8 +59,8 @@ void onNewWindow(CWindow* pWindow) {
     Debug::log(LOG, "[hyprwinwrap] new window moved to bg {}", pWindow);
 }
 
-void onCloseWindow(CWindow* pWindow) {
-    std::erase(bgWindows, pWindow);
+void onCloseWindow(PHLWINDOW pWindow) {
+    std::erase_if(bgWindows, [pWindow](const auto& ref) { return ref.expired() || ref.lock() == pWindow; });
 
     Debug::log(LOG, "[hyprwinwrap] closed window {}", pWindow);
 }
@@ -69,7 +69,9 @@ void onRenderStage(eRenderStage stage) {
     if (stage != RENDER_PRE_WINDOWS)
         return;
 
-    for (auto& bgw : bgWindows) {
+    for (auto& bg : bgWindows) {
+        const auto bgw = bg.lock();
+
         if (bgw->m_iMonitorID != g_pHyprOpenGL->m_RenderData.pMonitor->ID)
             continue;
 
@@ -88,7 +90,7 @@ void onRenderStage(eRenderStage stage) {
 void onCommitSubsurface(CSubsurface* thisptr) {
     const auto PWINDOW = thisptr->m_sWLSurface.getWindow();
 
-    if (!PWINDOW || std::find(bgWindows.begin(), bgWindows.end(), PWINDOW) == bgWindows.end()) {
+    if (!PWINDOW || std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
         return;
     }
@@ -104,9 +106,9 @@ void onCommitSubsurface(CSubsurface* thisptr) {
 }
 
 void onCommit(void* owner, void* data) {
-    const auto PWINDOW = (CWindow*)owner;
+    const auto PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
-    if (std::find(bgWindows.begin(), bgWindows.end(), PWINDOW) == bgWindows.end()) {
+    if (std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommit)commitHook->m_pOriginal)(owner, data);
         return;
     }
@@ -139,8 +141,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     }
 
     // clang-format off
-    static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(std::any_cast<CWindow*>(data)); });
-    static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(std::any_cast<CWindow*>(data)); });
+    static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(std::any_cast<PHLWINDOW>(data)); });
+    static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(std::any_cast<PHLWINDOW>(data)); });
     static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "render", [&](void* self, SCallbackInfo& info, std::any data) { onRenderStage(std::any_cast<eRenderStage>(data)); });
     static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "configReloaded", [&](void* self, SCallbackInfo& info, std::any data) { onConfigReloaded(); });
     // clang-format on

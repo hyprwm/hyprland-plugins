@@ -19,7 +19,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 
 void onNewWindow(void* self, std::any data) {
     // data is guaranteed
-    auto* const PWINDOW = std::any_cast<CWindow*>(data);
+    const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::make_unique<CTrail>(PWINDOW));
 }
@@ -116,7 +116,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", Hyprlang::INT{2});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{configStringToInt("rgba(ffaa00ff)")});
 
-    HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
+    static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
     g_pGlobalState = std::make_unique<SGlobalState>();
     initGlobal();
@@ -126,7 +126,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w.get(), std::make_unique<CTrail>(w.get()));
+        HyprlandAPI::addWindowDecoration(PHANDLE, w, std::make_unique<CTrail>(w));
     }
 
     HyprlandAPI::reloadConfig();

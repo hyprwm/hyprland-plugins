@@ -28,10 +28,10 @@ void hkNotifyMotion(wlr_seat* wlr_seat, uint32_t time_msec, double sx, double sy
     static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
 
-    if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
+    if (!g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow.lock()->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
         // fix the coords
-        sx *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
-        sy *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
+        sx *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
+        sy *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_pOriginal)(wlr_seat, time_msec, sx, sy);

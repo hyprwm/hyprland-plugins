@@ -6,7 +6,7 @@
 
 class CBordersPlusPlus : public IHyprWindowDecoration {
   public:
-    CBordersPlusPlus(CWindow*);
+    CBordersPlusPlus(PHLWINDOW);
     virtual ~CBordersPlusPlus();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -17,7 +17,7 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType();
 
-    virtual void                       updateWindow(CWindow*);
+    virtual void                       updateWindow(PHLWINDOW);
 
     virtual void                       damageEntire();
 
@@ -30,7 +30,9 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
   private:
     SWindowDecorationExtents m_seExtents;
 
-    CWindow*                 m_pWindow = nullptr;
+    PHLWINDOWREF             m_pWindow;
+
+    CBox                     m_bLastRelativeBox;
 
     Vector2D                 m_vLastWindowPos;
     Vector2D                 m_vLastWindowSize;
