@@ -33,6 +33,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     PHLWINDOW                          getOwner();
 
+    void                               setHidden(bool hidden);
+
   private:
     SWindowDecorationExtents          m_seExtents;
 
@@ -44,6 +46,7 @@ class CHyprBar : public IHyprWindowDecoration {
     CTexture                          m_tButtonsTex;
 
     bool                              m_bWindowSizeChanged = false;
+    bool                              m_bHidden            = false;
 
     Vector2D                          cursorRelativeToBar();
 

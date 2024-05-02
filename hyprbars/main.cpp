@@ -30,7 +30,7 @@ static void onCloseWindow(void* self, std::any data) {
     // data is guaranteed
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
-    const auto  BARIT = std::find_if(g_pGlobalState->bars.begin(), g_pGlobalState->bars.end(), [PWINDOW](const auto& bar) { return bar->getOwner() == PWINDOW; });
+    const auto BARIT = std::find_if(g_pGlobalState->bars.begin(), g_pGlobalState->bars.end(), [PWINDOW](const auto& bar) { return bar->getOwner() == PWINDOW; });
 
     if (BARIT == g_pGlobalState->bars.end())
         return;
@@ -39,8 +39,19 @@ static void onCloseWindow(void* self, std::any data) {
     PWINDOW->removeWindowDeco(*BARIT);
 }
 
-void onPreConfigReload() {
+static void onPreConfigReload() {
     g_pGlobalState->buttons.clear();
+}
+
+static void onUpdateWindowRules(PHLWINDOW window) {
+    const auto BARIT = std::find_if(g_pGlobalState->bars.begin(), g_pGlobalState->bars.end(), [window](const auto& bar) { return bar->getOwner() == window; });
+
+    if (BARIT == g_pGlobalState->bars.end())
+        return;
+
+    const auto HASNOBAR = std::find_if(window->m_vMatchedRules.begin(), window->m_vMatchedRules.end(), [](const auto& rule) { return rule.szRule == "plugin:hyprbars:nobar"; }) != window->m_vMatchedRules.end();
+
+    (*BARIT)->setHidden(HASNOBAR);
 }
 
 Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
@@ -88,6 +99,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
     static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(self, data); });
+    static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "windowUpdateRules",
+                                                          [&](void* self, SCallbackInfo& info, std::any data) { onUpdateWindowRules(std::any_cast<PHLWINDOW>(data)); });
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{configStringToInt("rgba(33333388)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", Hyprlang::INT{15});
@@ -103,7 +116,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding", Hyprlang::INT{5});
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
-    static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });
+    static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_vWindows) {

@@ -31,11 +31,11 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     static auto* const         PPRECEDENCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
 
     SDecorationPositioningInfo info;
-    info.policy         = DECORATION_POSITION_STICKY;
+    info.policy         = m_bHidden ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = **PPRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
-    info.desiredExtents = {{0, **PHEIGHT}, {0, 0}};
+    info.desiredExtents = {{0, m_bHidden ? 0 : **PHEIGHT}, {0, 0}};
     return info;
 }
 
@@ -381,7 +381,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 }
 
 void CHyprBar::draw(CMonitor* pMonitor, float a) {
-    if (!validMapped(m_pWindow))
+    if (m_bHidden || !validMapped(m_pWindow))
         return;
 
     const auto PWINDOW = m_pWindow.lock();
@@ -535,4 +535,13 @@ CBox CHyprBar::assignedBoxGlobal() {
 
 PHLWINDOW CHyprBar::getOwner() {
     return m_pWindow.lock();
+}
+
+void CHyprBar::setHidden(bool hidden) {
+    if (m_bHidden == hidden)
+        return;
+
+    m_bHidden = hidden;
+
+    g_pDecorationPositioner->repositionDeco(this);
 }

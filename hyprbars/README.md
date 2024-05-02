@@ -53,3 +53,9 @@ Use the `hyprbars-button` keyword.
 ```ini
 hyprbars-button = color, size, icon, on-click
 ```
+
+## Window rules
+
+Hyprbars supports the following _dynamic_ window rules:
+
+`plugin:hyprbars:nobar` -> disables the bar on matching windows.
