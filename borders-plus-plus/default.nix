@@ -3,7 +3,7 @@
   hyprland,
   hyprlandPlugins,
 }:
-hyprlandPlugins.mkHyprlandPlugin {
+hyprlandPlugins.mkHyprlandPlugin hyprland {
   pluginName = "borders-plus-plus";
   version = "0.1";
   src = ./.;

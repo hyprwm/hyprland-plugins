@@ -2,7 +2,7 @@
   description = "Hyprland Plugins";
 
   inputs = {
-    hyprland.url = "github:hyprwm/Hyprland";
+    hyprland.url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
     systems.follows = "hyprland/systems";
   };
 
@@ -19,38 +19,37 @@
     pkgsFor = eachSystem (system:
       import nixpkgs {
         localSystem.system = system;
-        overlays = with self.overlays; [hyprland-plugins];
+        overlays = [
+          self.overlays.hyprland-plugins
+          hyprland.overlays.hyprland-packages
+        ];
       });
   in {
     packages = eachSystem (system: {
-      inherit (pkgsFor.${system}) borders-plus-plus csgo-vulkan-fix hyprbars hyprexpo hyprtrails hyprwinwrap;
+      inherit
+        (pkgsFor.${system})
+        borders-plus-plus
+        csgo-vulkan-fix
+        hyprbars
+        hyprexpo
+        hyprtrails
+        hyprwinwrap
+        ;
     });
 
     overlays = {
       default = self.overlays.hyprland-plugins;
-      mkHyprlandPlugin = lib.composeManyExtensions [
-        hyprland.overlays.default
-        (final: prev: {
-          hyprlandPlugins =
-            prev.hyprlandPlugins
-            // {
-              mkHyprlandPlugin = prev.hyprlandPlugins.mkHyprlandPlugin final.hyprland;
-            };
-        })
-      ];
-      hyprland-plugins = lib.composeManyExtensions [
-        self.overlays.mkHyprlandPlugin
-        (final: prev: let
-          inherit (final) callPackage;
-        in {
-          borders-plus-plus = callPackage ./borders-plus-plus {};
-          csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
-          hyprbars = callPackage ./hyprbars {};
-          hyprexpo = callPackage ./hyprexpo {};
-          hyprtrails = callPackage ./hyprtrails {};
-          hyprwinwrap = callPackage ./hyprwinwrap {};
-        })
-      ];
+
+      hyprland-plugins = final: prev: let
+        inherit (final) callPackage;
+      in {
+        borders-plus-plus = callPackage ./borders-plus-plus {};
+        csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
+        hyprbars = callPackage ./hyprbars {};
+        hyprexpo = callPackage ./hyprexpo {};
+        hyprtrails = callPackage ./hyprtrails {};
+        hyprwinwrap = callPackage ./hyprwinwrap {};
+      };
     };
 
     checks = eachSystem (system: self.packages.${system});
