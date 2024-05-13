@@ -22,7 +22,7 @@ COverview::~COverview() {
 }
 
 COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
-    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
     pMonitor            = PMONITOR;
 
     static auto* const* PCOLUMNS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
@@ -209,7 +209,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     touchMoveHook = g_pHookSystem->hookDynamic("touchMove", onCursorMove);
 
     mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", onCursorSelect);
-    touchUpHook = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
+    touchUpHook     = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
