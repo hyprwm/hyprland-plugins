@@ -72,9 +72,9 @@ static void swipeBegin(void* self, SCallbackInfo& info, std::any param) {
         return;
     }
 
-    auto e = std::any_cast<wlr_pointer_swipe_begin_event*>(param);
+    auto e = std::any_cast<IPointer::SSwipeBeginEvent>(param);
 
-    if (!**PENABLE || e->fingers != 4)
+    if (!**PENABLE || e.fingers != 4)
         return;
 
     info.cancelled = true;
@@ -94,9 +94,9 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
 
     info.cancelled = true;
 
-    auto e = std::any_cast<wlr_pointer_swipe_update_event*>(param);
+    auto e = std::any_cast<IPointer::SSwipeUpdateEvent>(param);
 
-    gestured += (**PPOSITIVE ? 1.0 : -1.0) * e->dy;
+    gestured += (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y;
 
     g_pOverview->onSwipeUpdate(gestured);
 }
