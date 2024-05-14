@@ -13,7 +13,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     PMONITOR->scheduledRecalc = true;
 
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
-        PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseDown(info, std::any_cast<wlr_pointer_button_event*>(param)); });
+        PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseDown(info, std::any_cast<IPointer::SButtonEvent>(param)); });
 
     m_pMouseMoveCallback =
         HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
@@ -50,7 +50,7 @@ std::string CHyprBar::getDisplayName() {
     return "Hyprbar";
 }
 
-void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
+void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
     if (m_pWindow.lock() != g_pCompositor->m_pLastWindow.lock())
         return;
 
@@ -77,7 +77,7 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e) {
         return;
     }
 
-    if (e->state != WLR_BUTTON_PRESSED) {
+    if (e.state != WLR_BUTTON_PRESSED) {
 
         if (m_bCancelledDown)
             info.cancelled = true;

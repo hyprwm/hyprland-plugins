@@ -4,6 +4,7 @@
 
 #include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
+#include <hyprland/src/devices/IPointer.hpp>
 #include "globals.hpp"
 
 class CHyprBar : public IHyprWindowDecoration {
@@ -54,7 +55,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void                     renderText(CTexture& out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
     void                     renderBarButtons(const Vector2D& bufferSize, const float scale);
     void                     renderBarButtonsText(CBox* barBox, const float scale, const float a);
-    void                     onMouseDown(SCallbackInfo& info, wlr_pointer_button_event* e);
+    void                     onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e);
     void                     onMouseMove(Vector2D coords);
     CBox                     assignedBoxGlobal();
 
