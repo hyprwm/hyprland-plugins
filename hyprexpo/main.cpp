@@ -17,12 +17,12 @@ inline CFunctionHook* g_pAddDamageHookB      = nullptr;
 inline CFunctionHook* g_pSwipeBeginHook      = nullptr;
 inline CFunctionHook* g_pSwipeEndHook        = nullptr;
 inline CFunctionHook* g_pSwipeUpdateHook     = nullptr;
-typedef void (*origRenderWorkspace)(void*, CMonitor*, PHLWORKSPACE, timespec*, const CBox&);
-typedef void (*origAddDamageA)(void*, const CBox*);
-typedef void (*origAddDamageB)(void*, const pixman_region32_t*);
-typedef void (*origSwipeBegin)(void*, wlr_pointer_swipe_begin_event*);
-typedef void (*origSwipeEnd)(void*, wlr_pointer_swipe_end_event*);
-typedef void (*origSwipeUpdate)(void*, wlr_pointer_swipe_update_event*);
+typedef void          (*origRenderWorkspace)(void*, CMonitor*, PHLWORKSPACE, timespec*, const CBox&);
+typedef void          (*origAddDamageA)(void*, const CBox*);
+typedef void          (*origAddDamageB)(void*, const pixman_region32_t*);
+typedef void          (*origSwipeBegin)(void*, wlr_pointer_swipe_begin_event*);
+typedef void          (*origSwipeEnd)(void*, wlr_pointer_swipe_end_event*);
+typedef void          (*origSwipeUpdate)(void*, wlr_pointer_swipe_update_event*);
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -61,40 +61,48 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     g_pOverview->onDamageReported();
 }
 
-static float gestured = 0;
+static float gestured       = 0;
+bool         swipeActive    = false;
+char         swipeDirection = 0; // 0 = no direction, 'v' = vertical, 'h' = horizontal
 
-//
-static void swipeBegin(void* self, SCallbackInfo& info, std::any param) {
-    static auto* const* PENABLE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture")->getDataStaticPtr();
-
-    if (g_pOverview) {
-        info.cancelled = true;
-        return;
-    }
-
-    auto e = std::any_cast<IPointer::SSwipeBeginEvent>(param);
-
-    if (!**PENABLE || e.fingers != 4)
-        return;
-
-    info.cancelled = true;
-
-    renderingOverview = true;
-    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
-    renderingOverview = false;
-
-    gestured = 0;
+static void  swipeBegin(void* self, SCallbackInfo& info, std::any param) {
+    swipeActive    = false;
+    swipeDirection = 0;
 }
 
 static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
-    if (!g_pOverview)
+    static auto* const* PENABLE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture")->getDataStaticPtr();
+    static auto* const* FINGERS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_fingers")->getDataStaticPtr();
+    static auto* const* PPOSITIVE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive")->getDataStaticPtr();
+    auto                e         = std::any_cast<IPointer::SSwipeUpdateEvent>(param);
+
+    if (!swipeDirection) {
+        if (std::abs(e.delta.x) > std::abs(e.delta.y))
+            swipeDirection = 'h';
+        else if (std::abs(e.delta.y) > std::abs(e.delta.x))
+            swipeDirection = 'v';
+        else
+            swipeDirection = 0;
+    }
+
+    if (swipeActive || g_pOverview)
+        info.cancelled = true;
+
+    if (!**PENABLE || e.fingers != **FINGERS || swipeDirection != 'v')
         return;
 
-    static auto* const* PPOSITIVE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive")->getDataStaticPtr();
-
     info.cancelled = true;
-
-    auto e = std::any_cast<IPointer::SSwipeUpdateEvent>(param);
+    if (!swipeActive) {
+        if (g_pOverview)
+            return;
+        if ((**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0)
+            return;
+        renderingOverview = true;
+        g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
+        renderingOverview = false;
+        gestured          = 0;
+        swipeActive       = true;
+    }
 
     gestured += (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y;
 
@@ -204,6 +212,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_fingers", Hyprlang::INT{4});
 
     HyprlandAPI::reloadConfig();
 
