@@ -99,7 +99,8 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
     }
 
     gestured += (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y;
-
+    if (gestured <= 0.01) // plugin will crash if swipe ends at <= 0
+        gestured = 0.01;
     g_pOverview->onSwipeUpdate(gestured);
 }
 
