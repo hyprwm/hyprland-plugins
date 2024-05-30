@@ -14,15 +14,9 @@
 inline CFunctionHook* g_pRenderWorkspaceHook = nullptr;
 inline CFunctionHook* g_pAddDamageHookA      = nullptr;
 inline CFunctionHook* g_pAddDamageHookB      = nullptr;
-inline CFunctionHook* g_pSwipeBeginHook      = nullptr;
-inline CFunctionHook* g_pSwipeEndHook        = nullptr;
-inline CFunctionHook* g_pSwipeUpdateHook     = nullptr;
 typedef void          (*origRenderWorkspace)(void*, CMonitor*, PHLWORKSPACE, timespec*, const CBox&);
 typedef void          (*origAddDamageA)(void*, const CBox*);
 typedef void          (*origAddDamageB)(void*, const pixman_region32_t*);
-typedef void          (*origSwipeBegin)(void*, wlr_pointer_swipe_begin_event*);
-typedef void          (*origSwipeEnd)(void*, wlr_pointer_swipe_end_event*);
-typedef void          (*origSwipeUpdate)(void*, wlr_pointer_swipe_update_event*);
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
