@@ -439,6 +439,13 @@ void COverview::onSwipeUpdate(double delta) {
 }
 
 void COverview::onSwipeEnd() {
+    const auto SIZEMIN = pMonitor->vecSize;
+    const auto SIZEMAX = pMonitor->vecSize * pMonitor->vecSize / (pMonitor->vecSize / SIDE_LENGTH);
+    const auto PERC    = (size.value() - SIZEMIN).x / (SIZEMAX - SIZEMIN).x;
+    if (PERC > 0.5) {
+        close();
+        return;
+    }
     size = pMonitor->vecSize;
     pos  = {0, 0};
 
