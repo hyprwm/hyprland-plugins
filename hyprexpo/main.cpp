@@ -108,6 +108,7 @@ static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
     if (!g_pOverview)
         return;
 
+    swipeActive = false;
     info.cancelled = true;
 
     g_pOverview->onSwipeEnd();
@@ -115,6 +116,8 @@ static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
 
 static void onExpoDispatcher(std::string arg) {
 
+    if (swipeActive)
+        return;
     if (arg == "toggle") {
         if (g_pOverview)
             g_pOverview->close();
