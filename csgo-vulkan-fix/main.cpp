@@ -6,6 +6,7 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
+#include <hyprland/src/managers/SeatManager.hpp>
 
 #include "globals.hpp"
 
@@ -14,7 +15,7 @@ inline CFunctionHook* g_pMouseMotionHook     = nullptr;
 inline CFunctionHook* g_pSurfaceSizeHook     = nullptr;
 inline CFunctionHook* g_pSurfaceDamageHook   = nullptr;
 inline CFunctionHook* g_pWLSurfaceDamageHook = nullptr;
-typedef void (*origMotion)(wlr_seat*, uint32_t, double, double);
+typedef void (*origMotion)(CSeatManager*, uint32_t, const Vector2D&);
 typedef void (*origSurfaceSize)(CXWaylandSurface*, const CBox&);
 typedef void (*origSurfaceDamage)(wlr_surface*, pixman_region32_t*);
 typedef CRegion (*origWLSurfaceDamage)(CWLSurface*);
@@ -24,18 +25,20 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-void hkNotifyMotion(wlr_seat* wlr_seat, uint32_t time_msec, double sx, double sy) {
+void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& local) {
     static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
     static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
 
+    Vector2D           newCoords = local;
+
     if (!g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow.lock()->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
         // fix the coords
-        sx *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
-        sy *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
+        newCoords.x *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
+        newCoords.y *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
     }
 
-    (*(origMotion)g_pMouseMotionHook->m_pOriginal)(wlr_seat, time_msec, sx, sy);
+    (*(origMotion)g_pMouseMotionHook->m_pOriginal)(thisptr, time_msec, newCoords);
 }
 
 void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
@@ -110,7 +113,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
 
-    auto FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "wlr_seat_pointer_notify_motion");
+    auto FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
     bool success = !FNS.empty();
     if (success)
         g_pMouseMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkNotifyMotion);
