@@ -13,11 +13,9 @@
 // Methods
 inline CFunctionHook* g_pMouseMotionHook     = nullptr;
 inline CFunctionHook* g_pSurfaceSizeHook     = nullptr;
-inline CFunctionHook* g_pSurfaceDamageHook   = nullptr;
 inline CFunctionHook* g_pWLSurfaceDamageHook = nullptr;
 typedef void (*origMotion)(CSeatManager*, uint32_t, const Vector2D&);
 typedef void (*origSurfaceSize)(CXWaylandSurface*, const CBox&);
-typedef void (*origSurfaceDamage)(wlr_surface*, pixman_region32_t*);
 typedef CRegion (*origWLSurfaceDamage)(CWLSurface*);
 
 // Do NOT change this function.
@@ -51,7 +49,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         return;
     }
 
-    const auto SURF    = surface->surface;
+    const auto SURF    = surface->surface.lock();
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(SURF);
 
     CBox       newBox = box;
@@ -60,26 +58,10 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         newBox.w = **RESX;
         newBox.h = **RESY;
 
-        CWLSurface::surfaceFromWlr(SURF)->m_bFillIgnoreSmall = true;
+        CWLSurface::fromResource(SURF)->m_bFillIgnoreSmall = true;
     }
 
     (*(origSurfaceSize)g_pSurfaceSizeHook->m_pOriginal)(surface, newBox);
-}
-
-void hkSurfaceDamage(wlr_surface* surface, pixman_region32_t* damage) {
-    (*(origSurfaceDamage)g_pSurfaceDamageHook->m_pOriginal)(surface, damage);
-
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
-
-    const auto         SURF = CWLSurface::surfaceFromWlr(surface);
-
-    if (SURF && SURF->exists() && SURF->getWindow() && SURF->getWindow()->m_szInitialClass == *PCLASS) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(SURF->getWindow()->m_iMonitorID);
-        if (PMONITOR)
-            g_pHyprRenderer->damageMonitor(PMONITOR);
-        else
-            g_pHyprRenderer->damageWindow(SURF->getWindow());
-    }
 }
 
 CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
@@ -126,11 +108,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     }
     success = success && g_pSurfaceSizeHook;
 
-    FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "wlr_surface_get_effective_damage");
-    success = success && !FNS.empty();
-    if (success)
-        g_pSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkSurfaceDamage);
-
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "logicalDamage");
     for (auto& r : FNS) {
         if (!r.demangled.contains("CWLSurface"))
@@ -143,7 +120,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     success = success && g_pWLSurfaceDamageHook->hook();
     success = success && g_pMouseMotionHook->hook();
     success = success && g_pSurfaceSizeHook->hook();
-    success = success && g_pSurfaceDamageHook->hook();
 
     if (success)
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (Anything version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);

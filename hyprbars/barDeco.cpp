@@ -17,6 +17,9 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 
     m_pMouseMoveCallback =
         HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
+
+    m_pTextTex = makeShared<CTexture>();
+    m_pButtonsTex = makeShared<CTexture>();
 }
 
 CHyprBar::~CHyprBar() {
@@ -134,7 +137,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     }
 }
 
-void CHyprBar::renderText(CTexture& out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
+void CHyprBar::renderText(SP<CTexture> out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto CAIRO        = cairo_create(CAIROSURFACE);
 
@@ -174,8 +177,8 @@ void CHyprBar::renderText(CTexture& out, const std::string& text, const CColor& 
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    out.allocate();
-    glBindTexture(GL_TEXTURE_2D, out.m_iTexID);
+    out->allocate();
+    glBindTexture(GL_TEXTURE_2D, out->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -260,8 +263,8 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    m_tTextTex.allocate();
-    glBindTexture(GL_TEXTURE_2D, m_tTextTex.m_iTexID);
+    m_pTextTex->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_pTextTex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -323,8 +326,8 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    m_tButtonsTex.allocate();
-    glBindTexture(GL_TEXTURE_2D, m_tButtonsTex.m_iTexID);
+    m_pButtonsTex->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_pButtonsTex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -355,7 +358,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     auto drawButton = [&](SHyprButton& button) -> void {
         const auto scaledButtonSize = button.size * scale;
 
-        if (button.iconTex.m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
+        if (button.iconTex->m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
             // render icon
             const Vector2D BUFSIZE = {scaledButtonSize, scaledButtonSize};
 
@@ -364,7 +367,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
             renderText(button.iconTex, button.icon, LIGHT ? CColor(0xFFFFFFFF) : CColor(0xFF000000), BUFSIZE, scale, button.size * 0.62);
         }
 
-        if (button.iconTex.m_iTexID == 0)
+        if (button.iconTex->m_iTexID == 0)
             return;
 
         CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
@@ -458,7 +461,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a) {
     g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
-    if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_szTitle || m_bWindowSizeChanged || m_tTextTex.m_iTexID == 0)) {
+    if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_szTitle || m_bWindowSizeChanged || m_pTextTex->m_iTexID == 0)) {
         m_szLastTitle = PWINDOW->m_szTitle;
         renderBarTitle(BARBUF, pMonitor->scale);
     }
@@ -474,14 +477,14 @@ void CHyprBar::draw(CMonitor* pMonitor, float a) {
 
     CBox textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
     if (**PENABLETITLE)
-        g_pHyprOpenGL->renderTexture(m_tTextTex, &textBox, a);
+        g_pHyprOpenGL->renderTexture(m_pTextTex, &textBox, a);
 
     if (m_bButtonsDirty || m_bWindowSizeChanged) {
         renderBarButtons(BARBUF, pMonitor->scale);
         m_bButtonsDirty = false;
     }
 
-    g_pHyprOpenGL->renderTexture(m_tButtonsTex, &textBox, a);
+    g_pHyprOpenGL->renderTexture(m_pButtonsTex, &textBox, a);
 
     g_pHyprOpenGL->scissor((CBox*)nullptr);
 
