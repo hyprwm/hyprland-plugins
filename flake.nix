@@ -1,5 +1,5 @@
 {
-  description = "Hyprland Plugins";
+  description = "Official Hyprland Plugins";
 
   inputs = {
     hyprland.url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
@@ -28,7 +28,7 @@
   in {
     packages = eachSystem (system: {
       inherit
-        (pkgsFor.${system})
+        (pkgsFor.${system}.hyprlandPlugins)
         borders-plus-plus
         csgo-vulkan-fix
         hyprbars
@@ -44,12 +44,14 @@
       hyprland-plugins = final: prev: let
         inherit (final) callPackage;
       in {
-        borders-plus-plus = callPackage ./borders-plus-plus {};
-        csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
-        hyprbars = callPackage ./hyprbars {};
-        hyprexpo = callPackage ./hyprexpo {};
-        hyprtrails = callPackage ./hyprtrails {};
-        hyprwinwrap = callPackage ./hyprwinwrap {};
+        hyprlandPlugins = prev.hyprlandPlugins or {} // {
+          borders-plus-plus = callPackage ./borders-plus-plus {};
+          csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
+          hyprbars = callPackage ./hyprbars {};
+          hyprexpo = callPackage ./hyprexpo {};
+          hyprtrails = callPackage ./hyprtrails {};
+          hyprwinwrap = callPackage ./hyprwinwrap {};
+        };
       };
     };
 
