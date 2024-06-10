@@ -3,16 +3,17 @@
 
   inputs = {
     hyprland.url = "git+https://github.com/hyprwm/Hyprland?submodules=1";
+    nixpkgs.follows = "hyprland/nixpkgs";
     systems.follows = "hyprland/systems";
   };
 
   outputs = {
     self,
     hyprland,
+    nixpkgs,
     systems,
     ...
   }: let
-    inherit (hyprland.inputs) nixpkgs;
     inherit (nixpkgs) lib;
     eachSystem = lib.genAttrs (import systems);
 

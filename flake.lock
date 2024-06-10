@@ -150,6 +150,10 @@
     "root": {
       "inputs": {
         "hyprland": "hyprland",
+        "nixpkgs": [
+          "hyprland",
+          "nixpkgs"
+        ],
         "systems": [
           "hyprland",
           "systems"
