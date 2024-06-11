@@ -31,4 +31,9 @@
 *.out
 *.app
 
+# Editors
 .vscode/
+
+# Nix
+result
+result-man
