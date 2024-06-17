@@ -87,15 +87,25 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
 
     info.cancelled = true;
     if (!swipeActive) {
-        if (g_pOverview)
+        if (g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0) {
+            renderingOverview = true;
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
+            renderingOverview = false;
+            gestured          = 300;
+            swipeActive       = true;
+        }
+
+        else if (!g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y > 0) {
+            renderingOverview = true;
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
+            renderingOverview = false;
+            gestured          = 0;
+            swipeActive       = true;
+        }
+
+        else {
             return;
-        if ((**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0)
-            return;
-        renderingOverview = true;
-        g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
-        renderingOverview = false;
-        gestured          = 0;
-        swipeActive       = true;
+        }
     }
 
     gestured += (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y;
