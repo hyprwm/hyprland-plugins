@@ -120,8 +120,8 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     CBox  monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, monbox.pWlr(), wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL), 0,
-                           g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
+    projectBox(matrix, monbox, wlTransformToHyprutils(wlr_output_transform_invert(WL_OUTPUT_TRANSFORM_NORMAL)), 0,
+               g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, g_pHyprOpenGL->m_RenderData.projection, matrix);
@@ -249,8 +249,8 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     CBox transformedBox = monbox;
-    transformedBox.transform(wlr_output_transform_invert(g_pHyprOpenGL->m_RenderData.pMonitor->transform), g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x,
-                             g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
+    transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(g_pHyprOpenGL->m_RenderData.pMonitor->transform)),
+                             g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
 
     glVertexAttribPointer(g_pGlobalState->trailShader.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
 

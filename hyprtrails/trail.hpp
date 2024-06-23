@@ -53,7 +53,7 @@ class CTrail : public IHyprWindowDecoration {
 
     int                                                               m_iTimer = 0;
 
-    SWindowDecorationExtents                                          m_seExtents;
+    SBoxExtents                                                       m_seExtents;
 
     PHLWINDOWREF                                                      m_pWindow;
 
