@@ -35,15 +35,14 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     BG_COLOR    = **PCOL;
 
     // process the method
-    bool     methodCenter  = true;
+    bool     methodCenter = true;
     int      methodStartID = pMonitor->activeWorkspaceID();
     CVarList method{*PMETHOD, 0, 's', true};
     if (method.size() < 2)
         Debug::log(ERR, "[he] invalid workspace_method");
     else {
         methodCenter = method[0] == "center";
-        std::string s;
-        methodStartID = getWorkspaceIDFromString(method[1], s);
+        methodStartID = getWorkspaceIDNameFromString(method[1]).id;
         if (methodStartID == WORKSPACE_INVALID)
             methodStartID = pMonitor->activeWorkspaceID();
     }
@@ -57,8 +56,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         int backtracked = 0;
 
         for (size_t i = 1; i < images.size() / 2; ++i) {
-            std::string s;
-            currentID = getWorkspaceIDFromString("r-" + std::to_string(i), s);
+            currentID = getWorkspaceIDNameFromString("r-" + std::to_string(i)).id;
             if (currentID >= firstID)
                 break;
 
@@ -68,9 +66,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         for (size_t i = 0; i < SIDE_LENGTH * SIDE_LENGTH; ++i) {
             auto&       image = images[i];
-            std::string s;
             currentID =
-                getWorkspaceIDFromString("r" + ((int64_t)i - backtracked < 0 ? std::to_string((int64_t)i - backtracked) : "+" + std::to_string((int64_t)i - backtracked)), s);
+                getWorkspaceIDNameFromString("r" + ((int64_t)i - backtracked < 0 ? std::to_string((int64_t)i - backtracked) : "+" + std::to_string((int64_t)i - backtracked))).id;
             image.workspaceID = currentID;
         }
     } else {
@@ -85,8 +82,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         for (size_t i = 1; i < SIDE_LENGTH * SIDE_LENGTH; ++i) {
             auto&       image = images[i];
-            std::string s;
-            currentID         = getWorkspaceIDFromString("r+" + std::to_string(i), s);
+            currentID         = getWorkspaceIDNameFromString("r+" + std::to_string(i)).id;
             image.workspaceID = currentID;
         }
 
@@ -209,7 +205,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     touchMoveHook = g_pHookSystem->hookDynamic("touchMove", onCursorMove);
 
     mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", onCursorSelect);
-    touchUpHook = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
+    touchUpHook     = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
