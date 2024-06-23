@@ -183,10 +183,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     g_pAddDamageHookB = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageB);
 
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "addDamageEPK4CBox");
+    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "addDamageEPKN9Hyprutils4Math4CBoxE");
     if (FNS.empty()) {
-        failNotif("no fns for hook addDamageEPK4CBox");
-        throw std::runtime_error("[he] No fns for hook addDamageEPK4CBox");
+        failNotif("no fns for hook addDamageEPKN9Hyprutils4Math4CBoxE");
+        throw std::runtime_error("[he] No fns for hook addDamageEPKN9Hyprutils4Math4CBoxE");
     }
 
     g_pAddDamageHookA = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageA);
