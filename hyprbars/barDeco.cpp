@@ -220,7 +220,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     const auto   scaledButtonsPad  = **PBARBUTTONPADDING * scale;
     const auto   scaledBarPadding  = **PBARPADDING * scale;
 
-    const CColor COLOR = **PCOLOR;
+    const CColor COLOR = m_bForcedTitleColor.value_or(**PCOLOR);
 
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto   CAIRO        = cairo_create(CAIROSURFACE);
@@ -412,7 +412,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a) {
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
-    CColor     color = **PCOLOR;
+    CColor     color = m_bForcedBarColor.value_or(**PCOLOR);
     color.a *= a;
 
     m_seExtents = {{0, **PHEIGHT}, {}};
@@ -461,7 +461,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a) {
     g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
-    if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_szTitle || m_bWindowSizeChanged || m_pTextTex->m_iTexID == 0)) {
+    if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_szTitle || m_bWindowSizeChanged || m_pTextTex->m_iTexID == 0 || m_bTitleColorChanged)) {
         m_szLastTitle = PWINDOW->m_szTitle;
         renderBarTitle(BARBUF, pMonitor->scale);
     }
@@ -491,6 +491,7 @@ void CHyprBar::draw(CMonitor* pMonitor, float a) {
     renderBarButtonsText(&textBox, pMonitor->scale, a);
 
     m_bWindowSizeChanged = false;
+    m_bTitleColorChanged = false;
 
     // dynamic updates change the extents
     if (m_iLastHeight != **PHEIGHT) {
@@ -540,11 +541,36 @@ PHLWINDOW CHyprBar::getOwner() {
     return m_pWindow.lock();
 }
 
-void CHyprBar::setHidden(bool hidden) {
-    if (m_bHidden == hidden)
-        return;
+void CHyprBar::updateRules() {
+    const auto PWINDOW = m_pWindow.lock();
+    auto rules = PWINDOW->m_vMatchedRules;
+    auto prev_m_bHidden = m_bHidden;
+    auto prev_m_bForcedTitleColor = m_bForcedTitleColor;
 
-    m_bHidden = hidden;
+    m_bForcedBarColor = std::nullopt;
+    m_bForcedTitleColor = std::nullopt;
+    m_bHidden = false;
 
-    g_pDecorationPositioner->repositionDeco(this);
+    for(auto& r : rules) {
+        applyRule(r);
+    }
+
+    if (prev_m_bHidden != m_bHidden) {
+        g_pDecorationPositioner->repositionDeco(this);
+    }
+    if (prev_m_bForcedTitleColor != m_bForcedTitleColor) {
+        m_bTitleColorChanged = true;
+    }
+}
+
+void CHyprBar::applyRule(const SWindowRule& r) {
+    auto arg = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+    if (r.szRule == "plugin:hyprbars:nobar") {
+        m_bHidden = true;
+    } else if (r.szRule.starts_with("plugin:hyprbars:bar_color")) {
+        m_bForcedBarColor = CColor(configStringToInt(arg));
+    } else if (r.szRule.starts_with("plugin:hyprbars:title_color")) {
+        m_bForcedTitleColor = CColor(configStringToInt(arg));
+    }
 }
