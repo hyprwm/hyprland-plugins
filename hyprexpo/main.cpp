@@ -68,6 +68,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
     static auto* const* PENABLE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture")->getDataStaticPtr();
     static auto* const* FINGERS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_fingers")->getDataStaticPtr();
     static auto* const* PPOSITIVE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive")->getDataStaticPtr();
+    static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
     auto                e         = std::any_cast<IPointer::SSwipeUpdateEvent>(param);
 
     if (!swipeDirection) {
@@ -91,7 +92,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
             renderingOverview = true;
             g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
             renderingOverview = false;
-            gestured          = 300;
+            gestured          = **PDISTANCE;
             swipeActive       = true;
         }
 
@@ -118,7 +119,7 @@ static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
     if (!g_pOverview)
         return;
 
-    swipeActive = false;
+    swipeActive    = false;
     info.cancelled = true;
 
     g_pOverview->onSwipeEnd();
