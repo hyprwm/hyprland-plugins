@@ -59,3 +59,5 @@ hyprbars-button = color, size, icon, on-click
 Hyprbars supports the following _dynamic_ window rules:
 
 `plugin:hyprbars:nobar` -> disables the bar on matching windows.
+`plugin:hyprbars:bar_color` -> sets the bar background color on matching windows.
+`plugin:hyprbars:title_color` -> sets the bar title color on matching windows.

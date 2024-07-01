@@ -34,39 +34,43 @@ class CHyprBar : public IHyprWindowDecoration {
 
     PHLWINDOW                          getOwner();
 
-    void                               setHidden(bool hidden);
+    void                               updateRules();
+    void                               applyRule(const SWindowRule&);
 
   private:
-    SBoxExtents          m_seExtents;
+    SBoxExtents           m_seExtents;
 
-    PHLWINDOWREF         m_pWindow;
+    PHLWINDOWREF          m_pWindow;
 
-    CBox                 m_bAssignedBox;
+    CBox                  m_bAssignedBox;
 
-    SP<CTexture>         m_pTextTex;
-    SP<CTexture>         m_pButtonsTex;
+    SP<CTexture>          m_pTextTex;
+    SP<CTexture>          m_pButtonsTex;
 
-    bool                 m_bWindowSizeChanged = false;
-    bool                 m_bHidden            = false;
+    bool                  m_bWindowSizeChanged = false;
+    bool                  m_bHidden            = false;
+    bool                  m_bTitleColorChanged = false;
+    std::optional<CColor> m_bForcedBarColor;
+    std::optional<CColor> m_bForcedTitleColor;
 
-    Vector2D             cursorRelativeToBar();
+    Vector2D              cursorRelativeToBar();
 
-    void                 renderBarTitle(const Vector2D& bufferSize, const float scale);
-    void                 renderText(SP<CTexture> out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
-    void                 renderBarButtons(const Vector2D& bufferSize, const float scale);
-    void                 renderBarButtonsText(CBox* barBox, const float scale, const float a);
-    void                 onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e);
-    void                 onMouseMove(Vector2D coords);
-    CBox                 assignedBoxGlobal();
+    void                  renderBarTitle(const Vector2D& bufferSize, const float scale);
+    void                  renderText(SP<CTexture> out, const std::string& text, const CColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
+    void                  renderBarButtons(const Vector2D& bufferSize, const float scale);
+    void                  renderBarButtonsText(CBox* barBox, const float scale, const float a);
+    void                  onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e);
+    void                  onMouseMove(Vector2D coords);
+    CBox                  assignedBoxGlobal();
 
-    SP<HOOK_CALLBACK_FN> m_pMouseButtonCallback;
-    SP<HOOK_CALLBACK_FN> m_pMouseMoveCallback;
+    SP<HOOK_CALLBACK_FN>  m_pMouseButtonCallback;
+    SP<HOOK_CALLBACK_FN>  m_pMouseMoveCallback;
 
-    std::string          m_szLastTitle;
+    std::string           m_szLastTitle;
 
-    bool                 m_bDraggingThis  = false;
-    bool                 m_bDragPending   = false;
-    bool                 m_bCancelledDown = false;
+    bool                  m_bDraggingThis  = false;
+    bool                  m_bDragPending   = false;
+    bool                  m_bCancelledDown = false;
 
     // for dynamic updates
     int m_iLastHeight = 0;
