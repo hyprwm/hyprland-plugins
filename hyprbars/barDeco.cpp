@@ -555,22 +555,19 @@ void CHyprBar::updateRules() {
         applyRule(r);
     }
 
-    if (prev_m_bHidden != m_bHidden) {
+    if (prev_m_bHidden != m_bHidden)
         g_pDecorationPositioner->repositionDeco(this);
-    }
-    if (prev_m_bForcedTitleColor != m_bForcedTitleColor) {
+    if (prev_m_bForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
-    }
 }
 
 void CHyprBar::applyRule(const SWindowRule& r) {
     auto arg = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
-    if (r.szRule == "plugin:hyprbars:nobar") {
+    if (r.szRule == "plugin:hyprbars:nobar")
         m_bHidden = true;
-    } else if (r.szRule.starts_with("plugin:hyprbars:bar_color")) {
+    else if (r.szRule.starts_with("plugin:hyprbars:bar_color"))
         m_bForcedBarColor = CColor(configStringToInt(arg));
-    } else if (r.szRule.starts_with("plugin:hyprbars:title_color")) {
+    else if (r.szRule.starts_with("plugin:hyprbars:title_color"))
         m_bForcedTitleColor = CColor(configStringToInt(arg));
-    }
 }
