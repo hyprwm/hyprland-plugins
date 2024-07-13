@@ -84,7 +84,7 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_sSpecialRenderData.decorate)
+    if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
         return;
 
     static auto* const PBEZIERSTEP    = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->getDataStaticPtr();

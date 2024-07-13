@@ -65,7 +65,7 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_sSpecialRenderData.decorate)
+    if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
         return;
 
     static std::vector<Hyprlang::INT* const*> PCOLORS;
