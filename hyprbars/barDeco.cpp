@@ -80,7 +80,7 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
         return;
     }
 
-    if (e.state != WLR_BUTTON_PRESSED) {
+    if (!e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
 
         if (m_bCancelledDown)
             info.cancelled = true;

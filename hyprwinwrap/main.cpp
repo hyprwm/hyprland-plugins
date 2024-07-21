@@ -5,6 +5,7 @@
 
 #include <hyprland/src/includes.hpp>
 #include <any>
+#include <sstream>
 
 #define private public
 #include <hyprland/src/Compositor.hpp>

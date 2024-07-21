@@ -110,7 +110,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     for (size_t i = 0; i < SIDE_LENGTH * SIDE_LENGTH; ++i) {
         COverview::SWorkspaceImage& image = images[i];
-        image.fb.alloc(monbox.w, monbox.h, PMONITOR->drmFormat);
+        image.fb.alloc(monbox.w, monbox.h, PMONITOR->output->state->state().drmFormat);
 
         CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
         g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
@@ -238,7 +238,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     if (image.fb.m_vSize != monbox.size()) {
         image.fb.release();
         image.fb.m_pStencilTex = nullptr;
-        image.fb.alloc(monbox.w, monbox.h, pMonitor->drmFormat);
+        image.fb.alloc(monbox.w, monbox.h, pMonitor->output->state->state().drmFormat);
     }
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
