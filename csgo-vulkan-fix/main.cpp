@@ -108,7 +108,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     }
     success = success && g_pSurfaceSizeHook;
 
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "logicalDamage");
+    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "computeDamage");
     for (auto& r : FNS) {
         if (!r.demangled.contains("CWLSurface"))
             continue;
