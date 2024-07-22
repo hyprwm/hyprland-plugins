@@ -106,7 +106,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
         g_pSurfaceSizeHook = HyprlandAPI::createFunctionHook(PHANDLE, fn.address, (void*)::hkSetWindowSize);
     }
-    success = success && g_pSurfaceSizeHook;
 
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "computeDamage");
     for (auto& r : FNS) {
@@ -115,6 +114,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
         g_pWLSurfaceDamageHook = HyprlandAPI::createFunctionHook(PHANDLE, r.address, (void*)::hkWLSurfaceDamage);
         break;
+    }
+
+    success = success && g_pSurfaceSizeHook && g_pWLSurfaceDamageHook && g_pMouseMotionHook;
+    if (!success) {
+        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Failed to find required hook fns", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        throw std::runtime_error("[vkfix] Hooks fn init failed");
     }
 
     success = success && g_pWLSurfaceDamageHook->hook();
