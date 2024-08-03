@@ -27,13 +27,14 @@ void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& l
     static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
     static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+    static auto* const PFIX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse")->getDataStaticPtr();
 
     Vector2D           newCoords = local;
 
-    if (!g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow.lock()->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
+    if (**PFIX && !g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
         // fix the coords
-        newCoords.x *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
-        newCoords.y *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow.lock()->m_fX11SurfaceScaledBy;
+        newCoords.x *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
+        newCoords.y *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_pOriginal)(thisptr, time_msec, newCoords);
@@ -93,18 +94,25 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w", Hyprlang::INT{1680});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
 
-    auto FNS     = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
-    bool success = !FNS.empty();
-    if (success)
-        g_pMouseMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)::hkNotifyMotion);
+    auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
+    for (auto& fn : FNS) {
+        if (!fn.demangled.contains("CSeatManager"))
+            continue;
+
+        g_pMouseMotionHook = HyprlandAPI::createFunctionHook(PHANDLE, fn.address, (void*)::hkNotifyMotion);
+        break;
+    }
+
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "configure");
     for (auto& fn : FNS) {
-        if (!fn.signature.contains("XWaylandSurface"))
+        if (!fn.demangled.contains("XWaylandSurface"))
             continue;
 
         g_pSurfaceSizeHook = HyprlandAPI::createFunctionHook(PHANDLE, fn.address, (void*)::hkSetWindowSize);
+        break;
     }
 
     FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "computeDamage");
@@ -116,7 +124,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         break;
     }
 
-    success = success && g_pSurfaceSizeHook && g_pWLSurfaceDamageHook && g_pMouseMotionHook;
+    bool success = g_pSurfaceSizeHook && g_pWLSurfaceDamageHook && g_pMouseMotionHook;
     if (!success) {
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Failed to find required hook fns", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[vkfix] Hooks fn init failed");

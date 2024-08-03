@@ -24,6 +24,9 @@ plugin {
 
         # NOT a regex! This is a string and has to exactly match initial_class
         class = cs2
+
+        # Whether to fix the mouse position. A select few apps might be wonky with this.
+        fix_mouse = true
     }
 }
 ```
