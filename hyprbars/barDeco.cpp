@@ -18,7 +18,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pMouseMoveCallback =
         HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
 
-    m_pTextTex = makeShared<CTexture>();
+    m_pTextTex    = makeShared<CTexture>();
     m_pButtonsTex = makeShared<CTexture>();
 }
 
@@ -542,16 +542,16 @@ PHLWINDOW CHyprBar::getOwner() {
 }
 
 void CHyprBar::updateRules() {
-    const auto PWINDOW = m_pWindow.lock();
-    auto rules = PWINDOW->m_vMatchedRules;
-    auto prev_m_bHidden = m_bHidden;
-    auto prev_m_bForcedTitleColor = m_bForcedTitleColor;
+    const auto PWINDOW                  = m_pWindow.lock();
+    auto       rules                    = PWINDOW->m_vMatchedRules;
+    auto       prev_m_bHidden           = m_bHidden;
+    auto       prev_m_bForcedTitleColor = m_bForcedTitleColor;
 
-    m_bForcedBarColor = std::nullopt;
+    m_bForcedBarColor   = std::nullopt;
     m_bForcedTitleColor = std::nullopt;
-    m_bHidden = false;
+    m_bHidden           = false;
 
-    for(auto& r : rules) {
+    for (auto& r : rules) {
         applyRule(r);
     }
 
