@@ -49,9 +49,8 @@ static void onUpdateWindowRules(PHLWINDOW window) {
     if (BARIT == g_pGlobalState->bars.end())
         return;
 
-    const auto HASNOBAR = std::find_if(window->m_vMatchedRules.begin(), window->m_vMatchedRules.end(), [](const auto& rule) { return rule.szRule == "plugin:hyprbars:nobar"; }) != window->m_vMatchedRules.end();
-
-    (*BARIT)->setHidden(HASNOBAR);
+    (*BARIT)->updateRules();
+    window->updateWindowDecos();
 }
 
 Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
