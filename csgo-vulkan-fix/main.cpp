@@ -95,7 +95,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w", Hyprlang::INT{1680});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse", Hyprlang::INT{1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title", Hyprlang::STRING{"cs2"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title", Hyprlang::STRING{"Counter-Strike 2"});
 
     auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
     for (auto& fn : FNS) {
