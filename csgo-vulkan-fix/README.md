@@ -22,9 +22,8 @@ plugin {
         res_w = 1680
         res_h = 1050
 
-        # NOT a regex! This is a string and has to exactly match initial_class
-        # At some point Counter Strike 2's class was changed to 'SDL Application'
-        class = SDL Application
+        # NOT a regex! This is a string and has to exactly match initial_title
+        title = Counter-Strike 2
 
         # Whether to fix the mouse position. A select few apps might be wonky with this.
         fix_mouse = true
