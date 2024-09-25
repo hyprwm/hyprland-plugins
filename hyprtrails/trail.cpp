@@ -117,24 +117,20 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     glStencilFunc(GL_NOTEQUAL, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    CBox  monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
+    CBox   monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
 
-    float matrix[9];
-    projectBox(matrix, monbox, wlTransformToHyprutils(invertTransform(WL_OUTPUT_TRANSFORM_NORMAL)), 0,
-               g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
-
-    float glMatrix[9];
-    matrixMultiply(glMatrix, g_pHyprOpenGL->m_RenderData.projection, matrix);
+    Mat3x3 matrix   = g_pHyprOpenGL->m_RenderData.monitorProjection.projectBox(monbox, wlTransformToHyprutils(invertTransform(WL_OUTPUT_TRANSFORM_NORMAL)), monbox.rot);
+    Mat3x3 glMatrix = g_pHyprOpenGL->m_RenderData.projection.copy().multiply(matrix);
 
     g_pHyprOpenGL->blend(true);
 
     glUseProgram(g_pGlobalState->trailShader.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
-    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
     std::vector<point2>   points;
@@ -249,8 +245,8 @@ void CTrail::draw(CMonitor* pMonitor, float a) {
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     CBox transformedBox = monbox;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(g_pHyprOpenGL->m_RenderData.pMonitor->transform)),
-                             g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(g_pHyprOpenGL->m_RenderData.pMonitor->transform)), g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x,
+                             g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y);
 
     glVertexAttribPointer(g_pGlobalState->trailShader.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
 
