@@ -33,6 +33,7 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
     PHLWINDOWREF m_pWindow;
 
     CBox         m_bLastRelativeBox;
+    CBox         m_bAssignedGeometry;
 
     Vector2D     m_vLastWindowPos;
     Vector2D     m_vLastWindowSize;
