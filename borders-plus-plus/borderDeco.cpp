@@ -23,7 +23,7 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
     }
 
     SDecorationPositioningInfo info;
-    info.policy   = DECORATION_POSITION_ABSOLUTE;
+    info.policy   = DECORATION_POSITION_STICKY;
     info.reserved = true;
     info.priority = 9990;
     info.edges    = DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP;
@@ -44,11 +44,11 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
 }
 
 void CBordersPlusPlus::onPositioningReply(const SDecorationPositioningReply& reply) {
-    ; // ignored
+    m_bAssignedGeometry = reply.assignedGeometry;
 }
 
 uint64_t CBordersPlusPlus::getDecorationFlags() {
-    return 0;
+    return DECORATION_PART_OF_MAIN_WINDOW;
 }
 
 eDecorationLayer CBordersPlusPlus::getDecorationLayer() {
@@ -82,23 +82,38 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
     if (**PBORDERS < 1)
         return;
 
+    if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
+        return;
+
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
-    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : PWINDOW->rounding() * pMonitor->scale + **PBORDERSIZE;
-    const auto ORIGINALROUND = rounding == 0 ? 0 : PWINDOW->rounding() * pMonitor->scale + **PBORDERSIZE;
-    CBox       fullBox       = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
+    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
 
-    fullBox.translate(PWINDOW->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET).scale(pMonitor->scale).expand(**PBORDERSIZE * pMonitor->scale);
+    CBox       fullBox       = m_bAssignedGeometry;
+    fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
+
+    fullBox.translate(PWINDOW->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET);
+
+    if (fullBox.width < 1 || fullBox.height < 1)
+    return;
 
     double fullThickness = 0;
+
+    for (size_t i = 0; i < **PBORDERS; ++i) {
+        const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
+        fullThickness += THISBORDERSIZE;
+    }
+
+    fullBox.expand(-fullThickness).scale(pMonitor->scale).round();
 
     for (size_t i = 0; i < **PBORDERS; ++i) {
         const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->scale;
         const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
 
         if (i != 0) {
-            rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED / pMonitor->scale;
+            rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED;
             fullBox.x -= PREVBORDERSIZESCALED;
             fullBox.y -= PREVBORDERSIZESCALED;
             fullBox.width += PREVBORDERSIZESCALED * 2;
@@ -112,13 +127,11 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
 
         g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t) * *PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a,
                                     **PNATURALROUND ? ORIGINALROUND : -1);
-
-        fullThickness += THISBORDERSIZE;
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
 
-    m_bLastRelativeBox = CBox{0, 0, m_vLastWindowSize.x, m_vLastWindowSize.y}.expand(**PBORDERSIZE).addExtents(m_seExtents);
+    m_bLastRelativeBox = CBox{0, 0, m_vLastWindowSize.x, m_vLastWindowSize.y}.addExtents(m_seExtents);
 
     if (fullThickness != m_fLastThickness) {
         m_fLastThickness = fullThickness;
