@@ -26,12 +26,12 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& local) {
     static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
     static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title")->getDataStaticPtr();
     static auto* const PFIX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse")->getDataStaticPtr();
 
     Vector2D           newCoords = local;
 
-    if (**PFIX && !g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
+    if (**PFIX && !g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow->m_szInitialTitle == *PCLASS && g_pCompositor->m_pLastMonitor) {
         // fix the coords
         newCoords.x *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
         newCoords.y *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
@@ -43,7 +43,7 @@ void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& l
 void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
     static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
     static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title")->getDataStaticPtr();
 
     if (!surface) {
         (*(origSurfaceSize)g_pSurfaceSizeHook->m_pOriginal)(surface, box);
@@ -55,7 +55,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
 
     CBox       newBox = box;
 
-    if (PWINDOW && PWINDOW->m_szInitialClass == *PCLASS) {
+    if (PWINDOW && PWINDOW->m_szInitialTitle == *PCLASS) {
         newBox.w = **RESX;
         newBox.h = **RESY;
 
@@ -68,9 +68,9 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
 CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
     const auto         RG = (*(origWLSurfaceDamage)g_pWLSurfaceDamageHook->m_pOriginal)(thisptr);
 
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title")->getDataStaticPtr();
 
-    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_szInitialClass == *PCLASS) {
+    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_szInitialTitle == *PCLASS) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(thisptr->getWindow()->m_iMonitorID);
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
@@ -95,7 +95,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w", Hyprlang::INT{1680});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse", Hyprlang::INT{1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:title", Hyprlang::STRING{"Counter-Strike 2"});
 
     auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
     for (auto& fn : FNS) {
