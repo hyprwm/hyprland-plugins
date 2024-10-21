@@ -18,11 +18,11 @@ COverview::~COverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
     g_pInputManager->unsetCursorImage();
-    g_pHyprOpenGL->markBlurDirtyForMonitor(pMonitor);
+    g_pHyprOpenGL->markBlurDirtyForMonitor(pMonitor.lock());
 }
 
 COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
-    const auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor.lock();
     pMonitor            = PMONITOR;
 
     static auto* const* PCOLUMNS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
@@ -242,7 +242,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     }
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-    g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
+    g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
 
     g_pHyprOpenGL->clear(CColor{0, 0, 0, 1.0});
 
@@ -262,7 +262,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         if (PWORKSPACE == startedOn)
             pMonitor->activeSpecialWorkspace = openSpecial;
 
-        g_pHyprRenderer->renderWorkspace(pMonitor, PWORKSPACE, &now, monbox);
+        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, &now, monbox);
 
         PWORKSPACE->m_bVisible = false;
         PWORKSPACE->startAnim(false, false, true);
@@ -270,7 +270,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         if (PWORKSPACE == startedOn)
             pMonitor->activeSpecialWorkspace.reset();
     } else
-        g_pHyprRenderer->renderWorkspace(pMonitor, PWORKSPACE, &now, monbox);
+        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, &now, monbox);
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
@@ -291,7 +291,7 @@ void COverview::redrawAll(bool forcelowres) {
 
 void COverview::damage() {
     blockDamageReporting = true;
-    g_pHyprRenderer->damageMonitor(pMonitor);
+    g_pHyprRenderer->damageMonitor(pMonitor.lock());
     blockDamageReporting = false;
 }
 
@@ -312,7 +312,7 @@ void COverview::onDamageReported() {
     blockDamageReporting = true;
     g_pHyprRenderer->damageBox(&texbox);
     blockDamageReporting = false;
-    g_pCompositor->scheduleFrameForMonitor(pMonitor);
+    g_pCompositor->scheduleFrameForMonitor(pMonitor.lock());
 }
 
 void COverview::close() {

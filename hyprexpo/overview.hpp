@@ -29,12 +29,12 @@ class COverview {
     void onSwipeEnd();
 
     // close without a selection
-    void      close();
+    void          close();
 
-    bool      blockOverviewRendering = false;
-    bool      blockDamageReporting   = false;
+    bool          blockOverviewRendering = false;
+    bool          blockDamageReporting   = false;
 
-    CMonitor* pMonitor = nullptr;
+    PHLMONITORREF pMonitor;
 
   private:
     void   redrawID(int id, bool forcelowres = false);

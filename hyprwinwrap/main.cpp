@@ -82,7 +82,7 @@ void onRenderStage(eRenderStage stage) {
         // cant use setHidden cuz that sends suspended and shit too that would be laggy
         bgw->m_bHidden = false;
 
-        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor, &now, false, RENDER_PASS_ALL, false, true);
+        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor.lock(), &now, false, RENDER_PASS_ALL, false, true);
 
         bgw->m_bHidden = true;
     }

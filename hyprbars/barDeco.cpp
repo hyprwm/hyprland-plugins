@@ -383,7 +383,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     }
 }
 
-void CHyprBar::draw(CMonitor* pMonitor, float a) {
+void CHyprBar::draw(PHLMONITOR pMonitor, float a) {
     if (m_bHidden || !validMapped(m_pWindow))
         return;
 

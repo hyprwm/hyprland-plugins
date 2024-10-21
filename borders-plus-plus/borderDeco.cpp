@@ -59,7 +59,7 @@ std::string CBordersPlusPlus::getDisplayName() {
     return "Borders++";
 }
 
-void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
+void CBordersPlusPlus::draw(PHLMONITOR pMonitor, float a) {
     if (!validMapped(m_pWindow))
         return;
 
@@ -91,18 +91,18 @@ void CBordersPlusPlus::draw(CMonitor* pMonitor, float a) {
     auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
     const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
 
-    CBox       fullBox       = m_bAssignedGeometry;
+    CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
     fullBox.translate(PWINDOW->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET);
 
     if (fullBox.width < 1 || fullBox.height < 1)
-    return;
+        return;
 
     double fullThickness = 0;
 
     for (size_t i = 0; i < **PBORDERS; ++i) {
-        const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
+        const int THISBORDERSIZE = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
         fullThickness += THISBORDERSIZE;
     }
 
