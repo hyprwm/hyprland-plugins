@@ -12,7 +12,7 @@ With this plugin, you aren't anymore.
 
 CS2 launch options:
 ```
--vulkan -window -w <RESX> -h <RESY> -vulkan
+-window -w <RESX> -h <RESY>
 ```
 
 example plugin config:
@@ -22,8 +22,8 @@ plugin {
         res_w = 1680
         res_h = 1050
 
-        # NOT a regex! This is a string and has to exactly match initial_class
-        class = cs2
+        # NOT a regex! This is a string and has to exactly match initial_title
+        title = Counter-Strike 2
 
         # Whether to fix the mouse position. A select few apps might be wonky with this.
         fix_mouse = true
