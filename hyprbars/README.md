@@ -26,7 +26,7 @@ plugin {
 
 `bar_height` -> (int) bar's height (default `15`)
 
-`col.text` -> (col) bar's title text color
+`bar_text_color` -> (col) bar's title text color
 
 `bar_title_enabled` -> (bool) whether to render the title (default `true`)
 
