@@ -9,7 +9,7 @@
 CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 
-    const auto PMONITOR       = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR       = pWindow->m_pMonitor.lock();
     PMONITOR->scheduledRecalc = true;
 
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(

@@ -36,7 +36,7 @@ void onNewWindow(PHLWINDOW pWindow) {
     if (pWindow->m_szInitialClass != *PCLASS)
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     if (!PMONITOR)
         return;
@@ -73,7 +73,7 @@ void onRenderStage(eRenderStage stage) {
     for (auto& bg : bgWindows) {
         const auto bgw = bg.lock();
 
-        if (bgw->m_iMonitorID != g_pHyprOpenGL->m_RenderData.pMonitor->ID)
+        if (bgw->m_pMonitor != g_pHyprOpenGL->m_RenderData.pMonitor)
             continue;
 
         timespec now;
@@ -100,7 +100,7 @@ void onCommitSubsurface(CSubsurface* thisptr) {
     PWINDOW->m_bHidden = false;
 
     ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
-    if (const auto MON = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); MON)
+    if (const auto MON = PWINDOW->m_pMonitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
     PWINDOW->m_bHidden = true;
@@ -118,7 +118,7 @@ void onCommit(void* owner, void* data) {
     PWINDOW->m_bHidden = false;
 
     ((origCommit)commitHook->m_pOriginal)(owner, data);
-    if (const auto MON = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); MON)
+    if (const auto MON = PWINDOW->m_pMonitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
     PWINDOW->m_bHidden = true;

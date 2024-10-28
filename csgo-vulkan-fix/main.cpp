@@ -71,7 +71,7 @@ CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
 
     if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_szInitialClass == *PCLASS) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(thisptr->getWindow()->m_iMonitorID);
+        const auto PMONITOR = thisptr->getWindow()->m_pMonitor.lock();
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
         else

@@ -76,7 +76,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         auto PWORKSPACESTART = g_pCompositor->getWorkspaceByID(currentID);
         if (!PWORKSPACESTART)
-            PWORKSPACESTART = CWorkspace::create(currentID, pMonitor->ID, std::to_string(currentID));
+            PWORKSPACESTART = CWorkspace::create(currentID, pMonitor.lock(), std::to_string(currentID));
 
         pMonitor->activeWorkspace = PWORKSPACESTART;
 
