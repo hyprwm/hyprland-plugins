@@ -16,7 +16,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float a);
+    virtual void                       draw(PHLMONITOR, float const& a);
 
     virtual eDecorationType            getDecorationType();
 
