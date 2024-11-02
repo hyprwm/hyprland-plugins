@@ -59,7 +59,7 @@ std::string CBordersPlusPlus::getDisplayName() {
     return "Borders++";
 }
 
-void CBordersPlusPlus::draw(PHLMONITOR pMonitor, float a) {
+void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float &a) {
     if (!validMapped(m_pWindow))
         return;
 
