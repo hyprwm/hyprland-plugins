@@ -237,8 +237,8 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     if (image.fb.m_vSize != monbox.size()) {
         image.fb.release();
-        image.fb.m_pStencilTex = nullptr;
         image.fb.alloc(monbox.w, monbox.h, pMonitor->output->state->state().drmFormat);
+        image.fb.addStencil(nullptr);
     }
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
@@ -400,7 +400,7 @@ void COverview::render() {
             texbox.scale(pMonitor->scale).translate(pos.value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.m_cTex, &texbox, 1.0, &damage);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, &damage);
         }
     }
 }
