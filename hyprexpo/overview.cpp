@@ -238,7 +238,6 @@ void COverview::redrawID(int id, bool forcelowres) {
     if (image.fb.m_vSize != monbox.size()) {
         image.fb.release();
         image.fb.alloc(monbox.w, monbox.h, pMonitor->output->state->state().drmFormat);
-        image.fb.addStencil(nullptr);
     }
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
