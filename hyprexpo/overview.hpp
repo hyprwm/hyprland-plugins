@@ -71,7 +71,7 @@ class COverview {
     SP<HOOK_CALLBACK_FN>         mouseMoveHook;
     SP<HOOK_CALLBACK_FN>         mouseButtonHook;
     SP<HOOK_CALLBACK_FN>         touchMoveHook;
-    SP<HOOK_CALLBACK_FN>         touchUpHook;
+    SP<HOOK_CALLBACK_FN>         touchDownHook;
 
     bool                         swipe             = false;
     bool                         swipeWasCommenced = false;
