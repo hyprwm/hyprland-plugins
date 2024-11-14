@@ -205,7 +205,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     touchMoveHook = g_pHookSystem->hookDynamic("touchMove", onCursorMove);
 
     mouseButtonHook = g_pHookSystem->hookDynamic("mouseButton", onCursorSelect);
-    touchUpHook     = g_pHookSystem->hookDynamic("touchUp", onCursorSelect);
+    touchDownHook   = g_pHookSystem->hookDynamic("touchDown", onCursorSelect);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
