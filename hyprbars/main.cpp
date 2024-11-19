@@ -74,7 +74,12 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], configStringToInt(vars[0]), size, vars[2]});
+    auto X = configStringToInt(vars[0]);
+    if (!X) {
+        result.setError("var2 is not a valid number");
+        return result;
+    }
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], *X, size, vars[2]});
 
     for (auto& b : g_pGlobalState->bars) {
         b->m_bButtonsDirty = true;
@@ -101,9 +106,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "windowUpdateRules",
                                                           [&](void* self, SCallbackInfo& info, std::any data) { onUpdateWindowRules(std::any_cast<PHLWINDOW>(data)); });
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{configStringToInt("rgba(33333388)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{*configStringToInt("rgba(33333388)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", Hyprlang::INT{15});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", Hyprlang::INT{configStringToInt("rgba(ffffffff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", Hyprlang::INT{*configStringToInt("rgba(ffffffff)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", Hyprlang::INT{10});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_font", Hyprlang::STRING{"Sans"});

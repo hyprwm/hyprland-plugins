@@ -111,7 +111,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step", Hyprlang::INT{2});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_points", Hyprlang::INT{20});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", Hyprlang::INT{2});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{configStringToInt("rgba(ffaa00ff)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{*configStringToInt("rgba(ffaa00ff)")});
 
     static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
