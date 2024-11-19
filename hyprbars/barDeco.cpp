@@ -2,6 +2,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"
@@ -567,7 +568,7 @@ void CHyprBar::applyRule(const SWindowRule& r) {
     if (r.szRule == "plugin:hyprbars:nobar")
         m_bHidden = true;
     else if (r.szRule.starts_with("plugin:hyprbars:bar_color"))
-        m_bForcedBarColor = CColor(configStringToInt(arg));
+        m_bForcedBarColor = CColor(configStringToInt(arg).value_or(0));
     else if (r.szRule.starts_with("plugin:hyprbars:title_color"))
-        m_bForcedTitleColor = CColor(configStringToInt(arg));
+        m_bForcedTitleColor = CColor(configStringToInt(arg).value_or(0));
 }
