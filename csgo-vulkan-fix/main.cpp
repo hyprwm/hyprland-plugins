@@ -88,7 +88,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     if (HASH != GIT_COMMIT_HASH) {
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
-                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+                                     CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[vkfix] Version mismatch");
     }
 
@@ -126,7 +126,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     bool success = g_pSurfaceSizeHook && g_pWLSurfaceDamageHook && g_pMouseMotionHook;
     if (!success) {
-        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Failed to find required hook fns", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Failed to find required hook fns", CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[vkfix] Hooks fn init failed");
     }
 
@@ -135,9 +135,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     success = success && g_pSurfaceSizeHook->hook();
 
     if (success)
-        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (Anything version)", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
+        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Initialized successfully! (Anything version)", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
     else {
-        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization (hook failed)!", CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+        HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization (hook failed)!", CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[csgo-vk-fix] Hooks failed");
     }
 

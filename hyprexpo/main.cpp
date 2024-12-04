@@ -155,7 +155,7 @@ static void onExpoDispatcher(std::string arg) {
 }
 
 static void failNotif(const std::string& reason) {
-    HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason, CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason, CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {

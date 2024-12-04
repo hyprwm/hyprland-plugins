@@ -102,7 +102,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     const std::string HASH = __hyprland_api_get_hash();
 
     if (HASH != GIT_COMMIT_HASH) {
-        HyprlandAPI::addNotification(PHANDLE, "[ht] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)", CColor{1.0, 0.2, 0.2, 1.0},
+        HyprlandAPI::addNotification(PHANDLE, "[ht] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)", CHyprColor{1.0, 0.2, 0.2, 1.0},
                                      5000);
         throw std::runtime_error("[ht] Version mismatch");
     }
@@ -128,7 +128,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::reloadConfig();
 
-    HyprlandAPI::addNotification(PHANDLE, "[hyprtrails] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[hyprtrails] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"hyprtrails", "A plugin to add trails behind moving windows", "Vaxry", "1.0"};
 }

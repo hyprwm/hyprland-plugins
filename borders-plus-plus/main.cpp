@@ -29,7 +29,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     if (HASH != GIT_COMMIT_HASH) {
         HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
-                                     CColor{1.0, 0.2, 0.2, 1.0}, 5000);
+                                     CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[bpp] Version mismatch");
     }
 
@@ -53,7 +53,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         HyprlandAPI::addWindowDecoration(PHANDLE, w, std::make_unique<CBordersPlusPlus>(w));
     }
 
-    HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"borders-plus-plus", "A plugin to add more borders to windows.", "Vaxry", "1.0"};
 }

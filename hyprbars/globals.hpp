@@ -7,7 +7,7 @@ inline HANDLE PHANDLE = nullptr;
 
 struct SHyprButton {
     std::string  cmd     = "";
-    CColor       col     = CColor(0, 0, 0, 0);
+    CHyprColor   col     = CHyprColor(0, 0, 0, 0);
     float        size    = 10;
     std::string  icon    = "";
     SP<CTexture> iconTex = makeShared<CTexture>();
