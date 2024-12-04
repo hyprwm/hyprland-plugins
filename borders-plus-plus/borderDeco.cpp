@@ -59,7 +59,7 @@ std::string CBordersPlusPlus::getDisplayName() {
     return "Borders++";
 }
 
-void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float &a) {
+void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
     if (!validMapped(m_pWindow))
         return;
 
@@ -125,7 +125,7 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float &a) {
 
         g_pHyprOpenGL->scissor((CBox*)nullptr);
 
-        g_pHyprOpenGL->renderBorder(&fullBox, CColor{(uint64_t) * *PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a,
+        g_pHyprOpenGL->renderBorder(&fullBox, CHyprColor{(uint64_t)**PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a,
                                     **PNATURALROUND ? ORIGINALROUND : -1);
     }
 

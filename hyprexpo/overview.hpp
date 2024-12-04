@@ -37,15 +37,15 @@ class COverview {
     PHLMONITORREF pMonitor;
 
   private:
-    void   redrawID(int id, bool forcelowres = false);
-    void   redrawAll(bool forcelowres = false);
-    void   onWorkspaceChange();
+    void       redrawID(int id, bool forcelowres = false);
+    void       redrawAll(bool forcelowres = false);
+    void       onWorkspaceChange();
 
-    int    SIDE_LENGTH = 3;
-    int    GAP_WIDTH   = 5;
-    CColor BG_COLOR    = CColor{0.1, 0.1, 0.1, 1.0};
+    int        SIDE_LENGTH = 3;
+    int        GAP_WIDTH   = 5;
+    CHyprColor BG_COLOR    = CHyprColor{0.1, 0.1, 0.1, 1.0};
 
-    bool   damageDirty = false;
+    bool       damageDirty = false;
 
     struct SWorkspaceImage {
         CFramebuffer fb;
