@@ -91,7 +91,7 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
     static auto* const PPOINTSPERSTEP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->getDataStaticPtr();
     static auto* const PCOLOR         = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:color")->getDataStaticPtr();
 
-    const CHyprColor   COLOR = **PCOLOR;
+    const CColor   COLOR = **PCOLOR;
 
     if (m_dLastGeoms.size() < 2)
         return;
