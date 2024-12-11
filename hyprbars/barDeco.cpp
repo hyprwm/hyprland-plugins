@@ -281,6 +281,10 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
+inline constexpr std::uint32_t fnv1a(const char* str, std::uint32_t hash = 2166136261UL) {
+    return *str ? fnv1a(str + 1, (hash ^ *str) * 16777619ULL) : hash;
+}
+
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
     static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
@@ -315,8 +319,20 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         const int RADIUS = static_cast<int>(std::ceil(scaledButtonSize / 2.0));
 
         cairo_set_source_rgba(CAIRO, button.col.r, button.col.g, button.col.b, button.col.a);
-        cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
-        cairo_fill(CAIRO);
+        static auto* const PBUTTONSFORM      = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:buttons_form")->getDataStaticPtr();
+
+        const auto         BUTTONSFORM = std::string{*PBUTTONSFORM};
+
+        switch(fnv1a(BUTTONSFORM.c_str()))
+        {
+            case  fnv1a("square"):
+                cairo_rectangle(CAIRO, X - RADIUS, Y, RADIUS * 2, RADIUS * 2);
+            break;
+            case  fnv1a("circle"):
+                default:
+                    cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
+            break;
+        }        cairo_fill(CAIRO);
 
         offset += scaledButtonsPad + scaledButtonSize;
     };
