@@ -562,13 +562,13 @@ void CHyprBar::updateRules() {
         m_bTitleColorChanged = true;
 }
 
-void CHyprBar::applyRule(const SWindowRule& r) {
-    auto arg = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+void CHyprBar::applyRule(const SP<CWindowRule>& r) {
+    auto arg = r->szRule.substr(r->szRule.find_first_of(' ') + 1);
 
-    if (r.szRule == "plugin:hyprbars:nobar")
+    if (r->szRule == "plugin:hyprbars:nobar")
         m_bHidden = true;
-    else if (r.szRule.starts_with("plugin:hyprbars:bar_color"))
+    else if (r->szRule.starts_with("plugin:hyprbars:bar_color"))
         m_bForcedBarColor = CHyprColor(configStringToInt(arg).value_or(0));
-    else if (r.szRule.starts_with("plugin:hyprbars:title_color"))
+    else if (r->szRule.starts_with("plugin:hyprbars:title_color"))
         m_bForcedTitleColor = CHyprColor(configStringToInt(arg).value_or(0));
 }

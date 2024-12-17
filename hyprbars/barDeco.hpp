@@ -35,7 +35,7 @@ class CHyprBar : public IHyprWindowDecoration {
     PHLWINDOW                          getOwner();
 
     void                               updateRules();
-    void                               applyRule(const SWindowRule&);
+    void                               applyRule(const SP<CWindowRule>&);
 
   private:
     SBoxExtents               m_seExtents;
