@@ -3,6 +3,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
+#include <hyprland/src/managers/SeatManager.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"
@@ -55,7 +56,12 @@ std::string CHyprBar::getDisplayName() {
 }
 
 void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
-    if (m_pWindow.lock() != g_pCompositor->m_pLastWindow.lock())
+    if (!m_pWindow->m_pWorkspace->isVisible() || !g_pInputManager->m_dExclusiveLSes.empty() || (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(m_pWindow->m_pWLSurface->resource())))
+        return;
+
+    const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+
+    if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_pLastWindow)
         return;
 
     const auto         PWINDOW = m_pWindow.lock();
