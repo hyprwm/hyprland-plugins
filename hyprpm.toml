@@ -77,3 +77,12 @@ build = [
     "make -C hyprexpo all",
 ]
 since_hyprland = 4364
+
+[xtra-dispatchers]
+description = "A plugin to add some extra dispatchers"
+authors = ["Vaxry"]
+output = "xtra-dispatchers/xtra-dispatchers.so"
+build = [
+    "make -C xtra-dispatchers all",
+]
+since_hyprland = 5573
