@@ -14,6 +14,7 @@ This repo houses official plugins for Hyprland.
  - hyprexpo -> adds an expo-like workspace overview
  - hyprtrails -> adds smooth trails behind moving windows
  - hyprwinwrap -> clone of xwinwrap, allows you to put any app as a wallpaper
+ - xtra-dispatchers -> adds some new dispatchers
 
 # Nix
 
