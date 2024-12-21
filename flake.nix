@@ -36,6 +36,7 @@
         hyprexpo
         hyprtrails
         hyprwinwrap
+        xtra-dispatchers
         ;
     });
 
@@ -55,6 +56,7 @@
             hyprexpo = callPackage ./hyprexpo {};
             hyprtrails = callPackage ./hyprtrails {};
             hyprwinwrap = callPackage ./hyprwinwrap {};
+            xtra-dispatchers = callPackage ./xtra-dispatchers {};
           };
       };
 
