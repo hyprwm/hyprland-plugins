@@ -13,11 +13,12 @@ class CBarPassElement : public IPassElement {
     CBarPassElement(const SBarData& data_);
     virtual ~CBarPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
+    virtual void                draw(const CRegion& damage);
+    virtual bool                needsLiveBlur();
+    virtual bool                needsPrecomputeBlur();
+    virtual std::optional<CBox> boundingBox();
 
-    virtual const char* passName() {
+    virtual const char*         passName() {
         return "CBarPassElement";
     }
 

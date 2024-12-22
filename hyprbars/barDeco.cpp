@@ -409,13 +409,18 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     const auto         PWINDOW = m_pWindow.lock();
 
-    static auto* const PCOLOR        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
-    static auto* const PHEIGHT       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
-    static auto* const PPRECEDENCE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
-    static auto* const PALIGNBUTTONS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
-    static auto* const PENABLETITLE  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
+    static auto* const PCOLOR            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+    static auto* const PHEIGHT           = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PPRECEDENCE       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PENABLETITLE      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
+    static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
+    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
 
-    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
+    CHyprColor         color = m_bForcedBarColor.value_or(**PCOLOR);
+    color.a *= a;
+    const bool BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
+    const bool SHOULDBLUR   = **PENABLEBLUR && **PENABLEBLURGLOBAL && color.a < 1.F;
 
     if (**PHEIGHT < 1) {
         m_iLastHeight = **PHEIGHT;
@@ -428,9 +433,6 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     const auto ROUNDING = PWINDOW->rounding() + (*PPRECEDENCE ? 0 : PWINDOW->getRealBorderSize());
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
-
-    CHyprColor color = m_bForcedBarColor.value_or(**PCOLOR);
-    color.a *= a;
 
     m_seExtents = {{0, **PHEIGHT}, {}};
 
@@ -475,7 +477,10 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     }
 
-    g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
+    if (SHOULDBLUR)
+        g_pHyprOpenGL->renderRectWithBlur(&titleBarBox, color, scaledRounding, a);
+    else
+        g_pHyprOpenGL->renderRect(&titleBarBox, color, scaledRounding);
 
     // render title
     if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_szTitle || m_bWindowSizeChanged || m_pTextTex->m_iTexID == 0 || m_bTitleColorChanged)) {

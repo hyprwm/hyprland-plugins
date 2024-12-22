@@ -11,7 +11,19 @@ void CBarPassElement::draw(const CRegion& damage) {
 }
 
 bool CBarPassElement::needsLiveBlur() {
-    return false;
+    static auto* const PCOLOR            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+    static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
+    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
+
+    CHyprColor         color = data.deco->m_bForcedBarColor.value_or(**PCOLOR);
+    color.a *= data.a;
+    const bool SHOULDBLUR = **PENABLEBLUR && **PENABLEBLURGLOBAL && color.a < 1.F;
+
+    return SHOULDBLUR;
+}
+
+std::optional<CBox> CBarPassElement::boundingBox() {
+    return data.deco->assignedBoxGlobal().translate(-g_pHyprOpenGL->m_RenderData.pMonitor->vecPosition);
 }
 
 bool CBarPassElement::needsPrecomputeBlur() {
