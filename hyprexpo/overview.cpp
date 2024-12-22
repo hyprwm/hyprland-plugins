@@ -5,6 +5,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #undef private
+#include "OverviewPassElement.hpp"
 
 static void damageMonitor(void*) {
     g_pOverview->damage();
@@ -378,7 +379,10 @@ void COverview::onWorkspaceChange() {
 }
 
 void COverview::render() {
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<COverviewPassElement>());
+}
 
+void COverview::fullRender() {
     const auto GAPSIZE = (closing ? (1.0 - size.getPercent()) : size.getPercent()) * GAP_WIDTH;
 
     if (pMonitor->activeWorkspace != startedOn && !closing) {
@@ -399,7 +403,7 @@ void COverview::render() {
             texbox.scale(pMonitor->scale).translate(pos.value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, &damage);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage);
         }
     }
 }

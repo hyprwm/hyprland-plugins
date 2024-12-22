@@ -2,8 +2,10 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
 #include "globals.hpp"
+#include "TrailPassElement.hpp"
 
 void CTrail::onTick() {
     static auto* const PHISTORYSTEP   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->getDataStaticPtr();
@@ -86,6 +88,13 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
 
     if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
         return;
+
+    auto data = CTrailPassElement::STrailData{this, a};
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTrailPassElement>(data));
+}
+
+void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
+    const auto PWINDOW = m_pWindow.lock();
 
     static auto* const PBEZIERSTEP    = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->getDataStaticPtr();
     static auto* const PPOINTSPERSTEP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->getDataStaticPtr();

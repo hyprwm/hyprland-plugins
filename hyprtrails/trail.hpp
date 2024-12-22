@@ -48,6 +48,7 @@ class CTrail : public IHyprWindowDecoration {
   private:
     SP<HOOK_CALLBACK_FN>                                              pTickCb;
     void                                                              onTick();
+    void                                                              renderPass(PHLMONITOR pMonitor, const float& a);
 
     std::deque<std::pair<box, std::chrono::system_clock::time_point>> m_dLastGeoms;
 
@@ -62,4 +63,6 @@ class CTrail : public IHyprWindowDecoration {
 
     CBox                                                              m_bLastBox     = {0};
     bool                                                              m_bNeedsDamage = false;
+
+    friend class CTrailPassElement;
 };

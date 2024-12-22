@@ -40,6 +40,7 @@ class COverview {
     void       redrawID(int id, bool forcelowres = false);
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
+    void       fullRender();
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
@@ -75,6 +76,8 @@ class COverview {
 
     bool                         swipe             = false;
     bool                         swipeWasCommenced = false;
+
+    friend class COverviewPassElement;
 };
 
 inline std::unique_ptr<COverview> g_pOverview;

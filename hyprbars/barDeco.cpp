@@ -4,9 +4,11 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"
+#include "BarPassElement.hpp"
 
 CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
@@ -56,7 +58,8 @@ std::string CHyprBar::getDisplayName() {
 }
 
 void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
-    if (!m_pWindow->m_pWorkspace->isVisible() || !g_pInputManager->m_dExclusiveLSes.empty() || (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(m_pWindow->m_pWLSurface->resource())))
+    if (!m_pWindow->m_pWorkspace->isVisible() || !g_pInputManager->m_dExclusiveLSes.empty() ||
+        (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(m_pWindow->m_pWLSurface->resource())))
         return;
 
     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
@@ -398,6 +401,13 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 
     if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
         return;
+
+    auto data = CBarPassElement::SBarData{this, a};
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CBarPassElement>(data));
+}
+
+void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
+    const auto         PWINDOW = m_pWindow.lock();
 
     static auto* const PCOLOR        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
     static auto* const PHEIGHT       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
