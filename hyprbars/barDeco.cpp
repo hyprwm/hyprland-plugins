@@ -109,6 +109,8 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
         return;
     }
 
+    g_pCompositor->focusWindow(PWINDOW);
+
     if (PWINDOW->m_bIsFloating)
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
