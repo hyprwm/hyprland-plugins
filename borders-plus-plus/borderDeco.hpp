@@ -28,6 +28,8 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
   private:
+    void         drawPass(PHLMONITOR, float const& a);
+
     SBoxExtents  m_seExtents;
 
     PHLWINDOWREF m_pWindow;
@@ -39,4 +41,6 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
     Vector2D     m_vLastWindowSize;
 
     double       m_fLastThickness = 0;
+
+    friend class CBorderPPPassElement;
 };

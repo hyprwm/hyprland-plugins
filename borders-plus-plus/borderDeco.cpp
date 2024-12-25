@@ -2,7 +2,9 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
+#include "BorderppPassElement.hpp"
 #include "globals.hpp"
 
 CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
@@ -67,6 +69,15 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
 
     if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
         return;
+
+    CBorderPPPassElement::SBorderPPData data;
+    data.deco = this;
+
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPPPassElement>(data));
+}
+
+void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
+    const auto PWINDOW = m_pWindow.lock();
 
     static std::vector<Hyprlang::INT* const*> PCOLORS;
     static std::vector<Hyprlang::INT* const*> PSIZES;
