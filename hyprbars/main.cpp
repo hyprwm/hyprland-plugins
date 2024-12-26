@@ -76,7 +76,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
     auto X = configStringToInt(vars[0]);
     if (!X) {
-        result.setError("var2 is not a valid number");
+        result.setError("var0 is not a valid number");
         return result;
     }
     g_pGlobalState->buttons.push_back(SHyprButton{vars[3], *X, size, vars[2]});
