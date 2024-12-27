@@ -95,9 +95,12 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    Vector2D     tileSize       = pMonitor->vecSize / SIDE_LENGTH;
-    Vector2D     tileRenderSize = (pMonitor->vecSize - Vector2D{GAP_WIDTH * pMonitor->scale, GAP_WIDTH * pMonitor->scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
-    CBox         monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
+    Vector2D tileSize       = pMonitor->vecSize / SIDE_LENGTH;
+    Vector2D tileRenderSize = (pMonitor->vecSize - Vector2D{GAP_WIDTH * pMonitor->scale, GAP_WIDTH * pMonitor->scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
+    CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
+
+    if (!ENABLE_LOWRES)
+        monbox = {{0, 0}, pMonitor->vecPixelSize};
 
     int          currentid = 0;
 
@@ -403,7 +406,7 @@ void COverview::fullRender() {
             texbox.scale(pMonitor->scale).translate(pos.value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage, 0, false, false, false, false, nullptr, 0);
         }
     }
 }
