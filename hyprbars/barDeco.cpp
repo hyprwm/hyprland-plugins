@@ -411,11 +411,15 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
+
+    // clear the pixmap
     cairo_save(CAIRO);
     cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
+
+    // draw buttons
     int offset = **PBARPADDING * scale;
     for (size_t i = 0; i < visibleCount; ++i) {
         const auto& button           = g_pGlobalState->buttons[i];
@@ -431,6 +435,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         offset += scaledButtonsPad + scaledButtonSize;
     }
 
+    // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     m_pButtonsTex->allocate();
     glBindTexture(GL_TEXTURE_2D, m_pButtonsTex->m_iTexID);
@@ -444,6 +449,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
+    // delete cairo
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
 }
@@ -462,7 +468,8 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         const auto scaledButtonSize = button.size * scale;
         const auto scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
-        if (button.iconTex->m_iTexID == 0 && !button.icon.empty()) {
+        if (button.iconTex->m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
+            // render icon
             const Vector2D BUFSIZE = {scaledButtonSize, scaledButtonSize};
             auto           fgcol   = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
