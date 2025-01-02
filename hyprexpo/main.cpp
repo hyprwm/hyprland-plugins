@@ -6,6 +6,7 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
 #include "globals.hpp"
 #include "overview.hpp"
@@ -229,5 +230,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    ;
+    g_pHyprRenderer->m_sRenderPass.removeAllOfType("COverviewPassElement");
 }

@@ -6,6 +6,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
 #include "barDeco.hpp"
 #include "globals.hpp"
@@ -141,4 +142,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 APICALL EXPORT void PLUGIN_EXIT() {
     for (auto& m : g_pCompositor->m_vMonitors)
         m->scheduledRecalc = true;
+    
+    g_pHyprRenderer->m_sRenderPass.removeAllOfType("CBarPassElement");
 }

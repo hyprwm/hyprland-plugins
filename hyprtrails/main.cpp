@@ -7,6 +7,7 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Shaders.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
 #include "globals.hpp"
 #include "shaders.hpp"
@@ -135,4 +136,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     wl_event_source_remove(g_pGlobalState->tick);
+    g_pHyprRenderer->m_sRenderPass.removeAllOfType("CTrailPassElement");
 }
