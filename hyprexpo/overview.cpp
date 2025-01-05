@@ -406,7 +406,7 @@ void COverview::fullRender() {
             texbox.scale(pMonitor->scale).translate(pos.value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage, 0, false, false, false, false, nullptr, 0);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage);
         }
     }
 }
