@@ -17,18 +17,17 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     const auto PMONITOR       = pWindow->m_pMonitor.lock();
     PMONITOR->scheduledRecalc = true;
 
-    m_pTouchDownCallback = HyprlandAPI::registerCallbackDynamic(
-        PHANDLE, "touchDown", [&](void* self, SCallbackInfo& info, std::any param) { onTouchDown(info, std::any_cast<ITouch::SDownEvent>(param)); });
-
-    m_pTouchUpCallback =
-        HyprlandAPI::registerCallbackDynamic(PHANDLE, "touchUp", [&](void* self, SCallbackInfo& info, std::any param) { onTouchUp(info, std::any_cast<ITouch::SUpEvent>(param)); });
-
-    m_pTouchMoveCallback = HyprlandAPI::registerCallbackDynamic(
-        PHANDLE, "touchMove", [&](void* self, SCallbackInfo& info, std::any param) { onTouchMove(info, std::any_cast<ITouch::SMotionEvent>(param)); });
-
+    //button events
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
         PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseDown(info, std::any_cast<IPointer::SButtonEvent>(param)); });
+    m_pTouchDownCallback = HyprlandAPI::registerCallbackDynamic(
+        PHANDLE, "touchDown", [&](void* self, SCallbackInfo& info, std::any param) { onTouchDown(info, std::any_cast<ITouch::SDownEvent>(param)); });
+    m_pTouchUpCallback   = HyprlandAPI::registerCallbackDynamic( //
+        PHANDLE, "touchUp", [&](void* self, SCallbackInfo& info, std::any param) { onTouchUp(info, std::any_cast<ITouch::SUpEvent>(param)); });
 
+    //move events
+    m_pTouchMoveCallback = HyprlandAPI::registerCallbackDynamic(
+        PHANDLE, "touchMove", [&](void* self, SCallbackInfo& info, std::any param) { onTouchMove(info, std::any_cast<ITouch::SMotionEvent>(param)); });
     m_pMouseMoveCallback =
         HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
 
@@ -145,6 +144,10 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
     if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_pLastWindow)
         return;
 
+    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");
+    PMONITOR      = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor.lock();
+    g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
+
     const auto         PWINDOW = m_pWindow.lock();
 
     const auto         COORDS = cursorRelativeToBar();
@@ -181,24 +184,6 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
 
     m_bTouchEv     = true;
     m_bDragPending = true;
-}
-
-void CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
-    //check if on a button
-    float offset = **PBARPADDING;
-
-    for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
-
-        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + **PBARBUTTONPADDING, currentPos.y + b.size)) {
-            // hit on close
-            g_pKeybindManager->m_mDispatchers["exec"](b.cmd);
-            return;
-        }
-
-        offset += **PBARBUTTONPADDING + b.size;
-    }
 }
 
 void CHyprBar::onTouchUp(SCallbackInfo& info, ITouch::SUpEvent e) {
@@ -238,6 +223,24 @@ void CHyprBar::onMouseMove(Vector2D coords) {
         m_bDraggingThis = true;
         Debug::log(LOG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
         return;
+    }
+}
+
+void CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
+    //check if on a button
+    float offset = **PBARPADDING;
+
+    for (auto& b : g_pGlobalState->buttons) {
+        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+
+        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + **PBARBUTTONPADDING, currentPos.y + b.size)) {
+            // hit on close
+            g_pKeybindManager->m_mDispatchers["exec"](b.cmd);
+            return;
+        }
+
+        offset += **PBARBUTTONPADDING + b.size;
     }
 }
 
@@ -411,13 +414,11 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-
     // clear the pixmap
     cairo_save(CAIRO);
     cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
-
 
     // draw buttons
     int offset = **PBARPADDING * scale;

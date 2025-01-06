@@ -6,7 +6,6 @@
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/devices/IPointer.hpp>
 #include <hyprland/src/devices/ITouch.hpp>
-#include <hyprland/src/devices/Tablet.hpp>
 #include "globals.hpp"
 
 #define private public
@@ -66,19 +65,23 @@ class CHyprBar : public IHyprWindowDecoration {
     void                      renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
     void                      renderBarButtons(const Vector2D& bufferSize, const float scale);
     void                      renderBarButtonsText(CBox* barBox, const float scale, const float a);
+
     void                      onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e);
     void                      onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e);
     void                      onTouchUp(SCallbackInfo& info, ITouch::SUpEvent e);
-    void                      onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e);
-    void                      doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
+
     void                      onMouseMove(Vector2D coords);
+    void                      onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e);
+
+    void                      doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
+
     CBox                      assignedBoxGlobal();
 
+    SP<HOOK_CALLBACK_FN>      m_pMouseButtonCallback;
     SP<HOOK_CALLBACK_FN>      m_pTouchDownCallback;
     SP<HOOK_CALLBACK_FN>      m_pTouchUpCallback;
-    SP<HOOK_CALLBACK_FN>      m_pTouchMoveCallback;
 
-    SP<HOOK_CALLBACK_FN>      m_pMouseButtonCallback;
+    SP<HOOK_CALLBACK_FN>      m_pTouchMoveCallback;
     SP<HOOK_CALLBACK_FN>      m_pMouseMoveCallback;
 
     std::string               m_szLastTitle;
