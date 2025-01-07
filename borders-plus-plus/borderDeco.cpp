@@ -100,6 +100,7 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
     const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
 
     auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
+    const auto ROUNDINGPOWER = PWINDOW->roundingPower();
     const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
 
     CBox       fullBox = m_bAssignedGeometry;
@@ -136,7 +137,7 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
 
         g_pHyprOpenGL->scissor((CBox*)nullptr);
 
-        g_pHyprOpenGL->renderBorder(&fullBox, CHyprColor{(uint64_t)**PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, THISBORDERSIZE, a,
+        g_pHyprOpenGL->renderBorder(&fullBox, CHyprColor{(uint64_t)**PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, ROUNDINGPOWER, THISBORDERSIZE, a,
                                     **PNATURALROUND ? ORIGINALROUND : -1);
     }
 

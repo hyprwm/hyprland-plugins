@@ -120,7 +120,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    g_pHyprOpenGL->renderRect(&wlrbox, CHyprColor(0, 0, 0, 0), PWINDOW->rounding() * pMonitor->scale);
+    g_pHyprOpenGL->renderRect(&wlrbox, CHyprColor(0, 0, 0, 0), PWINDOW->rounding() * pMonitor->scale, PWINDOW->roundingPower());
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_NOTEQUAL, 1, -1);
