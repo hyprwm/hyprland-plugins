@@ -7,11 +7,11 @@
 #undef private
 #include "OverviewPassElement.hpp"
 
-static void damageMonitor(void*) {
+static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview->damage();
 }
 
-static void removeOverview(void*) {
+static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview.reset();
 }
 
@@ -162,18 +162,19 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     // zoom on the current workspace.
     const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
 
-    size.create(pMonitor->vecSize * pMonitor->vecSize / tileSize, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
-    pos.create((-((pMonitor->vecSize / (double)SIDE_LENGTH) * Vector2D{currentid % SIDE_LENGTH, currentid / SIDE_LENGTH}) * pMonitor->scale) * (pMonitor->vecSize / tileSize),
-               g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(pMonitor->vecSize * pMonitor->vecSize / tileSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation((-((pMonitor->vecSize / (double)SIDE_LENGTH) * Vector2D{currentid % SIDE_LENGTH, currentid / SIDE_LENGTH}) * pMonitor->scale) *
+                                             (pMonitor->vecSize / tileSize),
+                                         pos, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
 
-    size.setUpdateCallback(damageMonitor);
-    pos.setUpdateCallback(damageMonitor);
+    size->setUpdateCallback(damageMonitor);
+    pos->setUpdateCallback(damageMonitor);
 
     if (!swipe) {
-        size = pMonitor->vecSize;
-        pos  = {0, 0};
+        *size = pMonitor->vecSize;
+        *pos  = {0, 0};
 
-        size.setCallbackOnEnd([this](void*) { redrawAll(true); });
+        size->setCallbackOnEnd([this](auto) { redrawAll(true); });
     }
 
     openedID = currentid;
@@ -228,7 +229,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     Vector2D tileRenderSize = (pMonitor->vecSize - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
-    if (!forcelowres && (size.value() != pMonitor->vecSize || closing))
+    if (!forcelowres && (size->value() != pMonitor->vecSize || closing))
         monbox = {{0, 0}, pMonitor->vecPixelSize};
 
     if (!ENABLE_LOWRES)
@@ -301,7 +302,7 @@ void COverview::damage() {
 void COverview::onDamageReported() {
     damageDirty = true;
 
-    Vector2D    SIZE = size.value();
+    Vector2D    SIZE = size->value();
 
     Vector2D    tileSize       = (SIZE / SIDE_LENGTH);
     Vector2D    tileRenderSize = (SIZE - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
@@ -328,10 +329,10 @@ void COverview::close() {
 
     Vector2D    tileSize = (pMonitor->vecSize / SIDE_LENGTH);
 
-    size = pMonitor->vecSize * pMonitor->vecSize / tileSize;
-    pos  = (-((pMonitor->vecSize / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->scale) * (pMonitor->vecSize / tileSize);
+    *size = pMonitor->vecSize * pMonitor->vecSize / tileSize;
+    *pos  = (-((pMonitor->vecSize / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->scale) * (pMonitor->vecSize / tileSize);
 
-    size.setCallbackOnEnd(removeOverview);
+    size->setCallbackOnEnd(removeOverview);
 
     closing = true;
 
@@ -386,14 +387,14 @@ void COverview::render() {
 }
 
 void COverview::fullRender() {
-    const auto GAPSIZE = (closing ? (1.0 - size.getPercent()) : size.getPercent()) * GAP_WIDTH;
+    const auto GAPSIZE = (closing ? (1.0 - size->getPercent()) : size->getPercent()) * GAP_WIDTH;
 
     if (pMonitor->activeWorkspace != startedOn && !closing) {
         // likely user changed.
         onWorkspaceChange();
     }
 
-    Vector2D SIZE = size.value();
+    Vector2D SIZE = size->value();
 
     Vector2D tileSize       = (SIZE / SIDE_LENGTH);
     Vector2D tileRenderSize = (SIZE - Vector2D{GAPSIZE, GAPSIZE} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
@@ -403,10 +404,10 @@ void COverview::fullRender() {
     for (size_t y = 0; y < SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < SIDE_LENGTH; ++x) {
             CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
-            texbox.scale(pMonitor->scale).translate(pos.value());
+            texbox.scale(pMonitor->scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage, 0, false, false, false, false, nullptr, 0);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage);
         }
     }
 }
@@ -436,22 +437,22 @@ void COverview::onSwipeUpdate(double delta) {
     const auto SIZEMIN = pMonitor->vecSize;
     const auto POSMIN  = Vector2D{0, 0};
 
-    size.setValueAndWarp(lerp(SIZEMIN, SIZEMAX, PERC));
-    pos.setValueAndWarp(lerp(POSMIN, POSMAX, PERC));
+    size->setValueAndWarp(lerp(SIZEMIN, SIZEMAX, PERC));
+    pos->setValueAndWarp(lerp(POSMIN, POSMAX, PERC));
 }
 
 void COverview::onSwipeEnd() {
     const auto SIZEMIN = pMonitor->vecSize;
     const auto SIZEMAX = pMonitor->vecSize * pMonitor->vecSize / (pMonitor->vecSize / SIDE_LENGTH);
-    const auto PERC    = (size.value() - SIZEMIN).x / (SIZEMAX - SIZEMIN).x;
+    const auto PERC    = (size->value() - SIZEMIN).x / (SIZEMAX - SIZEMIN).x;
     if (PERC > 0.5) {
         close();
         return;
     }
-    size = pMonitor->vecSize;
-    pos  = {0, 0};
+    *size = pMonitor->vecSize;
+    *pos  = {0, 0};
 
-    size.setCallbackOnEnd([this](void*) { redrawAll(true); });
+    size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
 
     swipeWasCommenced = true;
 }

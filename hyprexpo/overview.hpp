@@ -64,8 +64,8 @@ class COverview {
 
     PHLWORKSPACE                 startedOn;
 
-    CAnimatedVariable<Vector2D>  size;
-    CAnimatedVariable<Vector2D>  pos;
+    PHLANIMVAR<Vector2D>         size;
+    PHLANIMVAR<Vector2D>         pos;
 
     bool                         closing = false;
 

@@ -44,12 +44,12 @@ void onNewWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_bIsFloating)
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
 
-    pWindow->m_vRealSize.setValueAndWarp(PMONITOR->vecSize);
-    pWindow->m_vRealPosition.setValueAndWarp(PMONITOR->vecPosition);
+    pWindow->m_vRealSize->setValueAndWarp(PMONITOR->vecSize);
+    pWindow->m_vRealPosition->setValueAndWarp(PMONITOR->vecPosition);
     pWindow->m_vSize     = PMONITOR->vecSize;
     pWindow->m_vPosition = PMONITOR->vecPosition;
     pWindow->m_bPinned   = true;
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal(), true);
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize->goal(), true);
 
     bgWindows.push_back(pWindow);
 
