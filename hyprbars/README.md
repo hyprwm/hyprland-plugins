@@ -53,7 +53,7 @@ plugin {
 Use the `hyprbars-button` keyword.
 
 ```ini
-hyprbars-button = color, size, icon, on-click
+hyprbars-button = bgcolor, size, icon, on-click, fgcolor
 ```
 
 ## Window rules
