@@ -430,7 +430,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
 
     const auto ROUNDING = PWINDOW->rounding() + (*PPRECEDENCE ? 0 : PWINDOW->getRealBorderSize());
 
@@ -454,9 +454,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     if (ROUNDING) {
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vFloatingOffset.x - pMonitor->vecPosition.x + 1,
-                          PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vFloatingOffset.y - pMonitor->vecPosition.y + 1, PWINDOW->m_vRealSize.value().x - 2,
-                          PWINDOW->m_vRealSize.value().y - 2};
+        CBox windowBox = {PWINDOW->m_vRealPosition->value().x + PWINDOW->m_vFloatingOffset.x - pMonitor->vecPosition.x + 1,
+                          PWINDOW->m_vRealPosition->value().y + PWINDOW->m_vFloatingOffset.y - pMonitor->vecPosition.y + 1, PWINDOW->m_vRealSize->value().x - 2,
+                          PWINDOW->m_vRealSize->value().y - 2};
 
         if (windowBox.w < 1 || windowBox.h < 1)
             return;
@@ -556,7 +556,7 @@ CBox CHyprBar::assignedBoxGlobal() {
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, PWINDOW));
 
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
 
     return box.translate(WORKSPACEOFFSET);
 }
