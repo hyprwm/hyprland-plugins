@@ -4,6 +4,7 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <pango/pangocairo.h>
 
@@ -16,11 +17,19 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     const auto PMONITOR       = pWindow->m_pMonitor.lock();
     PMONITOR->scheduledRecalc = true;
 
+    //button events
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
-        PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseDown(info, std::any_cast<IPointer::SButtonEvent>(param)); });
+        PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any param) { onMouseButton(info, std::any_cast<IPointer::SButtonEvent>(param)); });
+    m_pTouchDownCallback = HyprlandAPI::registerCallbackDynamic(
+        PHANDLE, "touchDown", [&](void* self, SCallbackInfo& info, std::any param) { onTouchDown(info, std::any_cast<ITouch::SDownEvent>(param)); });
+    m_pTouchUpCallback = HyprlandAPI::registerCallbackDynamic( //
+        PHANDLE, "touchUp", [&](void* self, SCallbackInfo& info, std::any param) { handleUpEvent(info); });
 
-    m_pMouseMoveCallback =
-        HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
+    //move events
+    m_pTouchMoveCallback = HyprlandAPI::registerCallbackDynamic(
+        PHANDLE, "touchMove", [&](void* self, SCallbackInfo& info, std::any param) { onTouchMove(info, std::any_cast<ITouch::SMotionEvent>(param)); });
+    m_pMouseMoveCallback = HyprlandAPI::registerCallbackDynamic( //
+        PHANDLE, "mouseMove", [&](void* self, SCallbackInfo& info, std::any param) { onMouseMove(std::any_cast<Vector2D>(param)); });
 
     m_pTextTex    = makeShared<CTexture>();
     m_pButtonsTex = makeShared<CTexture>();
@@ -29,6 +38,9 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 CHyprBar::~CHyprBar() {
     damageEntire();
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseButtonCallback);
+    HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchDownCallback);
+    HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchUpCallback);
+    HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchMoveCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseMoveCallback);
     std::erase(g_pGlobalState->bars, this);
 }
@@ -57,15 +69,60 @@ std::string CHyprBar::getDisplayName() {
     return "Hyprbar";
 }
 
-void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
+bool CHyprBar::inputIsValid() {
     if (!m_pWindow->m_pWorkspace->isVisible() || !g_pInputManager->m_dExclusiveLSes.empty() ||
         (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(m_pWindow->m_pWLSurface->resource())))
-        return;
+        return false;
 
     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
     if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_pLastWindow)
+        return false;
+
+    return true;
+}
+
+void CHyprBar::onMouseButton(SCallbackInfo& info, IPointer::SButtonEvent e) {
+    if (!inputIsValid())
         return;
+
+    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
+        handleUpEvent(info);
+        return;
+    }
+
+    handleDownEvent(info, std::nullopt);
+}
+
+void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
+    if (!inputIsValid())
+        return;
+
+    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");
+    PMONITOR      = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor.lock();
+    g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
+
+    handleDownEvent(info, e);
+}
+
+void CHyprBar::onMouseMove(Vector2D coords) {
+    if (!m_bDragPending || m_bTouchEv)
+        return;
+
+    m_bDragPending = false;
+    handleMovement();
+}
+
+void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
+    if (!m_bDragPending || !m_bTouchEv)
+        return;
+
+    g_pInputManager->mouseMoveUnified(e.timeMs);
+    handleMovement();
+}
+
+void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent) {
+    m_bTouchEv = touchEvent.has_value();
 
     const auto         PWINDOW = m_pWindow.lock();
 
@@ -81,31 +138,18 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
     if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, **PHEIGHT - 1)) {
 
         if (m_bDraggingThis) {
+            if (m_bTouchEv) {
+                ITouch::SDownEvent e = touchEvent.value();
+                g_pCompositor->warpCursorTo(Vector2D(e.pos.x, e.pos.y));
+                g_pInputManager->mouseMoveUnified(e.timeMs);
+            }
             g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
             Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
         }
 
         m_bDraggingThis = false;
         m_bDragPending  = false;
-        return;
-    }
-
-    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
-
-        if (m_bCancelledDown)
-            info.cancelled = true;
-
-        m_bCancelledDown = false;
-
-        if (m_bDraggingThis) {
-            g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
-            m_bDraggingThis = false;
-
-            Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
-        }
-
-        m_bDragPending = false;
-
+        m_bTouchEv      = false;
         return;
     }
 
@@ -117,8 +161,40 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
     info.cancelled   = true;
     m_bCancelledDown = true;
 
-    // check if on a button
+    doButtonPress(PBARPADDING, PBARBUTTONPADDING, PHEIGHT, COORDS, BUTTONSRIGHT);
 
+    m_bDragPending = true;
+}
+
+void CHyprBar::handleUpEvent(SCallbackInfo& info) {
+    if (m_pWindow.lock() != g_pCompositor->m_pLastWindow.lock())
+        return;
+
+    if (m_bCancelledDown)
+        info.cancelled = true;
+
+    m_bCancelledDown = false;
+
+    if (m_bDraggingThis) {
+        g_pKeybindManager->m_mDispatchers["mouse"]("0movewindow");
+        m_bDraggingThis = false;
+
+        Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
+    }
+
+    m_bDragPending = false;
+    m_bTouchEv     = false;
+}
+
+void CHyprBar::handleMovement() {
+    g_pKeybindManager->m_mDispatchers["mouse"]("1movewindow");
+    m_bDraggingThis = true;
+    Debug::log(LOG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
+    return;
+}
+
+void CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
+    //check if on a button
     float offset = **PBARPADDING;
 
     for (auto& b : g_pGlobalState->buttons) {
@@ -132,20 +208,6 @@ void CHyprBar::onMouseDown(SCallbackInfo& info, IPointer::SButtonEvent e) {
         }
 
         offset += **PBARBUTTONPADDING + b.size;
-    }
-
-    m_bDragPending = true;
-}
-
-void CHyprBar::onMouseMove(Vector2D coords) {
-    if (m_bDragPending) {
-        m_bDragPending = false;
-        g_pKeybindManager->m_mDispatchers["mouse"]("1movewindow");
-        m_bDraggingThis = true;
-
-        Debug::log(LOG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
-
-        return;
     }
 }
 
@@ -292,19 +354,32 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
+size_t CHyprBar::getVisibleButtonCount(long int* const* PBARBUTTONPADDING, long int* const* PBARPADDING, const Vector2D& bufferSize, const float scale) {
+    float  availableSpace = bufferSize.x - **PBARPADDING * scale * 2;
+    size_t count          = 0;
+
+    for (const auto& button : g_pGlobalState->buttons) {
+        const float buttonSpace = (button.size + **PBARBUTTONPADDING) * scale;
+        if (availableSpace >= buttonSpace) {
+            count++;
+            availableSpace -= buttonSpace;
+        } else
+            break;
+    }
+
+    return count;
+}
+
 void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
     static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
 
-    const auto         scaledButtonsPad = **PBARBUTTONPADDING * scale;
-    const auto         scaledBarPadding = **PBARPADDING * scale;
+    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
+    const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, bufferSize, scale);
 
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
-
-    static auto* const PALIGNBUTTONS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
-
-    const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -313,27 +388,19 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     cairo_restore(CAIRO);
 
     // draw buttons
-    int  offset = scaledBarPadding;
+    int offset = **PBARPADDING * scale;
+    for (size_t i = 0; i < visibleCount; ++i) {
+        const auto& button           = g_pGlobalState->buttons[i];
+        const auto  scaledButtonSize = button.size * scale;
+        const auto  scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
-    auto drawButton = [&](SHyprButton& button) -> void {
-        const auto scaledButtonSize = button.size * scale;
+        const auto  pos = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0, bufferSize.y / 2.0}.floor();
 
-        Vector2D   currentPos =
-            Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0, (bufferSize.y - scaledButtonSize) / 2.0}.floor();
-
-        const int X      = currentPos.x;
-        const int Y      = currentPos.y;
-        const int RADIUS = static_cast<int>(std::ceil(scaledButtonSize / 2.0));
-
-        cairo_set_source_rgba(CAIRO, button.col.r, button.col.g, button.col.b, button.col.a);
-        cairo_arc(CAIRO, X, Y + RADIUS, RADIUS, 0, 2 * M_PI);
+        cairo_set_source_rgba(CAIRO, button.bgcol.r, button.bgcol.g, button.bgcol.b, button.bgcol.a);
+        cairo_arc(CAIRO, pos.x, pos.y, scaledButtonSize / 2, 0, 2 * M_PI);
         cairo_fill(CAIRO);
 
         offset += scaledButtonsPad + scaledButtonSize;
-    };
-
-    for (auto& b : g_pGlobalState->buttons) {
-        drawButton(b);
     }
 
     // copy the data to an OpenGL texture we have
@@ -361,37 +428,30 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
+    const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{barBox->w, barBox->h}, scale);
 
-    const auto         scaledButtonsPad = **PBARBUTTONPADDING * scale;
-    const auto         scaledBarPad     = **PBARPADDING * scale;
-    int                offset           = scaledBarPad;
-    //
-
-    auto drawButton = [&](SHyprButton& button) -> void {
+    int                offset = **PBARPADDING * scale;
+    for (size_t i = 0; i < visibleCount; ++i) {
+        auto&      button           = g_pGlobalState->buttons[i];
         const auto scaledButtonSize = button.size * scale;
+        const auto scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
         if (button.iconTex->m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
             // render icon
             const Vector2D BUFSIZE = {scaledButtonSize, scaledButtonSize};
+            auto           fgcol   = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
-            const bool     LIGHT = button.col.r + button.col.g + button.col.b < 1;
-
-            renderText(button.iconTex, button.icon, LIGHT ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000), BUFSIZE, scale, button.size * 0.62);
+            renderText(button.iconTex, button.icon, fgcol, BUFSIZE, scale, button.size * 0.62);
         }
 
         if (button.iconTex->m_iTexID == 0)
-            return;
+            continue;
 
         CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
                     scaledButtonSize};
 
         g_pHyprOpenGL->renderTexture(button.iconTex, &pos, a);
-
         offset += scaledButtonsPad + scaledButtonSize;
-    };
-
-    for (auto& b : g_pGlobalState->buttons) {
-        drawButton(b);
     }
 }
 
