@@ -99,6 +99,20 @@ static SDispatchResult bringAllFrom(std::string in) {
     return SDispatchResult{};
 }
 
+static SDispatchResult closeUnfocused(std::string in) {
+    if (!g_pCompositor->m_pLastMonitor)
+        return SDispatchResult{.success = false, .error = "No focused monitor"};
+
+    for (const auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace != g_pCompositor->m_pLastMonitor->activeWorkspace || w->m_pMonitor != g_pCompositor->m_pLastMonitor || !w->m_bIsMapped)
+            continue;
+
+        g_pCompositor->closeWindow(w);
+    }
+
+    return SDispatchResult{};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -114,6 +128,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     success      = success && HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:xtd:moveorexec", ::moveOrExec);
     success      = success && HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:xtd:throwunfocused", ::throwUnfocused);
     success      = success && HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:xtd:bringallfrom", ::bringAllFrom);
+    success      = success && HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:xtd:closeunfocused", ::closeUnfocused);
 
     if (success)
         HyprlandAPI::addNotification(PHANDLE, "[xtra-dispatchers] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
