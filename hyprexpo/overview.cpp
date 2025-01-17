@@ -4,6 +4,8 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
+#include <hyprland/src/managers/AnimationManager.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
 

@@ -7,6 +7,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
+#include <hyprland/src/render/Renderer.hpp>
 
 #include "globals.hpp"
 

@@ -8,6 +8,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Shaders.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/HookSystemManager.hpp>
 
 #include "globals.hpp"
 #include "shaders.hpp"

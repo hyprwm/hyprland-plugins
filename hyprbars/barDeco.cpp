@@ -6,6 +6,7 @@
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"

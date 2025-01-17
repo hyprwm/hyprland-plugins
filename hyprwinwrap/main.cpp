@@ -12,6 +12,8 @@
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
 #undef private
 
 #include "globals.hpp"

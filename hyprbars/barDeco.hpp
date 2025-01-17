@@ -6,6 +6,7 @@
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/devices/IPointer.hpp>
 #include <hyprland/src/devices/ITouch.hpp>
+#include <hyprland/src/desktop/WindowRule.hpp>
 #include "globals.hpp"
 
 #define private public
