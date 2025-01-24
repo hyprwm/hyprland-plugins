@@ -23,7 +23,7 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
-    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::make_unique<CTrail>(PWINDOW));
+    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, makeUnique<CTrail>(PWINDOW));
 }
 
 GLuint CompileShader(const GLuint& type, std::string src) {
@@ -117,7 +117,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
 
-    g_pGlobalState = std::make_unique<SGlobalState>();
+    g_pGlobalState = makeUnique<SGlobalState>();
     initGlobal();
 
     // add deco to existing windows
@@ -125,7 +125,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w, std::make_unique<CTrail>(w));
+        HyprlandAPI::addWindowDecoration(PHANDLE, w, makeUnique<CTrail>(w));
     }
 
     HyprlandAPI::reloadConfig();

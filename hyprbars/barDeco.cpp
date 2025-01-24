@@ -43,7 +43,7 @@ CHyprBar::~CHyprBar() {
     HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchUpCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchMoveCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseMoveCallback);
-    std::erase(g_pGlobalState->bars, this);
+    std::erase(g_pGlobalState->bars, m_self);
 }
 
 SDecorationPositioningInfo CHyprBar::getPositioningInfo() {

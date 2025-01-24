@@ -5,8 +5,8 @@
 inline HANDLE PHANDLE = nullptr;
 
 struct SGlobalState {
-    CShader trailShader;
+    CShader          trailShader;
     wl_event_source* tick = nullptr;
 };
 
-inline std::unique_ptr<SGlobalState> g_pGlobalState;
+inline UP<SGlobalState> g_pGlobalState;

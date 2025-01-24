@@ -21,8 +21,9 @@ static void onNewWindow(void* self, std::any data) {
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
     if (!PWINDOW->m_bX11DoesntWantBorders) {
-        std::unique_ptr<CHyprBar> bar = std::make_unique<CHyprBar>(PWINDOW);
-        g_pGlobalState->bars.push_back(bar.get());
+        auto bar = makeUnique<CHyprBar>(PWINDOW);
+        g_pGlobalState->bars.emplace_back(bar);
+        bar->m_self = bar;
         HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::move(bar));
     }
 }
@@ -37,7 +38,7 @@ static void onCloseWindow(void* self, std::any data) {
         return;
 
     // we could use the API but this is faster + it doesn't matter here that much.
-    PWINDOW->removeWindowDeco(*BARIT);
+    PWINDOW->removeWindowDeco(BARIT->get());
 }
 
 static void onPreConfigReload() {
@@ -114,7 +115,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[hb] Version mismatch");
     }
 
-    g_pGlobalState = std::make_unique<SGlobalState>();
+    g_pGlobalState = makeUnique<SGlobalState>();
 
     static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
     static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(self, data); });

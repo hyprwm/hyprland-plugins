@@ -20,7 +20,7 @@ void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
-    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, std::make_unique<CBordersPlusPlus>(PWINDOW));
+    HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, makeUnique<CBordersPlusPlus>(PWINDOW));
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -51,7 +51,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
-        HyprlandAPI::addWindowDecoration(PHANDLE, w, std::make_unique<CBordersPlusPlus>(w));
+        HyprlandAPI::addWindowDecoration(PHANDLE, w, makeUnique<CBordersPlusPlus>(w));
     }
 
     HyprlandAPI::addNotification(PHANDLE, "[borders-plus-plus] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);

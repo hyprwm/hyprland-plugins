@@ -18,8 +18,8 @@ struct SHyprButton {
 class CHyprBar;
 
 struct SGlobalState {
-    std::vector<SHyprButton> buttons;
-    std::vector<CHyprBar*>   bars;
+    std::vector<SHyprButton>  buttons;
+    std::vector<WP<CHyprBar>> bars;
 };
 
-inline std::unique_ptr<SGlobalState> g_pGlobalState;
+inline UP<SGlobalState> g_pGlobalState;

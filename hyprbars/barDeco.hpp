@@ -43,6 +43,8 @@ class CHyprBar : public IHyprWindowDecoration {
     void                               updateRules();
     void                               applyRule(const SP<CWindowRule>&);
 
+    WP<CHyprBar>                       m_self;
+
   private:
     SBoxExtents               m_seExtents;
 
