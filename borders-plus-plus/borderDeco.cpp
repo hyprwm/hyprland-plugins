@@ -135,9 +135,9 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         if (fullBox.width < 1 || fullBox.height < 1)
             break;
 
-        g_pHyprOpenGL->scissor((CBox*)nullptr);
+        g_pHyprOpenGL->scissor(nullptr);
 
-        g_pHyprOpenGL->renderBorder(&fullBox, CHyprColor{(uint64_t)**PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, ROUNDINGPOWER, THISBORDERSIZE, a,
+        g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{(uint64_t)**PCOLORS[i]}, **PNATURALROUND ? ORIGINALROUND : rounding, ROUNDINGPOWER, THISBORDERSIZE, a,
                                     **PNATURALROUND ? ORIGINALROUND : -1);
     }
 
@@ -164,5 +164,5 @@ void CBordersPlusPlus::updateWindow(PHLWINDOW pWindow) {
 
 void CBordersPlusPlus::damageEntire() {
     CBox dm = m_bLastRelativeBox.copy().translate(m_vLastWindowPos).expand(2);
-    g_pHyprRenderer->damageBox(&dm);
+    g_pHyprRenderer->damageBox(dm);
 }

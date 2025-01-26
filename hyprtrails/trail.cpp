@@ -26,7 +26,7 @@ void CTrail::onTick() {
     }
 
     if (m_bNeedsDamage) {
-        g_pHyprRenderer->damageBox(&m_bLastBox);
+        g_pHyprRenderer->damageBox(m_bLastBox);
         m_bNeedsDamage = false;
     }
 }
@@ -110,7 +110,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
     wlrbox.scale(pMonitor->scale).round();
 
-    g_pHyprOpenGL->scissor((CBox*)nullptr); // allow the entire window and stencil to render
+    g_pHyprOpenGL->scissor(nullptr); // allow the entire window and stencil to render
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -120,7 +120,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    g_pHyprOpenGL->renderRect(&wlrbox, CHyprColor(0, 0, 0, 0), PWINDOW->rounding() * pMonitor->scale, PWINDOW->roundingPower());
+    g_pHyprOpenGL->renderRect(wlrbox, CHyprColor(0, 0, 0, 0), PWINDOW->rounding() * pMonitor->scale, PWINDOW->roundingPower());
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -197,7 +197,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
 
         glStencilMask(-1);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        g_pHyprOpenGL->scissor((CBox*)nullptr);
+        g_pHyprOpenGL->scissor(nullptr);
         return;
     }
 
@@ -287,7 +287,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    g_pHyprOpenGL->scissor((CBox*)nullptr);
+    g_pHyprOpenGL->scissor(nullptr);
 
     // calculate damage
     float minX = 9999999;
@@ -338,5 +338,5 @@ void CTrail::updateWindow(PHLWINDOW pWindow) {
 void CTrail::damageEntire() {
     CBox dm = {(int)(m_vLastWindowPos.x - m_seExtents.topLeft.x), (int)(m_vLastWindowPos.y - m_seExtents.topLeft.y),
                (int)(m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
-    g_pHyprRenderer->damageBox(&dm);
+    g_pHyprRenderer->damageBox(dm);
 }

@@ -316,7 +316,7 @@ void COverview::onDamageReported() {
     damage();
 
     blockDamageReporting = true;
-    g_pHyprRenderer->damageBox(&texbox);
+    g_pHyprRenderer->damageBox(texbox);
     blockDamageReporting = false;
     g_pCompositor->scheduleFrameForMonitor(pMonitor.lock());
 }
@@ -409,7 +409,7 @@ void COverview::fullRender() {
             texbox.scale(pMonitor->scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), &texbox, 1.0, damage);
+            g_pHyprOpenGL->renderTextureInternalWithDamage(images[x + y * SIDE_LENGTH].fb.getTexture(), texbox, 1.0, damage);
         }
     }
 }
