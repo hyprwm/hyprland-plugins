@@ -16,7 +16,7 @@ inline CFunctionHook* g_pRenderWorkspaceHook = nullptr;
 inline CFunctionHook* g_pAddDamageHookA      = nullptr;
 inline CFunctionHook* g_pAddDamageHookB      = nullptr;
 typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, const CBox&);
-typedef void (*origAddDamageA)(void*, const CBox*);
+typedef void (*origAddDamageA)(void*, const CBox&);
 typedef void (*origAddDamageB)(void*, const pixman_region32_t*);
 
 // Do NOT change this function.
@@ -34,7 +34,7 @@ static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE p
         g_pOverview->render();
 }
 
-static void hkAddDamageA(void* thisptr, const CBox* box) {
+static void hkAddDamageA(void* thisptr, const CBox& box) {
     const auto PMONITOR = (CMonitor*)thisptr;
 
     if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->self || g_pOverview->blockDamageReporting) {
@@ -185,10 +185,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     g_pAddDamageHookB = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageB);
 
-    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "addDamageEPKN9Hyprutils4Math4CBoxE");
+    FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "_ZN8CMonitor9addDamageERKN9Hyprutils4Math4CBoxE");
     if (FNS.empty()) {
-        failNotif("no fns for hook addDamageEPKN9Hyprutils4Math4CBoxE");
-        throw std::runtime_error("[he] No fns for hook addDamageEPKN9Hyprutils4Math4CBoxE");
+        failNotif("no fns for hook _ZN8CMonitor9addDamageERKN9Hyprutils4Math4CBoxE");
+        throw std::runtime_error("[he] No fns for hook _ZN8CMonitor9addDamageERKN9Hyprutils4Math4CBoxE");
     }
 
     g_pAddDamageHookA = HyprlandAPI::createFunctionHook(PHANDLE, FNS[0].address, (void*)hkAddDamageA);
