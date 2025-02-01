@@ -78,7 +78,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
     bool userfg  = false;
     auto fgcolor = configStringToInt("rgb(ffffff)");
-    auto bgcolor = configStringToInt(vars[1]);
+    auto bgcolor = configStringToInt(vars[0]);
 
     if (!bgcolor) {
         result.setError("invalid bgcolor");
