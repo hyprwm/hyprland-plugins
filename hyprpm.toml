@@ -28,7 +28,8 @@ commit_pins = [
     ["254fc2bc6000075f660b4b8ed818a6af544d1d64", "17ef806444fee729d00b3ba5cb8c623b7fbb699b"], # 0.46.1
     ["0bd541f2fd902dbfa04c3ea2ccf679395e316887", "17ef806444fee729d00b3ba5cb8c623b7fbb699b"], # 0.46.2
     ["04ac46c54357278fc68f0a95d26347ea0db99496", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"], # 0.47.0
-    ["75dff7205f6d2bd437abfb4196f700abee92581a", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"]  # 0.47.1
+    ["75dff7205f6d2bd437abfb4196f700abee92581a", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"], # 0.47.1
+    ["882f7ad7d2bbfc7440d0ccaef93b1cdd78e8e3ff", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"]  # 0.47.2
 ]
 
 [borders-plus-plus]
