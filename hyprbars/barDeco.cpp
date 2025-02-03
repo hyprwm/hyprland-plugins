@@ -238,8 +238,12 @@ void CHyprBar::renderText(SP<CTexture> out, const std::string& text, const CHypr
 
     cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
 
-    int layoutWidth, layoutHeight;
-    pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
+    PangoRectangle ink_rect, logical_rect;
+    pango_layout_get_extents(layout, &ink_rect, &logical_rect);
+
+    const int    layoutWidth  = ink_rect.width;
+    const int    layoutHeight = logical_rect.height;
+
     const double xOffset = (bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0);
     const double yOffset = (bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0);
 
