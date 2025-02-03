@@ -162,9 +162,8 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
     info.cancelled   = true;
     m_bCancelledDown = true;
 
-    doButtonPress(PBARPADDING, PBARBUTTONPADDING, PHEIGHT, COORDS, BUTTONSRIGHT);
-
-    m_bDragPending = true;
+    if (!doButtonPress(PBARPADDING, PBARBUTTONPADDING, PHEIGHT, COORDS, BUTTONSRIGHT))
+        m_bDragPending = true;
 }
 
 void CHyprBar::handleUpEvent(SCallbackInfo& info) {
@@ -194,7 +193,7 @@ void CHyprBar::handleMovement() {
     return;
 }
 
-void CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
+bool CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
     //check if on a button
     float offset = **PBARPADDING;
 
@@ -205,11 +204,12 @@ void CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBAR
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + **PBARBUTTONPADDING, currentPos.y + b.size)) {
             // hit on close
             g_pKeybindManager->m_mDispatchers["exec"](b.cmd);
-            return;
+            return true;
         }
 
         offset += **PBARBUTTONPADDING + b.size;
     }
+    return false;
 }
 
 void CHyprBar::renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
