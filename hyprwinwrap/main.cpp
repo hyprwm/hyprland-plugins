@@ -51,7 +51,7 @@ void onNewWindow(PHLWINDOW pWindow) {
     pWindow->m_vSize     = PMONITOR->vecSize;
     pWindow->m_vPosition = PMONITOR->vecPosition;
     pWindow->m_bPinned   = true;
-    pWindow->sendWindowSize(pWindow->m_vRealSize->goal(), true);
+    pWindow->sendWindowSize(true);
 
     bgWindows.push_back(pWindow);
 
