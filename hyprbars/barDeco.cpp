@@ -319,6 +319,9 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
+    PangoContext* context = pango_layout_get_context(layout);
+    pango_context_set_base_dir(context, PANGO_DIRECTION_NEUTRAL);
+
     const int paddingTotal = scaledBarPadding * 2 + scaledButtonsSize + (std::string{*PALIGN} != "left" ? scaledButtonsSize : 0);
     const int maxWidth     = std::clamp(static_cast<int>(bufferSize.x - paddingTotal), 0, INT_MAX);
 
