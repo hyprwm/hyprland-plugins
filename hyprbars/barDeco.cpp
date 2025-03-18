@@ -560,7 +560,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRectWithBlur(titleBarBox, color, scaledRounding, a);
+        g_pHyprOpenGL->renderRectWithBlur(titleBarBox, color, scaledRounding, m_pWindow->roundingPower(), a);
     else
         g_pHyprOpenGL->renderRect(titleBarBox, color, scaledRounding);
 
