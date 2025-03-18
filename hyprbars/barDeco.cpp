@@ -7,6 +7,8 @@
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/LayoutManager.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/managers/AnimationManager.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"
@@ -15,8 +17,10 @@
 CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 
-    const auto PMONITOR       = pWindow->m_pMonitor.lock();
-    PMONITOR->scheduledRecalc = true;
+    static auto* const PCOLOR = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+
+    const auto         PMONITOR = pWindow->m_pMonitor.lock();
+    PMONITOR->scheduledRecalc   = true;
 
     //button events
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
@@ -34,6 +38,9 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 
     m_pTextTex    = makeShared<CTexture>();
     m_pButtonsTex = makeShared<CTexture>();
+
+    g_pAnimationManager->createAnimation(CHyprColor{**PCOLOR}, m_cRealBarColor, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_NONE);
+    m_cRealBarColor->setUpdateCallback([&](auto) { damageEntire(); });
 }
 
 CHyprBar::~CHyprBar() {
@@ -487,7 +494,12 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
     static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
 
-    CHyprColor         color = m_bForcedBarColor.value_or(**PCOLOR);
+    const CHyprColor   DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
+    if (DEST_COLOR != m_cRealBarColor->goal())
+        *m_cRealBarColor = DEST_COLOR;
+
+    CHyprColor color = m_cRealBarColor->value();
+
     color.a *= a;
     const bool BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const bool SHOULDBLUR   = **PENABLEBLUR && **PENABLEBLURGLOBAL && color.a < 1.F;
@@ -601,7 +613,7 @@ void CHyprBar::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CHyprBar::damageEntire() {
-    ; // ignored
+    g_pHyprRenderer->damageBox(assignedBoxGlobal());
 }
 
 Vector2D CHyprBar::cursorRelativeToBar() {

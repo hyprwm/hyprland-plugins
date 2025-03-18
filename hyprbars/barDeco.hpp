@@ -7,6 +7,7 @@
 #include <hyprland/src/devices/IPointer.hpp>
 #include <hyprland/src/devices/ITouch.hpp>
 #include <hyprland/src/desktop/WindowRule.hpp>
+#include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include "globals.hpp"
 
 #define private public
@@ -60,6 +61,8 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                      m_bTitleColorChanged = false;
     std::optional<CHyprColor> m_bForcedBarColor;
     std::optional<CHyprColor> m_bForcedTitleColor;
+
+    PHLANIMVAR<CHyprColor>    m_cRealBarColor;
 
     Vector2D                  cursorRelativeToBar();
 
