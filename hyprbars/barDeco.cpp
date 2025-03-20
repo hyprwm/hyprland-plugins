@@ -439,9 +439,9 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{barBox->w, barBox->h}, scale);
-    const auto         COORDS            = cursorRelativeToBar();
+    const auto         COORDS       = cursorRelativeToBar();
 
-    int                offset = **PBARPADDING * scale;
+    int                offset        = **PBARPADDING * scale;
     float              noScaleOffset = **PBARPADDING;
 
     for (size_t i = 0; i < visibleCount; ++i) {
@@ -452,7 +452,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         // check if hovering here
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
-        bool       hovering = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + **PBARBUTTONPADDING, currentPos.y + button.size);
+        bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + **PBARBUTTONPADDING, currentPos.y + button.size);
         noScaleOffset += **PBARBUTTONPADDING + button.size;
 
         if (button.iconTex->m_iTexID == 0 /* icon is not rendered */ && !button.icon.empty()) {
@@ -469,10 +469,17 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
                     scaledButtonSize};
 
-        // skip drawing icon if not hovering over button
-        if (!**PICONONHOVER || (**PICONONHOVER && hovering))
-            g_pHyprOpenGL->renderTexture(button.iconTex, pos, a);
+        // using alpha to show\hide button icons
+        auto alpha = **PICONONHOVER ? (m_iButtonHoverState ? a : 0.0) : a;
+        g_pHyprOpenGL->renderTexture(button.iconTex, pos, alpha);
         offset += scaledButtonsPad + scaledButtonSize;
+
+        bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
+        if (hovering != currentBit) {
+            m_iButtonHoverState ^= (1 << i);
+            // damage to get rid of some artifacts when icons are "hidden"
+            g_pHyprRenderer->damageBox(assignedBoxGlobal());
+        }
     }
 }
 

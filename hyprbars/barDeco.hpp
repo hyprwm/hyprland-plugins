@@ -96,6 +96,9 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                      m_bDragPending   = false;
     bool                      m_bCancelledDown = false;
 
+    // store hover state for buttons as a bitfield
+    unsigned int m_iButtonHoverState = 0;
+
     // for dynamic updates
     int    m_iLastHeight = 0;
 
