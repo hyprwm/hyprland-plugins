@@ -44,7 +44,6 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 }
 
 CHyprBar::~CHyprBar() {
-    damageEntire();
     HyprlandAPI::unregisterCallback(PHANDLE, m_pMouseButtonCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchDownCallback);
     HyprlandAPI::unregisterCallback(PHANDLE, m_pTouchUpCallback);
@@ -114,7 +113,7 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
 }
 
 void CHyprBar::onMouseMove(Vector2D coords) {
-    if (!m_bDragPending || m_bTouchEv)
+    if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow))
         return;
 
     m_bDragPending = false;
@@ -122,7 +121,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
 }
 
 void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
-    if (!m_bDragPending || !m_bTouchEv)
+    if (!m_bDragPending || !m_bTouchEv || !validMapped(m_pWindow))
         return;
 
     g_pInputManager->mouseMoveUnified(e.timeMs);
@@ -630,13 +629,14 @@ uint64_t CHyprBar::getDecorationFlags() {
 }
 
 CBox CHyprBar::assignedBoxGlobal() {
-    const auto PWINDOW = m_pWindow.lock();
+    if (!validMapped(m_pWindow))
+        return {};
 
-    CBox       box = m_bAssignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, PWINDOW));
+    CBox box = m_bAssignedBox;
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow.lock()));
 
-    const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
 
     return box.translate(WORKSPACEOFFSET);
 }
