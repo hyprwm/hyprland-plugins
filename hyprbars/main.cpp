@@ -8,6 +8,8 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 
+#include <algorithm>
+
 #include "barDeco.hpp"
 #include "globals.hpp"
 
@@ -21,6 +23,9 @@ static void onNewWindow(void* self, std::any data) {
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
     if (!PWINDOW->m_bX11DoesntWantBorders) {
+        if (std::ranges::any_of(PWINDOW->m_dWindowDecorations, [](const auto& d) { return d->getDisplayName() == "Hyprbar"; }))
+            return;
+
         auto bar = makeUnique<CHyprBar>(PWINDOW);
         g_pGlobalState->bars.emplace_back(bar);
         bar->m_self = bar;
@@ -118,7 +123,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState = makeUnique<SGlobalState>();
 
     static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
-    static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(self, data); });
+    // static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "closeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onCloseWindow(self, data); });
     static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "windowUpdateRules",
                                                           [&](void* self, SCallbackInfo& info, std::any data) { onUpdateWindowRules(std::any_cast<PHLWINDOW>(data)); });
 
