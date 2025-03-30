@@ -485,9 +485,8 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
                     scaledButtonSize};
 
-        // using alpha to show\hide button icons
-        auto alpha = **PICONONHOVER ? (m_iButtonHoverState ? a : 0.0) : a;
-        g_pHyprOpenGL->renderTexture(button.iconTex, pos, alpha);
+        if (!**PICONONHOVER || (**PICONONHOVER && m_iButtonHoverState > 0))
+            g_pHyprOpenGL->renderTexture(button.iconTex, pos, a);
         offset += scaledButtonsPad + scaledButtonSize;
 
         bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
