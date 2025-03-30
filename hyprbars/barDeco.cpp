@@ -154,7 +154,8 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
         return;
     }
 
-    g_pCompositor->focusWindow(PWINDOW);
+    if (g_pCompositor->m_pLastWindow.lock() != PWINDOW)
+        g_pCompositor->focusWindow(PWINDOW);
 
     if (PWINDOW->m_bIsFloating)
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
