@@ -116,11 +116,8 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     // ensure proper redraws of button icons on hover when using hardware cursors
     static auto* const PICONONHOVER    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
     static auto* const PHARDWARECURSOR = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "cursor:no_hardware_cursors")->getDataStaticPtr();
-    if (**PICONONHOVER && **PHARDWARECURSOR != 1) {
-        auto box = assignedBoxGlobal();
-        if (VECINRECT(coords, box.x, box.y, box.x + box.w, box.y + box.h))
-            g_pHyprRenderer->damageBox(box);
-    }
+    if (**PICONONHOVER && **PHARDWARECURSOR != 1)
+        damageOnButtonHover();
 
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow))
         return;
@@ -493,7 +490,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         if (hovering != currentBit) {
             m_iButtonHoverState ^= (1 << i);
             // damage to get rid of some artifacts when icons are "hidden"
-            g_pHyprRenderer->damageBox(assignedBoxGlobal());
+            damageEntire();
         }
     }
 }
@@ -703,4 +700,30 @@ void CHyprBar::applyRule(const SP<CWindowRule>& r) {
         m_bForcedBarColor = CHyprColor(configStringToInt(arg).value_or(0));
     else if (r->szRule.starts_with("plugin:hyprbars:title_color"))
         m_bForcedTitleColor = CHyprColor(configStringToInt(arg).value_or(0));
+}
+
+void CHyprBar::damageOnButtonHover() {
+    static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
+    static auto* const PBARBUTTONPADDING = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_button_padding")->getDataStaticPtr();
+    static auto* const PHEIGHT           = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    const bool         BUTTONSRIGHT      = std::string{*PALIGNBUTTONS} != "left";
+
+    float              offset = **PBARPADDING;
+
+    const auto         COORDS = cursorRelativeToBar();
+
+    for (auto& b : g_pGlobalState->buttons) {
+        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+
+        bool       hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + **PBARBUTTONPADDING, currentPos.y + b.size);
+
+        if (hover != m_bButtonHovered) {
+            m_bButtonHovered = hover;
+            damageEntire();
+        }
+
+        offset += **PBARBUTTONPADDING + b.size;
+    }
 }
