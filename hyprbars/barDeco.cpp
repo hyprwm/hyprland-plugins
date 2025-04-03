@@ -199,7 +199,7 @@ void CHyprBar::handleMovement() {
     return;
 }
 
-bool CHyprBar::doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
+bool CHyprBar::doButtonPress(Hyprlang::INT* const* PBARPADDING, Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PHEIGHT, Vector2D COORDS, const bool BUTTONSRIGHT) {
     //check if on a button
     float offset = **PBARPADDING;
 
@@ -368,7 +368,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
-size_t CHyprBar::getVisibleButtonCount(long int* const* PBARBUTTONPADDING, long int* const* PBARPADDING, const Vector2D& bufferSize, const float scale) {
+size_t CHyprBar::getVisibleButtonCount(Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PBARPADDING, const Vector2D& bufferSize, const float scale) {
     float  availableSpace = bufferSize.x - **PBARPADDING * scale * 2;
     size_t count          = 0;
 

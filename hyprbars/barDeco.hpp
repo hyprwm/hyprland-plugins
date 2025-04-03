@@ -81,7 +81,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void                      handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent);
     void                      handleUpEvent(SCallbackInfo& info);
     void                      handleMovement();
-    bool                      doButtonPress(long int* const* PBARPADDING, long int* const* PBARBUTTONPADDING, long int* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
+    bool                      doButtonPress(Hyprlang::INT* const* PBARPADDING, Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
 
     CBox                      assignedBoxGlobal();
 
@@ -102,7 +102,7 @@ class CHyprBar : public IHyprWindowDecoration {
     // for dynamic updates
     int    m_iLastHeight = 0;
 
-    size_t getVisibleButtonCount(long int* const* PBARBUTTONPADDING, long int* const* PBARPADDING, const Vector2D& bufferSize, const float scale);
+    size_t getVisibleButtonCount(Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PBARPADDING, const Vector2D& bufferSize, const float scale);
 
     friend class CBarPassElement;
 };
