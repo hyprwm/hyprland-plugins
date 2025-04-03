@@ -48,6 +48,8 @@ plugin {
 
 `bar_button_padding` -> (int) padding between the buttons (default `5`)
 
+`icon_on_hover` -> (bool) whether the icons show on mouse hovering over the buttons (default `false`)
+
 ## Buttons Config
 
 Use the `hyprbars-button` keyword.
