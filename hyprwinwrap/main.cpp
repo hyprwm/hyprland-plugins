@@ -14,6 +14,7 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/LayoutManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 
 #include "globals.hpp"
@@ -78,13 +79,10 @@ void onRenderStage(eRenderStage stage) {
         if (bgw->m_pMonitor != g_pHyprOpenGL->m_RenderData.pMonitor)
             continue;
 
-        timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-
         // cant use setHidden cuz that sends suspended and shit too that would be laggy
         bgw->m_bHidden = false;
 
-        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor.lock(), &now, false, RENDER_PASS_ALL, false, true);
+        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL, false, true);
 
         bgw->m_bHidden = true;
     }
