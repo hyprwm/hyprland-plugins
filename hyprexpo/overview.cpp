@@ -4,8 +4,10 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
+#include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/managers/AnimationManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
 
@@ -94,9 +96,6 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     Vector2D tileSize       = pMonitor->vecSize / SIDE_LENGTH;
     Vector2D tileRenderSize = (pMonitor->vecSize - Vector2D{GAP_WIDTH * pMonitor->scale, GAP_WIDTH * pMonitor->scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
@@ -137,7 +136,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             if (PWORKSPACE == startedOn)
                 PMONITOR->activeSpecialWorkspace = openSpecial;
 
-            g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, &now, monbox);
+            g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
             PWORKSPACE->m_bVisible = false;
             PWORKSPACE->startAnim(false, false, true);
@@ -145,7 +144,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             if (PWORKSPACE == startedOn)
                 PMONITOR->activeSpecialWorkspace.reset();
         } else
-            g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, &now, monbox);
+            g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
         image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH, (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x,
                      tileRenderSize.y};
@@ -237,9 +236,6 @@ void COverview::redrawID(int id, bool forcelowres) {
     if (!ENABLE_LOWRES)
         monbox = {{0, 0}, pMonitor->vecPixelSize};
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     auto& image = images[id];
 
     if (image.fb.m_vSize != monbox.size()) {
@@ -268,7 +264,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         if (PWORKSPACE == startedOn)
             pMonitor->activeSpecialWorkspace = openSpecial;
 
-        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, &now, monbox);
+        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
         PWORKSPACE->m_bVisible = false;
         PWORKSPACE->startAnim(false, false, true);
@@ -276,7 +272,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         if (PWORKSPACE == startedOn)
             pMonitor->activeSpecialWorkspace.reset();
     } else
-        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, &now, monbox);
+        g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
