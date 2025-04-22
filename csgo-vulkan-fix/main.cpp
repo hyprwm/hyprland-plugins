@@ -32,10 +32,10 @@ void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& l
 
     Vector2D           newCoords = local;
 
-    if (**PFIX && !g_pCompositor->m_pLastWindow.expired() && g_pCompositor->m_pLastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_pLastMonitor) {
+    if (**PFIX && !g_pCompositor->m_lastWindow.expired() && g_pCompositor->m_lastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_lastMonitor) {
         // fix the coords
-        newCoords.x *= (**RESX / g_pCompositor->m_pLastMonitor->vecSize.x) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
-        newCoords.y *= (**RESY / g_pCompositor->m_pLastMonitor->vecSize.y) / g_pCompositor->m_pLastWindow->m_fX11SurfaceScaledBy;
+        newCoords.x *= (**RESX / g_pCompositor->m_lastMonitor->vecSize.x) / g_pCompositor->m_lastWindow->m_fX11SurfaceScaledBy;
+        newCoords.y *= (**RESY / g_pCompositor->m_lastMonitor->vecSize.y) / g_pCompositor->m_lastWindow->m_fX11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_pOriginal)(thisptr, time_msec, newCoords);

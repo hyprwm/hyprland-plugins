@@ -146,7 +146,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) { onPreConfigReload(); });
 
     // add deco to existing windows
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto& w : g_pCompositor->m_windows) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 
@@ -161,7 +161,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    for (auto& m : g_pCompositor->m_vMonitors)
+    for (auto& m : g_pCompositor->m_monitors)
         m->scheduledRecalc = true;
 
     g_pHyprRenderer->m_sRenderPass.removeAllOfType("CBarPassElement");

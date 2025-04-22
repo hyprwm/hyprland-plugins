@@ -28,7 +28,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 static SDispatchResult moveOrExec(std::string in) {
     CVarList vars(in, 0, ',');
 
-    if (!g_pCompositor->m_pLastMonitor || !g_pCompositor->m_pLastMonitor->activeWorkspace)
+    if (!g_pCompositor->m_lastMonitor || !g_pCompositor->m_lastMonitor->activeWorkspace)
         return SDispatchResult{.success = false, .error = "No active workspace"};
 
     const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[0]);
@@ -36,8 +36,8 @@ static SDispatchResult moveOrExec(std::string in) {
     if (!PWINDOW)
         g_pKeybindManager->spawn(vars[1]);
     else {
-        if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_pWorkspace)
-            g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->m_pLastMonitor->activeWorkspace);
+        if (g_pCompositor->m_lastMonitor->activeWorkspace != PWINDOW->m_pWorkspace)
+            g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->m_lastMonitor->activeWorkspace);
         else
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         g_pCompositor->focusWindow(PWINDOW);
@@ -52,15 +52,15 @@ static SDispatchResult throwUnfocused(std::string in) {
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
 
-    if (!g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow->m_pWorkspace)
+    if (!g_pCompositor->m_lastWindow || !g_pCompositor->m_lastWindow->m_pWorkspace)
         return SDispatchResult{.success = false, .error = "No valid last window"};
 
     auto pWorkspace = g_pCompositor->getWorkspaceByID(id);
     if (!pWorkspace)
-        pWorkspace = g_pCompositor->createNewWorkspace(id, g_pCompositor->m_pLastWindow->m_pWorkspace->monitorID(), name, false);
+        pWorkspace = g_pCompositor->createNewWorkspace(id, g_pCompositor->m_lastWindow->m_pWorkspace->monitorID(), name, false);
 
-    for (const auto& w : g_pCompositor->m_vWindows) {
-        if (w == g_pCompositor->m_pLastWindow || w->m_pWorkspace != g_pCompositor->m_pLastWindow->m_pWorkspace)
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (w == g_pCompositor->m_lastWindow || w->m_pWorkspace != g_pCompositor->m_lastWindow->m_pWorkspace)
             continue;
 
         g_pCompositor->moveWindowToWorkspaceSafe(w, pWorkspace);
@@ -75,20 +75,20 @@ static SDispatchResult bringAllFrom(std::string in) {
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
 
-    if (!g_pCompositor->m_pLastMonitor || !g_pCompositor->m_pLastMonitor->activeWorkspace)
+    if (!g_pCompositor->m_lastMonitor || !g_pCompositor->m_lastMonitor->activeWorkspace)
         return SDispatchResult{.success = false, .error = "No active monitor"};
 
     auto pWorkspace = g_pCompositor->getWorkspaceByID(id);
     if (!pWorkspace)
         return SDispatchResult{.success = false, .error = "Workspace isnt open"};
 
-    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
 
-    for (const auto& w : g_pCompositor->m_vWindows) {
+    for (const auto& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != pWorkspace)
             continue;
 
-        g_pCompositor->moveWindowToWorkspaceSafe(w, g_pCompositor->m_pLastMonitor->activeWorkspace);
+        g_pCompositor->moveWindowToWorkspaceSafe(w, g_pCompositor->m_lastMonitor->activeWorkspace);
     }
 
     if (PLASTWINDOW) {
@@ -100,11 +100,11 @@ static SDispatchResult bringAllFrom(std::string in) {
 }
 
 static SDispatchResult closeUnfocused(std::string in) {
-    if (!g_pCompositor->m_pLastMonitor)
+    if (!g_pCompositor->m_lastMonitor)
         return SDispatchResult{.success = false, .error = "No focused monitor"};
 
-    for (const auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_pWorkspace != g_pCompositor->m_pLastMonitor->activeWorkspace || w->m_pMonitor != g_pCompositor->m_pLastMonitor || !w->m_bIsMapped)
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (w->m_pWorkspace != g_pCompositor->m_lastMonitor->activeWorkspace || w->m_pMonitor != g_pCompositor->m_lastMonitor || !w->m_bIsMapped)
             continue;
 
         g_pCompositor->closeWindow(w);
