@@ -121,7 +121,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     initGlobal();
 
     // add deco to existing windows
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto& w : g_pCompositor->m_windows) {
         if (w->isHidden() || !w->m_bIsMapped)
             continue;
 

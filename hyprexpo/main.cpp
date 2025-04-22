@@ -91,7 +91,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
     if (!swipeActive) {
         if (g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0) {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace, true);
             renderingOverview = false;
             gestured          = **PDISTANCE;
             swipeActive       = true;
@@ -99,7 +99,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
 
         else if (!g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y > 0) {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace, true);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace, true);
             renderingOverview = false;
             gestured          = 0;
             swipeActive       = true;
@@ -135,7 +135,7 @@ static void onExpoDispatcher(std::string arg) {
             g_pOverview->close();
         else {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace);
             renderingOverview = false;
         }
         return;
@@ -151,7 +151,7 @@ static void onExpoDispatcher(std::string arg) {
         return;
 
     renderingOverview = true;
-    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace);
     renderingOverview = false;
 }
 

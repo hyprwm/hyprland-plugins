@@ -83,7 +83,7 @@ bool CHyprBar::inputIsValid() {
 
     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-    if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_pLastWindow)
+    if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_lastWindow)
         return false;
 
     return true;
@@ -106,7 +106,7 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
         return;
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");
-    PMONITOR      = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor.lock();
+    PMONITOR      = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
     g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 
     handleDownEvent(info, e);
@@ -165,7 +165,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
         return;
     }
 
-    if (g_pCompositor->m_pLastWindow.lock() != PWINDOW)
+    if (g_pCompositor->m_lastWindow.lock() != PWINDOW)
         g_pCompositor->focusWindow(PWINDOW);
 
     if (PWINDOW->m_bIsFloating)
@@ -179,7 +179,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
 }
 
 void CHyprBar::handleUpEvent(SCallbackInfo& info) {
-    if (m_pWindow.lock() != g_pCompositor->m_pLastWindow.lock())
+    if (m_pWindow.lock() != g_pCompositor->m_lastWindow.lock())
         return;
 
     if (m_bCancelledDown)
