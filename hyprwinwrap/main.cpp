@@ -89,7 +89,7 @@ void onRenderStage(eRenderStage stage) {
 }
 
 void onCommitSubsurface(CSubsurface* thisptr) {
-    const auto PWINDOW = thisptr->m_pWLSurface->getWindow();
+    const auto PWINDOW = thisptr->m_wlSurface->getWindow();
 
     if (!PWINDOW || std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);

@@ -94,7 +94,7 @@ void initGlobal() {
     g_pGlobalState->trailShader.posAttrib = glGetAttribLocation(prog, "pos");
     g_pGlobalState->trailShader.gradient  = glGetUniformLocation(prog, "snapshots");
 
-    g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, &onTick, nullptr);
+    g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, &onTick, nullptr);
     wl_event_source_timer_update(g_pGlobalState->tick, 1);
 }
 
