@@ -60,7 +60,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         newBox.w = **RESX;
         newBox.h = **RESY;
 
-        CWLSurface::fromResource(SURF)->m_bFillIgnoreSmall = true;
+        CWLSurface::fromResource(SURF)->m_fillIgnoreSmall = true;
     }
 
     (*(origSurfaceSize)g_pSurfaceSizeHook->m_pOriginal)(surface, newBox);

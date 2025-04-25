@@ -111,7 +111,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = true;
 
-    startedOn->m_bVisible = false;
+    startedOn->m_visible = false;
 
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
@@ -131,14 +131,14 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             image.pWorkspace          = PWORKSPACE;
             PMONITOR->activeWorkspace = PWORKSPACE;
             PWORKSPACE->startAnim(true, true, true);
-            PWORKSPACE->m_bVisible = true;
+            PWORKSPACE->m_visible = true;
 
             if (PWORKSPACE == startedOn)
                 PMONITOR->activeSpecialWorkspace = openSpecial;
 
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
-            PWORKSPACE->m_bVisible = false;
+            PWORKSPACE->m_visible = false;
             PWORKSPACE->startAnim(false, false, true);
 
             if (PWORKSPACE == startedOn)
@@ -157,7 +157,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     PMONITOR->activeSpecialWorkspace = openSpecial;
     PMONITOR->activeWorkspace        = startedOn;
-    startedOn->m_bVisible            = true;
+    startedOn->m_visible            = true;
     startedOn->startAnim(true, true, true);
 
     // zoom on the current workspace.
@@ -254,19 +254,19 @@ void COverview::redrawID(int id, bool forcelowres) {
     if (openSpecial)
         pMonitor->activeSpecialWorkspace.reset();
 
-    startedOn->m_bVisible = false;
+    startedOn->m_visible = false;
 
     if (PWORKSPACE) {
         pMonitor->activeWorkspace = PWORKSPACE;
         PWORKSPACE->startAnim(true, true, true);
-        PWORKSPACE->m_bVisible = true;
+        PWORKSPACE->m_visible = true;
 
         if (PWORKSPACE == startedOn)
             pMonitor->activeSpecialWorkspace = openSpecial;
 
         g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
-        PWORKSPACE->m_bVisible = false;
+        PWORKSPACE->m_visible = false;
         PWORKSPACE->startAnim(false, false, true);
 
         if (PWORKSPACE == startedOn)
@@ -279,7 +279,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     pMonitor->activeSpecialWorkspace = openSpecial;
     pMonitor->activeWorkspace        = startedOn;
-    startedOn->m_bVisible            = true;
+    startedOn->m_visible            = true;
     startedOn->startAnim(true, true, true);
 
     blockOverviewRendering = false;

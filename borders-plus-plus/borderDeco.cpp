@@ -97,7 +97,7 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         return;
 
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
     const auto ROUNDINGPOWER = PWINDOW->roundingPower();

@@ -327,7 +327,7 @@ eDecorationType CTrail::getDecorationType() {
 void CTrail::updateWindow(PHLWINDOW pWindow) {
     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     m_vLastWindowPos  = pWindow->m_vRealPosition->value() + WORKSPACEOFFSET;
     m_vLastWindowSize = pWindow->m_vRealSize->value();

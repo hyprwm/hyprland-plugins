@@ -534,7 +534,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     const auto ROUNDING = PWINDOW->rounding() + (*PPRECEDENCE ? 0 : PWINDOW->getRealBorderSize());
 
@@ -661,7 +661,7 @@ CBox CHyprBar::assignedBoxGlobal() {
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow.lock()));
 
     const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     return box.translate(WORKSPACEOFFSET);
 }
