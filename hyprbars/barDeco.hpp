@@ -57,7 +57,7 @@ class CHyprBar : public IHyprWindowDecoration {
     SP<CTexture>              m_pButtonsTex;
 
     bool                      m_bWindowSizeChanged = false;
-    bool                      m_bHidden            = false;
+    bool                      m_hidden            = false;
     bool                      m_bTitleColorChanged = false;
     bool                      m_bButtonHovered     = false;
     std::optional<CHyprColor> m_bForcedBarColor;

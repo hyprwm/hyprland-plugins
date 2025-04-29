@@ -8,8 +8,8 @@
 #include "globals.hpp"
 
 CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition->value();
-    m_vLastWindowSize = pWindow->m_vRealSize->value();
+    m_vLastWindowPos  = pWindow->m_realPosition->value();
+    m_vLastWindowSize = pWindow->m_realSize->value();
 }
 
 CBordersPlusPlus::~CBordersPlusPlus() {
@@ -67,7 +67,7 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
+    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
         return;
 
     CBorderPPPassElement::SBorderPPData data;
@@ -96,8 +96,8 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
-    const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto PWORKSPACE      = PWINDOW->m_workspace;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
     const auto ROUNDINGPOWER = PWINDOW->roundingPower();
@@ -106,7 +106,7 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
     CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
-    fullBox.translate(PWINDOW->m_vFloatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET);
+    fullBox.translate(PWINDOW->m_floatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return;
@@ -156,8 +156,8 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
 }
 
 void CBordersPlusPlus::updateWindow(PHLWINDOW pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition->value();
-    m_vLastWindowSize = pWindow->m_vRealSize->value();
+    m_vLastWindowPos  = pWindow->m_realPosition->value();
+    m_vLastWindowSize = pWindow->m_realSize->value();
 
     damageEntire();
 }

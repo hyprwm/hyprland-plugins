@@ -22,8 +22,8 @@ static void onNewWindow(void* self, std::any data) {
     // data is guaranteed
     const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
-    if (!PWINDOW->m_bX11DoesntWantBorders) {
-        if (std::ranges::any_of(PWINDOW->m_dWindowDecorations, [](const auto& d) { return d->getDisplayName() == "Hyprbar"; }))
+    if (!PWINDOW->m_X11DoesntWantBorders) {
+        if (std::ranges::any_of(PWINDOW->m_windowDecorations, [](const auto& d) { return d->getDisplayName() == "Hyprbar"; }))
             return;
 
         auto bar = makeUnique<CHyprBar>(PWINDOW);
@@ -147,7 +147,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || !w->m_bIsMapped)
+        if (w->isHidden() || !w->m_isMapped)
             continue;
 
         onNewWindow(nullptr /* unused */, std::any(w));

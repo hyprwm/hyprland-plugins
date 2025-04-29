@@ -48,7 +48,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     // add deco to existing windows
     for (auto& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || !w->m_bIsMapped)
+        if (w->isHidden() || !w->m_isMapped)
             continue;
 
         HyprlandAPI::addWindowDecoration(PHANDLE, w, makeUnique<CBordersPlusPlus>(w));

@@ -32,10 +32,10 @@ void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& l
 
     Vector2D           newCoords = local;
 
-    if (**PFIX && !g_pCompositor->m_lastWindow.expired() && g_pCompositor->m_lastWindow->m_szInitialClass == *PCLASS && g_pCompositor->m_lastMonitor) {
+    if (**PFIX && !g_pCompositor->m_lastWindow.expired() && g_pCompositor->m_lastWindow->m_initialClass == *PCLASS && g_pCompositor->m_lastMonitor) {
         // fix the coords
-        newCoords.x *= (**RESX / g_pCompositor->m_lastMonitor->vecSize.x) / g_pCompositor->m_lastWindow->m_fX11SurfaceScaledBy;
-        newCoords.y *= (**RESY / g_pCompositor->m_lastMonitor->vecSize.y) / g_pCompositor->m_lastWindow->m_fX11SurfaceScaledBy;
+        newCoords.x *= (**RESX / g_pCompositor->m_lastMonitor->vecSize.x) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
+        newCoords.y *= (**RESY / g_pCompositor->m_lastMonitor->vecSize.y) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_pOriginal)(thisptr, time_msec, newCoords);
@@ -56,7 +56,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
 
     CBox       newBox = box;
 
-    if (PWINDOW && PWINDOW->m_szInitialClass == *PCLASS) {
+    if (PWINDOW && PWINDOW->m_initialClass == *PCLASS) {
         newBox.w = **RESX;
         newBox.h = **RESY;
 
@@ -71,8 +71,8 @@ CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
 
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
 
-    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_szInitialClass == *PCLASS) {
-        const auto PMONITOR = thisptr->getWindow()->m_pMonitor.lock();
+    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_initialClass == *PCLASS) {
+        const auto PMONITOR = thisptr->getWindow()->m_monitor.lock();
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
         else

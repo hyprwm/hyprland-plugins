@@ -36,27 +36,27 @@ std::vector<PHLWINDOWREF> bgWindows;
 void onNewWindow(PHLWINDOW pWindow) {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
 
-    if (pWindow->m_szInitialClass != *PCLASS)
+    if (pWindow->m_initialClass != *PCLASS)
         return;
 
-    const auto PMONITOR = pWindow->m_pMonitor.lock();
+    const auto PMONITOR = pWindow->m_monitor.lock();
 
     if (!PMONITOR)
         return;
 
-    if (!pWindow->m_bIsFloating)
+    if (!pWindow->m_isFloating)
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
 
-    pWindow->m_vRealSize->setValueAndWarp(PMONITOR->vecSize);
-    pWindow->m_vRealPosition->setValueAndWarp(PMONITOR->vecPosition);
-    pWindow->m_vSize     = PMONITOR->vecSize;
-    pWindow->m_vPosition = PMONITOR->vecPosition;
-    pWindow->m_bPinned   = true;
+    pWindow->m_realSize->setValueAndWarp(PMONITOR->vecSize);
+    pWindow->m_realPosition->setValueAndWarp(PMONITOR->vecPosition);
+    pWindow->m_size     = PMONITOR->vecSize;
+    pWindow->m_position = PMONITOR->vecPosition;
+    pWindow->m_pinned   = true;
     pWindow->sendWindowSize(true);
 
     bgWindows.push_back(pWindow);
 
-    pWindow->m_bHidden = true; // no renderino hyprland pls
+    pWindow->m_hidden = true; // no renderino hyprland pls
 
     g_pInputManager->refocus();
 
@@ -76,15 +76,15 @@ void onRenderStage(eRenderStage stage) {
     for (auto& bg : bgWindows) {
         const auto bgw = bg.lock();
 
-        if (bgw->m_pMonitor != g_pHyprOpenGL->m_RenderData.pMonitor)
+        if (bgw->m_monitor != g_pHyprOpenGL->m_RenderData.pMonitor)
             continue;
 
         // cant use setHidden cuz that sends suspended and shit too that would be laggy
-        bgw->m_bHidden = false;
+        bgw->m_hidden = false;
 
         g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_RenderData.pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL, false, true);
 
-        bgw->m_bHidden = true;
+        bgw->m_hidden = true;
     }
 }
 
@@ -97,17 +97,17 @@ void onCommitSubsurface(CSubsurface* thisptr) {
     }
 
     // cant use setHidden cuz that sends suspended and shit too that would be laggy
-    PWINDOW->m_bHidden = false;
+    PWINDOW->m_hidden = false;
 
     ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
-    if (const auto MON = PWINDOW->m_pMonitor.lock(); MON)
+    if (const auto MON = PWINDOW->m_monitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
-    PWINDOW->m_bHidden = true;
+    PWINDOW->m_hidden = true;
 }
 
 void onCommit(void* owner, void* data) {
-    const auto PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    const auto PWINDOW = ((CWindow*)owner)->m_self.lock();
 
     if (std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommit)commitHook->m_pOriginal)(owner, data);
@@ -115,13 +115,13 @@ void onCommit(void* owner, void* data) {
     }
 
     // cant use setHidden cuz that sends suspended and shit too that would be laggy
-    PWINDOW->m_bHidden = false;
+    PWINDOW->m_hidden = false;
 
     ((origCommit)commitHook->m_pOriginal)(owner, data);
-    if (const auto MON = PWINDOW->m_pMonitor.lock(); MON)
+    if (const auto MON = PWINDOW->m_monitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
-    PWINDOW->m_bHidden = true;
+    PWINDOW->m_hidden = true;
 }
 
 void onConfigReloaded() {

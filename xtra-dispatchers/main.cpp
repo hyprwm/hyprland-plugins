@@ -36,7 +36,7 @@ static SDispatchResult moveOrExec(std::string in) {
     if (!PWINDOW)
         g_pKeybindManager->spawn(vars[1]);
     else {
-        if (g_pCompositor->m_lastMonitor->activeWorkspace != PWINDOW->m_pWorkspace)
+        if (g_pCompositor->m_lastMonitor->activeWorkspace != PWINDOW->m_workspace)
             g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, g_pCompositor->m_lastMonitor->activeWorkspace);
         else
             g_pCompositor->warpCursorTo(PWINDOW->middle());
@@ -52,15 +52,15 @@ static SDispatchResult throwUnfocused(std::string in) {
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
 
-    if (!g_pCompositor->m_lastWindow || !g_pCompositor->m_lastWindow->m_pWorkspace)
+    if (!g_pCompositor->m_lastWindow || !g_pCompositor->m_lastWindow->m_workspace)
         return SDispatchResult{.success = false, .error = "No valid last window"};
 
     auto pWorkspace = g_pCompositor->getWorkspaceByID(id);
     if (!pWorkspace)
-        pWorkspace = g_pCompositor->createNewWorkspace(id, g_pCompositor->m_lastWindow->m_pWorkspace->monitorID(), name, false);
+        pWorkspace = g_pCompositor->createNewWorkspace(id, g_pCompositor->m_lastWindow->m_workspace->monitorID(), name, false);
 
     for (const auto& w : g_pCompositor->m_windows) {
-        if (w == g_pCompositor->m_lastWindow || w->m_pWorkspace != g_pCompositor->m_lastWindow->m_pWorkspace)
+        if (w == g_pCompositor->m_lastWindow || w->m_workspace != g_pCompositor->m_lastWindow->m_workspace)
             continue;
 
         g_pCompositor->moveWindowToWorkspaceSafe(w, pWorkspace);
@@ -85,7 +85,7 @@ static SDispatchResult bringAllFrom(std::string in) {
     const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
 
     for (const auto& w : g_pCompositor->m_windows) {
-        if (w->m_pWorkspace != pWorkspace)
+        if (w->m_workspace != pWorkspace)
             continue;
 
         g_pCompositor->moveWindowToWorkspaceSafe(w, g_pCompositor->m_lastMonitor->activeWorkspace);
@@ -104,7 +104,7 @@ static SDispatchResult closeUnfocused(std::string in) {
         return SDispatchResult{.success = false, .error = "No focused monitor"};
 
     for (const auto& w : g_pCompositor->m_windows) {
-        if (w->m_pWorkspace != g_pCompositor->m_lastMonitor->activeWorkspace || w->m_pMonitor != g_pCompositor->m_lastMonitor || !w->m_bIsMapped)
+        if (w->m_workspace != g_pCompositor->m_lastMonitor->activeWorkspace || w->m_monitor != g_pCompositor->m_lastMonitor || !w->m_isMapped)
             continue;
 
         g_pCompositor->closeWindow(w);

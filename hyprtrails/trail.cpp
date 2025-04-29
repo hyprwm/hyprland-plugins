@@ -16,8 +16,8 @@ void CTrail::onTick() {
     const auto PWINDOW = m_pWindow.lock();
 
     if (m_iTimer > **PHISTORYSTEP) {
-        m_dLastGeoms.push_front({box{(float)PWINDOW->m_vRealPosition->value().x, (float)PWINDOW->m_vRealPosition->value().y, (float)PWINDOW->m_vRealSize->value().x,
-                                     (float)PWINDOW->m_vRealSize->value().y},
+        m_dLastGeoms.push_front({box{(float)PWINDOW->m_realPosition->value().x, (float)PWINDOW->m_realPosition->value().y, (float)PWINDOW->m_realSize->value().x,
+                                     (float)PWINDOW->m_realSize->value().y},
                                  std::chrono::system_clock::now()});
         while (m_dLastGeoms.size() > **PHISTORYPOINTS)
             m_dLastGeoms.pop_back();
@@ -32,8 +32,8 @@ void CTrail::onTick() {
 }
 
 CTrail::CTrail(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos  = pWindow->m_vRealPosition->value();
-    m_vLastWindowSize = pWindow->m_vRealSize->value();
+    m_vLastWindowPos  = pWindow->m_realPosition->value();
+    m_vLastWindowSize = pWindow->m_realSize->value();
 
     pTickCb = HyprlandAPI::registerCallbackDynamic(PHANDLE, "trailTick", [this](void* self, SCallbackInfo& info, std::any data) { this->onTick(); });
 }
@@ -86,7 +86,7 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
+    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
         return;
 
     auto data = CTrailPassElement::STrailData{this, a};
@@ -106,7 +106,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         return;
 
     box thisbox =
-        box{(float)PWINDOW->m_vRealPosition->value().x, (float)PWINDOW->m_vRealPosition->value().y, (float)PWINDOW->m_vRealSize->value().x, (float)PWINDOW->m_vRealSize->value().y};
+        box{(float)PWINDOW->m_realPosition->value().x, (float)PWINDOW->m_realPosition->value().y, (float)PWINDOW->m_realSize->value().x, (float)PWINDOW->m_realSize->value().y};
     CBox wlrbox = {thisbox.x - pMonitor->vecPosition.x, thisbox.y - pMonitor->vecPosition.y, thisbox.w, thisbox.h};
     wlrbox.scale(pMonitor->scale).round();
 
@@ -246,10 +246,10 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    box thisboxopengl = box{(PWINDOW->m_vRealPosition->value().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
-                            (PWINDOW->m_vRealPosition->value().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
-                            (PWINDOW->m_vRealPosition->value().x + PWINDOW->m_vRealSize->value().x) / pMonitor->vecSize.x,
-                            (PWINDOW->m_vRealPosition->value().y + PWINDOW->m_vRealSize->value().y) / pMonitor->vecSize.y};
+    box thisboxopengl = box{(PWINDOW->m_realPosition->value().x - pMonitor->vecPosition.x) / pMonitor->vecSize.x,
+                            (PWINDOW->m_realPosition->value().y - pMonitor->vecPosition.y) / pMonitor->vecSize.y,
+                            (PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->vecSize.x,
+                            (PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->vecSize.y};
     glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -325,12 +325,12 @@ eDecorationType CTrail::getDecorationType() {
 }
 
 void CTrail::updateWindow(PHLWINDOW pWindow) {
-    const auto PWORKSPACE = pWindow->m_pWorkspace;
+    const auto PWORKSPACE = pWindow->m_workspace;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    m_vLastWindowPos  = pWindow->m_vRealPosition->value() + WORKSPACEOFFSET;
-    m_vLastWindowSize = pWindow->m_vRealSize->value();
+    m_vLastWindowPos  = pWindow->m_realPosition->value() + WORKSPACEOFFSET;
+    m_vLastWindowSize = pWindow->m_realSize->value();
 
     damageEntire();
 }
