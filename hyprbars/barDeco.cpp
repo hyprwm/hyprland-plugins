@@ -20,7 +20,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     static auto* const PCOLOR = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
 
     const auto         PMONITOR = pWindow->m_monitor.lock();
-    PMONITOR->scheduledRecalc   = true;
+    PMONITOR->m_scheduledRecalc   = true;
 
     //button events
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
@@ -107,7 +107,7 @@ void CHyprBar::onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e) {
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
     PMONITOR      = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
-    g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
+    g_pCompositor->warpCursorTo({PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y}, true);
 
     handleDownEvent(info, e);
 }
@@ -538,18 +538,18 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     const auto ROUNDING = PWINDOW->rounding() + (*PPRECEDENCE ? 0 : PWINDOW->getRealBorderSize());
 
-    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
+    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
     m_seExtents = {{0, **PHEIGHT}, {}};
 
     const auto DECOBOX = assignedBoxGlobal();
 
-    const auto BARBUF = DECOBOX.size() * pMonitor->scale;
+    const auto BARBUF = DECOBOX.size() * pMonitor->m_scale;
 
-    CBox       titleBarBox = {DECOBOX.x - pMonitor->vecPosition.x, DECOBOX.y - pMonitor->vecPosition.y, DECOBOX.w,
+    CBox       titleBarBox = {DECOBOX.x - pMonitor->m_position.x, DECOBOX.y - pMonitor->m_position.y, DECOBOX.w,
                               DECOBOX.h + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
-    titleBarBox.translate(PWINDOW->m_floatingOffset).scale(pMonitor->scale).round();
+    titleBarBox.translate(PWINDOW->m_floatingOffset).scale(pMonitor->m_scale).round();
 
     if (titleBarBox.w < 1 || titleBarBox.h < 1)
         return;
@@ -558,8 +558,8 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     if (ROUNDING) {
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
-        CBox windowBox = {PWINDOW->m_realPosition->value().x + PWINDOW->m_floatingOffset.x - pMonitor->vecPosition.x + 1,
-                          PWINDOW->m_realPosition->value().y + PWINDOW->m_floatingOffset.y - pMonitor->vecPosition.y + 1, PWINDOW->m_realSize->value().x - 2,
+        CBox windowBox = {PWINDOW->m_realPosition->value().x + PWINDOW->m_floatingOffset.x - pMonitor->m_position.x + 1,
+                          PWINDOW->m_realPosition->value().y + PWINDOW->m_floatingOffset.y - pMonitor->m_position.y + 1, PWINDOW->m_realSize->value().x - 2,
                           PWINDOW->m_realSize->value().y - 2};
 
         if (windowBox.w < 1 || windowBox.h < 1)
@@ -575,7 +575,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-        windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->scale).round();
+        windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->m_scale).round();
         g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), scaledRounding, m_pWindow->roundingPower());
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
@@ -591,7 +591,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     // render title
     if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_title || m_bWindowSizeChanged || m_pTextTex->m_iTexID == 0 || m_bTitleColorChanged)) {
         m_szLastTitle = PWINDOW->m_title;
-        renderBarTitle(BARBUF, pMonitor->scale);
+        renderBarTitle(BARBUF, pMonitor->m_scale);
     }
 
     if (ROUNDING) {
@@ -608,7 +608,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         g_pHyprOpenGL->renderTexture(m_pTextTex, textBox, a);
 
     if (m_bButtonsDirty || m_bWindowSizeChanged) {
-        renderBarButtons(BARBUF, pMonitor->scale);
+        renderBarButtons(BARBUF, pMonitor->m_scale);
         m_bButtonsDirty = false;
     }
 
@@ -616,7 +616,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     g_pHyprOpenGL->scissor(nullptr);
 
-    renderBarButtonsText(&textBox, pMonitor->scale, a);
+    renderBarButtonsText(&textBox, pMonitor->m_scale, a);
 
     m_bWindowSizeChanged = false;
     m_bTitleColorChanged = false;

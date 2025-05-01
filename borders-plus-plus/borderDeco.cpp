@@ -99,14 +99,14 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
     const auto PWORKSPACE      = PWINDOW->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
+    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->m_scale;
     const auto ROUNDINGPOWER = PWINDOW->roundingPower();
-    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->scale;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->m_scale;
 
     CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
-    fullBox.translate(PWINDOW->m_floatingOffset - pMonitor->vecPosition + WORKSPACEOFFSET);
+    fullBox.translate(PWINDOW->m_floatingOffset - pMonitor->m_position + WORKSPACEOFFSET);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return;
@@ -118,10 +118,10 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         fullThickness += THISBORDERSIZE;
     }
 
-    fullBox.expand(-fullThickness).scale(pMonitor->scale).round();
+    fullBox.expand(-fullThickness).scale(pMonitor->m_scale).round();
 
     for (size_t i = 0; i < **PBORDERS; ++i) {
-        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->scale;
+        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->m_scale;
         const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
 
         if (i != 0) {

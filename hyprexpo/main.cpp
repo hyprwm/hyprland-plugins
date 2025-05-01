@@ -37,7 +37,7 @@ static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE p
 static void hkAddDamageA(void* thisptr, const CBox& box) {
     const auto PMONITOR = (CMonitor*)thisptr;
 
-    if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->self || g_pOverview->blockDamageReporting) {
+    if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->m_self || g_pOverview->blockDamageReporting) {
         ((origAddDamageA)g_pAddDamageHookA->m_pOriginal)(thisptr, box);
         return;
     }
@@ -48,7 +48,7 @@ static void hkAddDamageA(void* thisptr, const CBox& box) {
 static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     const auto PMONITOR = (CMonitor*)thisptr;
 
-    if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->self || g_pOverview->blockDamageReporting) {
+    if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->m_self || g_pOverview->blockDamageReporting) {
         ((origAddDamageB)g_pAddDamageHookB->m_pOriginal)(thisptr, rg);
         return;
     }
@@ -91,7 +91,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
     if (!swipeActive) {
         if (g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0) {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace, true);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace, true);
             renderingOverview = false;
             gestured          = **PDISTANCE;
             swipeActive       = true;
@@ -99,7 +99,7 @@ static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
 
         else if (!g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y > 0) {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace, true);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace, true);
             renderingOverview = false;
             gestured          = 0;
             swipeActive       = true;
@@ -135,7 +135,7 @@ static void onExpoDispatcher(std::string arg) {
             g_pOverview->close();
         else {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace);
+            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
             renderingOverview = false;
         }
         return;
@@ -151,7 +151,7 @@ static void onExpoDispatcher(std::string arg) {
         return;
 
     renderingOverview = true;
-    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->activeWorkspace);
+    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     renderingOverview = false;
 }
 

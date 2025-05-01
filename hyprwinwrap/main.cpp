@@ -47,10 +47,10 @@ void onNewWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_isFloating)
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
 
-    pWindow->m_realSize->setValueAndWarp(PMONITOR->vecSize);
-    pWindow->m_realPosition->setValueAndWarp(PMONITOR->vecPosition);
-    pWindow->m_size     = PMONITOR->vecSize;
-    pWindow->m_position = PMONITOR->vecPosition;
+    pWindow->m_realSize->setValueAndWarp(PMONITOR->m_size);
+    pWindow->m_realPosition->setValueAndWarp(PMONITOR->m_position);
+    pWindow->m_size     = PMONITOR->m_size;
+    pWindow->m_position = PMONITOR->m_position;
     pWindow->m_pinned   = true;
     pWindow->sendWindowSize(true);
 

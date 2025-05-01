@@ -22,12 +22,12 @@ std::optional<CBox> COverviewPassElement::boundingBox() {
     if (!g_pOverview->pMonitor)
         return std::nullopt;
 
-    return CBox{{}, g_pOverview->pMonitor->vecSize};
+    return CBox{{}, g_pOverview->pMonitor->m_size};
 }
 
 CRegion COverviewPassElement::opaqueRegion() {
     if (!g_pOverview->pMonitor)
         return CRegion{};
 
-    return CBox{{}, g_pOverview->pMonitor->vecSize};
+    return CBox{{}, g_pOverview->pMonitor->m_size};
 }

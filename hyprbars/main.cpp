@@ -162,7 +162,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     for (auto& m : g_pCompositor->m_monitors)
-        m->scheduledRecalc = true;
+        m->m_scheduledRecalc = true;
 
     g_pHyprRenderer->m_sRenderPass.removeAllOfType("CBarPassElement");
 }

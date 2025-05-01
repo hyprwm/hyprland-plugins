@@ -24,7 +24,7 @@ bool CBarPassElement::needsLiveBlur() {
 
 std::optional<CBox> CBarPassElement::boundingBox() {
     // Temporary fix: expand the bar bb a bit, otherwise occlusion gets too aggressive.
-    return data.deco->assignedBoxGlobal().translate(-g_pHyprOpenGL->m_RenderData.pMonitor->vecPosition).expand(10);
+    return data.deco->assignedBoxGlobal().translate(-g_pHyprOpenGL->m_RenderData.pMonitor->m_position).expand(10);
 }
 
 bool CBarPassElement::needsPrecomputeBlur() {
