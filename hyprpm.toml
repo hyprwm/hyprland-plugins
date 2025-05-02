@@ -90,3 +90,12 @@ build = [
     "make -C xtra-dispatchers all",
 ]
 since_hyprland = 5573
+
+[hyprscrolling]
+description = "A plugin to add a scrolling layout"
+authors = ["Vaxry"]
+output = "hyprscrolling/hyprscrolling.so"
+build = [
+    "make -C hyprscrolling all",
+]
+since_hyprland = 6066
