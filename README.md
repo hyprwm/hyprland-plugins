@@ -12,6 +12,7 @@ This repo houses official plugins for Hyprland.
  - csgo-vulkan-fix -> fixes custom resolutions on CS:GO with `-vulkan`
  - hyprbars -> adds title bars to windows
  - hyprexpo -> adds an expo-like workspace overview
+ - hyprscrolling -> adds a scrolling layout to hyprland
  - hyprtrails -> adds smooth trails behind moving windows
  - hyprwinwrap -> clone of xwinwrap, allows you to put any app as a wallpaper
  - xtra-dispatchers -> adds some new dispatchers
