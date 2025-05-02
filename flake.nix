@@ -33,6 +33,7 @@
         csgo-vulkan-fix
         hyprbars
         hyprexpo
+        hyprscrolling
         hyprtrails
         hyprwinwrap
         xtra-dispatchers
@@ -53,6 +54,7 @@
             csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
             hyprbars = callPackage ./hyprbars {};
             hyprexpo = callPackage ./hyprexpo {};
+            hyprscrolling = callPackage ./hyprscrolling {};
             hyprtrails = callPackage ./hyprtrails {};
             hyprwinwrap = callPackage ./hyprwinwrap {};
             xtra-dispatchers = callPackage ./xtra-dispatchers {};

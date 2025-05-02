@@ -4,7 +4,7 @@
   hyprlandPlugins,
 }:
 hyprlandPlugins.mkHyprlandPlugin hyprland {
-  pluginName = "xtra-dispatchers";
+  pluginName = "hyprscrolling";
   version = "0.1";
   src = ./.;
 
@@ -12,7 +12,7 @@ hyprlandPlugins.mkHyprlandPlugin hyprland {
 
   meta = with lib; {
     homepage = "https://github.com/hyprwm/hyprland-plugins";
-    description = "Hyprland extra dispatchers plugin";
+    description = "Hyprland scrolling layout plugin";
     license = licenses.bsd3;
     platforms = platforms.linux;
   };
