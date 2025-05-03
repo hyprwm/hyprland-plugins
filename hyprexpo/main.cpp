@@ -29,7 +29,7 @@ static bool renderingOverview = false;
 //
 static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
     if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering || g_pOverview->pMonitor != pMonitor)
-        ((origRenderWorkspace)(g_pRenderWorkspaceHook->m_pOriginal))(thisptr, pMonitor, pWorkspace, now, geometry);
+        ((origRenderWorkspace)(g_pRenderWorkspaceHook->m_original))(thisptr, pMonitor, pWorkspace, now, geometry);
     else
         g_pOverview->render();
 }
@@ -38,7 +38,7 @@ static void hkAddDamageA(void* thisptr, const CBox& box) {
     const auto PMONITOR = (CMonitor*)thisptr;
 
     if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->m_self || g_pOverview->blockDamageReporting) {
-        ((origAddDamageA)g_pAddDamageHookA->m_pOriginal)(thisptr, box);
+        ((origAddDamageA)g_pAddDamageHookA->m_original)(thisptr, box);
         return;
     }
 
@@ -49,7 +49,7 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     const auto PMONITOR = (CMonitor*)thisptr;
 
     if (!g_pOverview || g_pOverview->pMonitor != PMONITOR->m_self || g_pOverview->blockDamageReporting) {
-        ((origAddDamageB)g_pAddDamageHookB->m_pOriginal)(thisptr, rg);
+        ((origAddDamageB)g_pAddDamageHookB->m_original)(thisptr, rg);
         return;
     }
 

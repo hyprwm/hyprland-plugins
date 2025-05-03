@@ -92,14 +92,14 @@ void onCommitSubsurface(CSubsurface* thisptr) {
     const auto PWINDOW = thisptr->m_wlSurface->getWindow();
 
     if (!PWINDOW || std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
-        ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
+        ((origCommitSubsurface)subsurfaceHook->m_original)(thisptr);
         return;
     }
 
     // cant use setHidden cuz that sends suspended and shit too that would be laggy
     PWINDOW->m_hidden = false;
 
-    ((origCommitSubsurface)subsurfaceHook->m_pOriginal)(thisptr);
+    ((origCommitSubsurface)subsurfaceHook->m_original)(thisptr);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
@@ -110,14 +110,14 @@ void onCommit(void* owner, void* data) {
     const auto PWINDOW = ((CWindow*)owner)->m_self.lock();
 
     if (std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
-        ((origCommit)commitHook->m_pOriginal)(owner, data);
+        ((origCommit)commitHook->m_original)(owner, data);
         return;
     }
 
     // cant use setHidden cuz that sends suspended and shit too that would be laggy
     PWINDOW->m_hidden = false;
 
-    ((origCommit)commitHook->m_pOriginal)(owner, data);
+    ((origCommit)commitHook->m_original)(owner, data);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
         g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
 
