@@ -7,7 +7,7 @@ CBorderPPPassElement::CBorderPPPassElement(const CBorderPPPassElement::SBorderPP
 }
 
 void CBorderPPPassElement::draw(const CRegion& damage) {
-    data.deco->drawPass(g_pHyprOpenGL->m_RenderData.pMonitor.lock(), data.a);
+    data.deco->drawPass(g_pHyprOpenGL->m_renderData.pMonitor.lock(), data.a);
 }
 
 bool CBorderPPPassElement::needsLiveBlur() {

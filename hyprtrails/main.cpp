@@ -76,7 +76,7 @@ GLuint CreateProgram(const std::string& vert, const std::string& frag) {
 int onTick(void* data) {
     EMIT_HOOK_EVENT("trailTick", nullptr);
 
-    const int TIMEOUT = g_pHyprRenderer->m_pMostHzMonitor ? 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->m_refreshRate : 16;
+    const int TIMEOUT = g_pHyprRenderer->m_mostHzMonitor ? 1000.0 / g_pHyprRenderer->m_mostHzMonitor->m_refreshRate : 16;
     wl_event_source_timer_update(g_pGlobalState->tick, TIMEOUT);
 
     return 0;
@@ -137,5 +137,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     wl_event_source_remove(g_pGlobalState->tick);
-    g_pHyprRenderer->m_sRenderPass.removeAllOfType("CTrailPassElement");
+    g_pHyprRenderer->m_renderPass.removeAllOfType("CTrailPassElement");
 }

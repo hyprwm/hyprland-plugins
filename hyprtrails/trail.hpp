@@ -58,8 +58,8 @@ class CTrail : public IHyprWindowDecoration {
 
     PHLWINDOWREF                                                      m_pWindow;
 
-    Vector2D                                                          m_vLastWindowPos;
-    Vector2D                                                          m_vLastWindowSize;
+    Vector2D                                                          m_lastWindowPos;
+    Vector2D                                                          m_lastWindowSize;
 
     CBox                                                              m_bLastBox     = {0};
     bool                                                              m_bNeedsDamage = false;

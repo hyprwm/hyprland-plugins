@@ -164,5 +164,5 @@ APICALL EXPORT void PLUGIN_EXIT() {
     for (auto& m : g_pCompositor->m_monitors)
         m->m_scheduledRecalc = true;
 
-    g_pHyprRenderer->m_sRenderPass.removeAllOfType("CBarPassElement");
+    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");
 }
