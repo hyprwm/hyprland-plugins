@@ -7,7 +7,7 @@ CTrailPassElement::CTrailPassElement(const CTrailPassElement::STrailData& data_)
 }
 
 void CTrailPassElement::draw(const CRegion& damage) {
-    data.deco->renderPass(g_pHyprOpenGL->m_RenderData.pMonitor.lock(), data.a);
+    data.deco->renderPass(g_pHyprOpenGL->m_renderData.pMonitor.lock(), data.a);
 }
 
 bool CTrailPassElement::needsLiveBlur() {

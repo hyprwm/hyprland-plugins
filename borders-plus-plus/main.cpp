@@ -60,5 +60,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    g_pHyprRenderer->m_sRenderPass.removeAllOfType("CBorderPPPassElement");
+    g_pHyprRenderer->m_renderPass.removeAllOfType("CBorderPPPassElement");
 }

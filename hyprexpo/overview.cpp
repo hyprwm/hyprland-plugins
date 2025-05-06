@@ -149,7 +149,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH, (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x,
                      tileRenderSize.y};
 
-        g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
+        g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
     }
 
@@ -238,7 +238,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     auto& image = images[id];
 
-    if (image.fb.m_vSize != monbox.size()) {
+    if (image.fb.m_size != monbox.size()) {
         image.fb.release();
         image.fb.alloc(monbox.w, monbox.h, pMonitor->m_output->state->state().drmFormat);
     }
@@ -274,7 +274,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     } else
         g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
-    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
+    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     pMonitor->m_activeSpecialWorkspace = openSpecial;
@@ -381,7 +381,7 @@ void COverview::onWorkspaceChange() {
 }
 
 void COverview::render() {
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<COverviewPassElement>());
+    g_pHyprRenderer->m_renderPass.add(makeShared<COverviewPassElement>());
 }
 
 void COverview::fullRender() {

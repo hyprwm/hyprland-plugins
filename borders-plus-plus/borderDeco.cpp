@@ -8,8 +8,8 @@
 #include "globals.hpp"
 
 CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_vLastWindowPos  = pWindow->m_realPosition->value();
-    m_vLastWindowSize = pWindow->m_realSize->value();
+    m_lastWindowPos  = pWindow->m_realPosition->value();
+    m_lastWindowSize = pWindow->m_realSize->value();
 }
 
 CBordersPlusPlus::~CBordersPlusPlus() {
@@ -73,7 +73,7 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
     CBorderPPPassElement::SBorderPPData data;
     data.deco = this;
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPPPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CBorderPPPassElement>(data));
 }
 
 void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
@@ -143,7 +143,7 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
 
-    m_bLastRelativeBox = CBox{0, 0, m_vLastWindowSize.x, m_vLastWindowSize.y}.addExtents(m_seExtents);
+    m_bLastRelativeBox = CBox{0, 0, m_lastWindowSize.x, m_lastWindowSize.y}.addExtents(m_seExtents);
 
     if (fullThickness != m_fLastThickness) {
         m_fLastThickness = fullThickness;
@@ -156,13 +156,13 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
 }
 
 void CBordersPlusPlus::updateWindow(PHLWINDOW pWindow) {
-    m_vLastWindowPos  = pWindow->m_realPosition->value();
-    m_vLastWindowSize = pWindow->m_realSize->value();
+    m_lastWindowPos  = pWindow->m_realPosition->value();
+    m_lastWindowSize = pWindow->m_realSize->value();
 
     damageEntire();
 }
 
 void CBordersPlusPlus::damageEntire() {
-    CBox dm = m_bLastRelativeBox.copy().translate(m_vLastWindowPos).expand(2);
+    CBox dm = m_bLastRelativeBox.copy().translate(m_lastWindowPos).expand(2);
     g_pHyprRenderer->damageBox(dm);
 }
