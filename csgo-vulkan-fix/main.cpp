@@ -51,7 +51,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         return;
     }
 
-    const auto SURF    = surface->surface.lock();
+    const auto SURF    = surface->m_surface.lock();
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(SURF);
 
     CBox       newBox = box;
