@@ -20,7 +20,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     static auto* const PCOLOR = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
 
     const auto         PMONITOR = pWindow->m_monitor.lock();
-    PMONITOR->m_scheduledRecalc   = true;
+    PMONITOR->m_scheduledRecalc = true;
 
     //button events
     m_pMouseButtonCallback = HyprlandAPI::registerCallbackDynamic(
@@ -54,6 +54,7 @@ CHyprBar::~CHyprBar() {
 
 SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     static auto* const         PHEIGHT     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const         PENABLED    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:enabled")->getDataStaticPtr();
     static auto* const         PPRECEDENCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
 
     SDecorationPositioningInfo info;
@@ -61,7 +62,7 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = **PPRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
-    info.desiredExtents = {{0, m_hidden ? 0 : **PHEIGHT}, {0, 0}};
+    info.desiredExtents = {{0, m_hidden || !**PENABLED ? 0 : **PHEIGHT}, {0, 0}};
     return info;
 }
 
@@ -495,7 +496,14 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 }
 
 void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
-    if (m_hidden || !validMapped(m_pWindow))
+    static auto* const PENABLED = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:enabled")->getDataStaticPtr();
+
+    if (m_bLastEnabledState != **PENABLED) {
+        m_bLastEnabledState = **PENABLED;
+        g_pDecorationPositioner->repositionDeco(this);
+    }
+
+    if (m_hidden || !validMapped(m_pWindow) || !**PENABLED)
         return;
 
     const auto PWINDOW = m_pWindow.lock();
@@ -678,7 +686,7 @@ void CHyprBar::updateRules() {
 
     m_bForcedBarColor   = std::nullopt;
     m_bForcedTitleColor = std::nullopt;
-    m_hidden           = false;
+    m_hidden            = false;
 
     for (auto& r : rules) {
         applyRule(r);

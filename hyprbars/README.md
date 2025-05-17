@@ -22,6 +22,8 @@ plugin {
 }
 ```
 
+`enabled` -> (bool) whether to enable the bars
+
 `bar_color` -> (col) bar's background color
 
 `bar_height` -> (int) bar's height (default `15`)

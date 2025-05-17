@@ -57,9 +57,10 @@ class CHyprBar : public IHyprWindowDecoration {
     SP<CTexture>              m_pButtonsTex;
 
     bool                      m_bWindowSizeChanged = false;
-    bool                      m_hidden            = false;
+    bool                      m_hidden             = false;
     bool                      m_bTitleColorChanged = false;
     bool                      m_bButtonHovered     = false;
+    bool                      m_bLastEnabledState  = false;
     std::optional<CHyprColor> m_bForcedBarColor;
     std::optional<CHyprColor> m_bForcedTitleColor;
 
@@ -83,23 +84,23 @@ class CHyprBar : public IHyprWindowDecoration {
     void                      handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent);
     void                      handleUpEvent(SCallbackInfo& info);
     void                      handleMovement();
-    bool                      doButtonPress(Hyprlang::INT* const* PBARPADDING, Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
+    bool doButtonPress(Hyprlang::INT* const* PBARPADDING, Hyprlang::INT* const* PBARBUTTONPADDING, Hyprlang::INT* const* PHEIGHT, Vector2D COORDS, bool BUTTONSRIGHT);
 
-    CBox                      assignedBoxGlobal();
+    CBox assignedBoxGlobal();
 
-    SP<HOOK_CALLBACK_FN>      m_pMouseButtonCallback;
-    SP<HOOK_CALLBACK_FN>      m_pTouchDownCallback;
-    SP<HOOK_CALLBACK_FN>      m_pTouchUpCallback;
+    SP<HOOK_CALLBACK_FN> m_pMouseButtonCallback;
+    SP<HOOK_CALLBACK_FN> m_pTouchDownCallback;
+    SP<HOOK_CALLBACK_FN> m_pTouchUpCallback;
 
-    SP<HOOK_CALLBACK_FN>      m_pTouchMoveCallback;
-    SP<HOOK_CALLBACK_FN>      m_pMouseMoveCallback;
+    SP<HOOK_CALLBACK_FN> m_pTouchMoveCallback;
+    SP<HOOK_CALLBACK_FN> m_pMouseMoveCallback;
 
-    std::string               m_szLastTitle;
+    std::string          m_szLastTitle;
 
-    bool                      m_bDraggingThis  = false;
-    bool                      m_bTouchEv       = false;
-    bool                      m_bDragPending   = false;
-    bool                      m_bCancelledDown = false;
+    bool                 m_bDraggingThis  = false;
+    bool                 m_bTouchEv       = false;
+    bool                 m_bDragPending   = false;
+    bool                 m_bCancelledDown = false;
 
     // store hover state for buttons as a bitfield
     unsigned int m_iButtonHoverState = 0;
