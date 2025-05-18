@@ -9,12 +9,13 @@ struct SColumnData;
 struct SWorkspaceData;
 
 struct SScrollingWindowData {
-    SScrollingWindowData(PHLWINDOW w, SP<SColumnData> col) : window(w), column(col) {
+    SScrollingWindowData(PHLWINDOW w, SP<SColumnData> col, float ws = 1.F) : window(w), column(col), windowSize(ws) {
         ;
     }
 
     PHLWINDOWREF    window;
     WP<SColumnData> column;
+    float           windowSize = 1.F;
 
     CBox            layoutBox;
 };
@@ -28,8 +29,11 @@ struct SColumnData {
     void                                  add(SP<SScrollingWindowData> w);
     void                                  remove(PHLWINDOW w);
 
-    void up(SP<SScrollingWindowData> w);
-    void down(SP<SScrollingWindowData> w);
+    void                                  up(SP<SScrollingWindowData> w);
+    void                                  down(SP<SScrollingWindowData> w);
+
+    SP<SScrollingWindowData>              next(SP<SScrollingWindowData> w);
+    SP<SScrollingWindowData>              prev(SP<SScrollingWindowData> w);
 
     std::vector<SP<SScrollingWindowData>> windowDatas;
     float                                 columnSize  = 1.F;
@@ -84,6 +88,8 @@ class CScrollingLayout : public IHyprLayout {
 
     virtual void                     onEnable();
     virtual void                     onDisable();
+
+    CBox                             usableAreaFor(PHLMONITOR m);
 
   private:
     std::vector<SP<SWorkspaceData>> m_workspaceDatas;

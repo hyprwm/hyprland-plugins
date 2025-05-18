@@ -5,17 +5,46 @@
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 
+constexpr float MIN_COLUMN_WIDTH = 0.05F;
+constexpr float MAX_COLUMN_WIDTH = 1.F;
+constexpr float MIN_ROW_HEIGHT   = 0.1F;
+constexpr float MAX_ROW_HEIGHT   = 1.F;
+
+//
 void SColumnData::add(PHLWINDOW w) {
-    windowDatas.emplace_back(makeShared<SScrollingWindowData>(w, self.lock()));
+    for (auto& wd : windowDatas) {
+        wd->windowSize *= (float)windowDatas.size() / (float)(windowDatas.size() + 1);
+    }
+
+    windowDatas.emplace_back(makeShared<SScrollingWindowData>(w, self.lock(), 1.F / (float)(windowDatas.size() + 1)));
 }
 
 void SColumnData::add(SP<SScrollingWindowData> w) {
+    for (auto& wd : windowDatas) {
+        wd->windowSize *= (float)windowDatas.size() / (float)(windowDatas.size() + 1);
+    }
+
     windowDatas.emplace_back(w);
-    w->column = self;
+    w->column     = self;
+    w->windowSize = 1.F / (float)(windowDatas.size() + 1);
 }
 
 void SColumnData::remove(PHLWINDOW w) {
+    const auto SIZE_BEFORE = windowDatas.size();
     std::erase_if(windowDatas, [&w](const auto& e) { return e->window == w; });
+
+    if (SIZE_BEFORE == windowDatas.size() && SIZE_BEFORE > 0)
+        return;
+
+    float newMaxSize = 0.F;
+    for (auto& wd : windowDatas) {
+        newMaxSize += wd->windowSize;
+    }
+
+    for (auto& wd : windowDatas) {
+        wd->windowSize *= 1.F / newMaxSize;
+    }
+
     if (windowDatas.empty() && workspace)
         workspace->remove(self.lock());
 }
@@ -36,6 +65,28 @@ void SColumnData::down(SP<SScrollingWindowData> w) {
 
         std::swap(windowDatas[i], windowDatas[i + 1]);
     }
+}
+
+SP<SScrollingWindowData> SColumnData::next(SP<SScrollingWindowData> w) {
+    for (size_t i = 0; i < windowDatas.size() - 1; ++i) {
+        if (windowDatas[i] != w)
+            continue;
+
+        return windowDatas[i + 1];
+    }
+
+    return nullptr;
+}
+
+SP<SScrollingWindowData> SColumnData::prev(SP<SScrollingWindowData> w) {
+    for (size_t i = 1; i < windowDatas.size(); ++i) {
+        if (windowDatas[i] != w)
+            continue;
+
+        return windowDatas[i - 1];
+    }
+
+    return nullptr;
 }
 
 SP<SColumnData> SWorkspaceData::add() {
@@ -131,19 +182,18 @@ void SWorkspaceData::recalculate() {
 
     PHLMONITOR PMONITOR = workspace->m_monitor.lock();
 
-    const CBox USABLE = CBox{PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
+    const CBox USABLE = layout->usableAreaFor(PMONITOR);
 
     double     currentLeft = MAX_WIDTH < USABLE.w ? std::round((USABLE.w - MAX_WIDTH) / 2.0) : leftOffset; // layout pixels
 
     for (const auto& COL : columns) {
-        double       currentTop  = 0.0;
-        const double ITEM_HEIGHT = USABLE.h / COL->windowDatas.size();
-        const double ITEM_WIDTH  = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
+        double       currentTop = 0.0;
+        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         for (const auto& WINDOW : COL->windowDatas) {
-            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, ITEM_HEIGHT}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft);
+            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft);
 
-            currentTop += ITEM_HEIGHT;
+            currentTop += WINDOW->windowSize * USABLE.h;
 
             layout->applyNodeDataToWindow(WINDOW, false);
         }
@@ -376,8 +426,98 @@ void CScrollingLayout::onBeginDragWindow() {
     IHyprLayout::onBeginDragWindow();
 }
 
-void CScrollingLayout::resizeActiveWindow(const Vector2D&, eRectCorner corner, PHLWINDOW pWindow) {
-    ;
+void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner corner, PHLWINDOW pWindow) {
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+
+    if (!validMapped(PWINDOW))
+        return;
+
+    const auto DATA = dataFor(PWINDOW);
+
+    if (!DATA) {
+        *PWINDOW->m_realSize =
+            (PWINDOW->m_realSize->goal() + delta)
+                .clamp(PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
+        PWINDOW->updateWindowDecos();
+        return;
+    }
+
+    if (corner == CORNER_NONE)
+        return;
+
+    if (!DATA->column || !DATA->column->workspace || !DATA->column->workspace->workspace || !DATA->column->workspace->workspace->m_monitor)
+        return;
+
+    const auto USABLE        = usableAreaFor(DATA->column->workspace->workspace->m_monitor.lock());
+    const auto DELTA_AS_PERC = delta / USABLE.size();
+
+    const auto CURR_COLUMN = DATA->column.lock();
+    const auto NEXT_COLUMN = DATA->column->workspace->next(CURR_COLUMN);
+    const auto PREV_COLUMN = DATA->column->workspace->prev(CURR_COLUMN);
+
+    switch (corner) {
+        case CORNER_BOTTOMLEFT:
+        case CORNER_TOPLEFT: {
+            if (!PREV_COLUMN)
+                break;
+
+            PREV_COLUMN->columnWidth = std::clamp(PREV_COLUMN->columnWidth + (float)DELTA_AS_PERC.x, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
+            CURR_COLUMN->columnWidth = std::clamp(CURR_COLUMN->columnWidth - (float)DELTA_AS_PERC.x, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
+            break;
+        }
+        case CORNER_BOTTOMRIGHT:
+        case CORNER_TOPRIGHT: {
+            if (!NEXT_COLUMN)
+                break;
+
+            NEXT_COLUMN->columnWidth = std::clamp(NEXT_COLUMN->columnWidth - (float)DELTA_AS_PERC.x, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
+            CURR_COLUMN->columnWidth = std::clamp(CURR_COLUMN->columnWidth + (float)DELTA_AS_PERC.x, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
+            break;
+        }
+
+        default: break;
+    }
+
+    if (DATA->column->windowDatas.size() > 1) {
+        const auto CURR_WD = DATA;
+        const auto NEXT_WD = DATA->column->next(DATA);
+        const auto PREV_WD = DATA->column->prev(DATA);
+
+        switch (corner) {
+            case CORNER_BOTTOMLEFT:
+            case CORNER_BOTTOMRIGHT: {
+                if (!NEXT_WD)
+                    break;
+
+                if (NEXT_WD->windowSize <= MIN_ROW_HEIGHT && delta.y >= 0)
+                    break;
+
+                float adjust = std::clamp((float)(delta.y / USABLE.h), (-CURR_WD->windowSize + MIN_ROW_HEIGHT), (NEXT_WD->windowSize - MIN_ROW_HEIGHT));
+
+                NEXT_WD->windowSize = std::clamp(NEXT_WD->windowSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
+                CURR_WD->windowSize = std::clamp(CURR_WD->windowSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
+                break;
+            }
+            case CORNER_TOPLEFT:
+            case CORNER_TOPRIGHT: {
+                if (!PREV_WD)
+                    break;
+
+                if (PREV_WD->windowSize <= MIN_ROW_HEIGHT && delta.y <= 0 || CURR_WD->windowSize <= MIN_ROW_HEIGHT && delta.y >= 0)
+                    break;
+
+                float adjust = std::clamp((float)(delta.y / USABLE.h), -(PREV_WD->windowSize - MIN_ROW_HEIGHT), (CURR_WD->windowSize - MIN_ROW_HEIGHT));
+
+                PREV_WD->windowSize = std::clamp(PREV_WD->windowSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
+                CURR_WD->windowSize = std::clamp(CURR_WD->windowSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
+                break;
+            }
+
+            default: break;
+        }
+    }
+
+    DATA->column->workspace->recalculate();
 }
 
 void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
@@ -467,7 +607,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->column->columnWidth = abs;
         }
 
-        WDATA->column->columnWidth = std::clamp(WDATA->column->columnWidth, 0.05F, 1.F);
+        WDATA->column->columnWidth = std::clamp(WDATA->column->columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 
         WDATA->column->workspace->recalculate();
     } else if (ARGS[0] == "movewindowto") {
@@ -575,4 +715,8 @@ SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
     // FIXME: special
 
     return dataFor(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+}
+
+CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
+    return CBox{m->m_reservedTopLeft, m->m_size - m->m_reservedTopLeft - m->m_reservedBottomRight};
 }
