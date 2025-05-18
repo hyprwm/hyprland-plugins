@@ -129,16 +129,19 @@ void SWorkspaceData::recalculate() {
 
     const auto MAX_WIDTH = maxWidth();
 
-    PHLMONITOR PMONITOR    = workspace->m_monitor.lock();
-    double     currentLeft = MAX_WIDTH < PMONITOR->m_size.x ? std::round((PMONITOR->m_size.x - MAX_WIDTH) / 2.0) : leftOffset; // layout pixels
+    PHLMONITOR PMONITOR = workspace->m_monitor.lock();
+
+    const CBox USABLE = CBox{PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
+
+    double     currentLeft = MAX_WIDTH < USABLE.w ? std::round((USABLE.w - MAX_WIDTH) / 2.0) : leftOffset; // layout pixels
 
     for (const auto& COL : columns) {
         double       currentTop  = 0.0;
-        const double ITEM_HEIGHT = PMONITOR->m_size.y / COL->windowDatas.size();
-        const double ITEM_WIDTH  = *PFSONONE && columns.size() == 1 ? PMONITOR->m_size.x : PMONITOR->m_size.x * COL->columnWidth;
+        const double ITEM_HEIGHT = USABLE.h / COL->windowDatas.size();
+        const double ITEM_WIDTH  = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         for (const auto& WINDOW : COL->windowDatas) {
-            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, ITEM_HEIGHT}.translate(PMONITOR->m_position);
+            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, ITEM_HEIGHT}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft);
 
             currentTop += ITEM_HEIGHT;
 
