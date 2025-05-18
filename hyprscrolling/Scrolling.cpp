@@ -26,7 +26,7 @@ void SColumnData::add(SP<SScrollingWindowData> w) {
 
     windowDatas.emplace_back(w);
     w->column     = self;
-    w->windowSize = 1.F / (float)(windowDatas.size() + 1);
+    w->windowSize = 1.F / (float)(windowDatas.size());
 }
 
 void SColumnData::remove(PHLWINDOW w) {
