@@ -3,6 +3,7 @@
 #include <vector>
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/helpers/memory/Memory.hpp>
+#include <hyprland/src/managers/HookSystemManager.hpp>
 
 class CScrollingLayout;
 struct SColumnData;
@@ -94,11 +95,17 @@ class CScrollingLayout : public IHyprLayout {
   private:
     std::vector<SP<SWorkspaceData>> m_workspaceDatas;
 
-    SP<SWorkspaceData>              dataFor(PHLWORKSPACE ws);
-    SP<SScrollingWindowData>        dataFor(PHLWINDOW w);
-    SP<SWorkspaceData>              currentWorkspaceData();
+    SP<HOOK_CALLBACK_FN>            m_configCallback;
 
-    void                            applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
+    struct {
+        std::vector<float> configuredWidths;
+    } m_config;
+
+    SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
+    SP<SScrollingWindowData> dataFor(PHLWINDOW w);
+    SP<SWorkspaceData>       currentWorkspaceData();
+
+    void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
 
     friend struct SWorkspaceData;
 };

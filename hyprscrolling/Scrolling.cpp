@@ -5,6 +5,9 @@
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 
+#include <hyprutils/string/ConstVarList.hpp>
+using namespace Hyprutils::String;
+
 constexpr float MIN_COLUMN_WIDTH = 0.05F;
 constexpr float MAX_COLUMN_WIDTH = 1.F;
 constexpr float MIN_ROW_HEIGHT   = 0.1F;
@@ -336,6 +339,20 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
 }
 
 void CScrollingLayout::onEnable() {
+    static const auto PCONFWIDTHS = CConfigValue<Hyprlang::STRING>("plugin:hyprscrolling:explicit_column_widths");
+
+    m_configCallback = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
+        // bitch ass
+        m_config.configuredWidths.clear();
+
+        CConstVarList widths(*PCONFWIDTHS, 0, ',');
+        for (auto& w : widths) {
+            try {
+                m_config.configuredWidths.emplace_back(std::stof(std::string{w}));
+            } catch (...) { Debug::log(ERR, "scrolling: Failed to parse width {} as float", w); }
+        }
+    });
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_isFloating || !w->m_isMapped || w->isHidden())
             continue;
@@ -346,6 +363,7 @@ void CScrollingLayout::onEnable() {
 
 void CScrollingLayout::onDisable() {
     m_workspaceDatas.clear();
+    m_configCallback.reset();
 }
 
 void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
@@ -592,6 +610,36 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             return {};
 
         if (ARGS[1][0] == '+' || ARGS[1][0] == '-') {
+            if (ARGS[1] == "+conf") {
+                for (size_t i = 0; i < m_config.configuredWidths.size(); ++i) {
+                    if (m_config.configuredWidths[i] < WDATA->column->columnWidth)
+                        continue;
+
+                    if (i == m_config.configuredWidths.size() - 1)
+                        WDATA->column->columnWidth = m_config.configuredWidths[0];
+                    else
+                        WDATA->column->columnWidth = m_config.configuredWidths[i + 1];
+
+                    break;
+                }
+
+                return {};
+            } else if (ARGS[1] == "-conf") {
+                for (size_t i = m_config.configuredWidths.size() - 1; i >= 0; --i) {
+                    if (m_config.configuredWidths[i] > WDATA->column->columnWidth)
+                        continue;
+
+                    if (i == 0)
+                        WDATA->column->columnWidth = m_config.configuredWidths[m_config.configuredWidths.size() - 1];
+                    else
+                        WDATA->column->columnWidth = m_config.configuredWidths[i - 1];
+
+                    break;
+                }
+
+                return {};
+            }
+
             const auto PLUSMINUS = getPlusMinusKeywordResult(ARGS[1], 0);
 
             if (!PLUSMINUS.has_value())
