@@ -880,6 +880,55 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             WDATA->recalculate();
         }
+    } else if (ARGS[0] == "focus") {
+        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+
+        if (!WDATA || ARGS[1].empty())
+            return {};
+
+        switch (ARGS[1][0]) {
+            case 'u':
+            case 't': {
+                auto PREV = WDATA->column->prev(WDATA);
+                if (!PREV)
+                    PREV = WDATA->column->windowDatas.back();
+
+                g_pCompositor->focusWindow(PREV->window.lock());
+                break;
+            }
+
+            case 'b':
+            case 'd': {
+                auto NEXT = WDATA->column->next(WDATA);
+                if (!NEXT)
+                    NEXT = WDATA->column->windowDatas.front();
+
+                g_pCompositor->focusWindow(NEXT->window.lock());
+                break;
+            }
+
+            case 'l': {
+                auto PREV = WDATA->column->workspace->prev(WDATA->column.lock());
+                if (!PREV)
+                    PREV = WDATA->column->workspace->columns.back();
+
+                g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
+                WDATA->column->workspace->centerCol(PREV);
+                break;
+            }
+
+            case 'r': {
+                auto NEXT = WDATA->column->workspace->next(WDATA->column.lock());
+                if (!NEXT)
+                    NEXT = WDATA->column->workspace->columns.front();
+
+                g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
+                WDATA->column->workspace->centerCol(NEXT);
+                break;
+            }
+
+            default: return {};
+        }
     }
 
     return {};
