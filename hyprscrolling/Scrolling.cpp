@@ -221,15 +221,24 @@ double SWorkspaceData::maxWidth() {
 }
 
 void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool force) {
+    PHLMONITOR   PMONITOR;
+    PHLWORKSPACE PWORKSPACE;
+
     if (!data || !data->column || !data->column->workspace) {
-        Debug::log(ERR, "[scroller] broken internal state on node");
-        return;
+        if (!data->overrideWorkspace) {
+            Debug::log(ERR, "[scroller] broken internal state on workspace (1)");
+            return;
+        }
+
+        PMONITOR   = data->overrideWorkspace->m_monitor.lock();
+        PWORKSPACE = data->overrideWorkspace.lock();
+    } else {
+        PMONITOR   = data->column->workspace->workspace->m_monitor.lock();
+        PWORKSPACE = data->column->workspace->workspace.lock();
     }
 
-    PHLMONITOR PMONITOR = data->column->workspace->workspace ? data->column->workspace->workspace->m_monitor.lock() : nullptr;
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "[scroller] broken internal state on workspace");
+    if (!PMONITOR || !PWORKSPACE) {
+        Debug::log(ERR, "[scroller] broken internal state on workspace (2)");
         return;
     }
 
@@ -242,7 +251,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     const auto PWINDOW = data->window.lock();
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(data->column->workspace->workspace->m_id));
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
 
     if (!validMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", (uintptr_t)data.get(), PWINDOW);
@@ -539,7 +548,54 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
 }
 
 void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
-    ;
+    const auto PMONITOR   = pWindow->m_monitor.lock();
+    const auto PWORKSPACE = pWindow->m_workspace;
+
+    // save position and size if floating
+    if (pWindow->m_isFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE) {
+        pWindow->m_lastFloatingSize     = pWindow->m_realSize->goal();
+        pWindow->m_lastFloatingPosition = pWindow->m_realPosition->goal();
+        pWindow->m_position             = pWindow->m_realPosition->goal();
+        pWindow->m_size                 = pWindow->m_realSize->goal();
+    }
+
+    const auto PNODE = dataFor(pWindow);
+
+    if (EFFECTIVE_MODE == FSMODE_NONE) {
+        // if it got its fullscreen disabled, set back its node if it had one
+
+        if (PNODE)
+            applyNodeDataToWindow(PNODE, false);
+        else {
+            // get back its' dimensions from position and size
+            *pWindow->m_realPosition = pWindow->m_lastFloatingPosition;
+            *pWindow->m_realSize     = pWindow->m_lastFloatingSize;
+
+            pWindow->unsetWindowData(PRIORITY_LAYOUT);
+            pWindow->updateWindowData();
+        }
+    } else {
+        // apply new pos and size being monitors' box
+        if (EFFECTIVE_MODE == FSMODE_FULLSCREEN) {
+            *pWindow->m_realPosition = PMONITOR->m_position;
+            *pWindow->m_realSize     = PMONITOR->m_size;
+        } else {
+            // This is a massive hack.
+            // We make a fake "only" node and apply
+            // To keep consistent with the settings without C+P code
+
+            SP<SScrollingWindowData> fakeNode = makeShared<SScrollingWindowData>(pWindow, nullptr);
+            fakeNode->window                  = pWindow;
+            fakeNode->layoutBox = {PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
+            pWindow->m_size     = fakeNode->layoutBox.size();
+            fakeNode->ignoreFullscreenChecks = true;
+            fakeNode->overrideWorkspace      = pWindow->m_workspace;
+
+            applyNodeDataToWindow(fakeNode, false);
+        }
+    }
+
+    g_pCompositor->changeWindowZOrder(pWindow, true);
 }
 
 std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
