@@ -690,6 +690,19 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         if (!WDATA)
             return {};
 
+        if (ARGS[1] == "all") {
+            float abs = 0;
+            try {
+                abs = std::stof(ARGS[2]);
+            } catch (...) { return {}; }
+
+            for (const auto& c : WDATA->column->workspace->columns) {
+                c->columnWidth = abs;
+            }
+
+            return {};
+        }
+
         if (ARGS[1][0] == '+' || ARGS[1][0] == '-') {
             if (ARGS[1] == "+conf") {
                 for (size_t i = 0; i < m_config.configuredWidths.size(); ++i) {
