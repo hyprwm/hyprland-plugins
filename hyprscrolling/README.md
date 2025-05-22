@@ -22,3 +22,4 @@ Adds a scrolling layout to Hyprland.
 | move | move the layout horizontally, by either a relative logical px (`-200`, `+200`) or columns (`+col`, `-col`) | move data |
 | colresize | resize the current column, to either a value or by a relative value e.g. `0.5`, `+0.2`, `-0.2` or cycle the preconfigured ones with `+conf` or `-conf` | relative float / relative conf |
 | movewindowto | same as the movewindow dispatcher but supports promotion to the right at the end | direction |
+| fit | executes a fit operation based on the argument. Available: `active`, `visible`, `all`, `toend`, `tobeg` | fit mode |

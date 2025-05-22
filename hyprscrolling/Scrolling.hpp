@@ -31,6 +31,7 @@ struct SColumnData {
     void                                  add(PHLWINDOW w);
     void                                  add(SP<SScrollingWindowData> w);
     void                                  remove(PHLWINDOW w);
+    bool                                  has(PHLWINDOW w);
 
     void                                  up(SP<SScrollingWindowData> w);
     void                                  down(SP<SScrollingWindowData> w);
@@ -62,6 +63,7 @@ struct SWorkspaceData {
     SP<SColumnData>              prev(SP<SColumnData> c);
     SP<SColumnData>              atCenter();
 
+    bool                         visible(SP<SColumnData> c);
     void                         centerCol(SP<SColumnData> c);
 
     void                         recalculate();

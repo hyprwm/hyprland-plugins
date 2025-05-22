@@ -1,5 +1,7 @@
 #include "Scrolling.hpp"
 
+#include <algorithm>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
@@ -92,6 +94,10 @@ SP<SScrollingWindowData> SColumnData::prev(SP<SScrollingWindowData> w) {
     return nullptr;
 }
 
+bool SColumnData::has(PHLWINDOW w) {
+    return std::ranges::find_if(windowDatas, [w](const auto& e) { return e->window == w; }) != windowDatas.end();
+}
+
 SP<SColumnData> SWorkspaceData::add() {
     static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("plugin:hyprscrolling:column_width");
     auto              col       = columns.emplace_back(makeShared<SColumnData>(self.lock()));
@@ -140,14 +146,15 @@ void SWorkspaceData::centerCol(SP<SColumnData> c) {
 
     PHLMONITOR        PMONITOR    = workspace->m_monitor.lock();
     double            currentLeft = 0;
+    const auto        USABLE      = layout->usableAreaFor(PMONITOR);
 
     for (const auto& COL : columns) {
-        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? PMONITOR->m_size.x : PMONITOR->m_size.x * COL->columnWidth;
+        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         if (COL != c)
             currentLeft += ITEM_WIDTH;
         else {
-            leftOffset = -currentLeft + ITEM_WIDTH / 2.0;
+            leftOffset = currentLeft - (USABLE.w - ITEM_WIDTH) / 2.F;
             return;
         }
     }
@@ -158,9 +165,10 @@ SP<SColumnData> SWorkspaceData::atCenter() {
 
     PHLMONITOR        PMONITOR    = workspace->m_monitor.lock();
     double            currentLeft = leftOffset;
+    const auto        USABLE      = layout->usableAreaFor(PMONITOR);
 
     for (const auto& COL : columns) {
-        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? PMONITOR->m_size.x : PMONITOR->m_size.x * COL->columnWidth;
+        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         currentLeft += ITEM_WIDTH;
 
@@ -179,22 +187,24 @@ void SWorkspaceData::recalculate() {
         return;
     }
 
-    leftOffset = std::clamp((double)leftOffset, -maxWidth(), 0.0);
+    leftOffset = std::clamp((double)leftOffset, 0.0, maxWidth());
 
-    const auto MAX_WIDTH = maxWidth();
+    const auto   MAX_WIDTH = maxWidth();
 
-    PHLMONITOR PMONITOR = workspace->m_monitor.lock();
+    PHLMONITOR   PMONITOR = workspace->m_monitor.lock();
 
-    const CBox USABLE = layout->usableAreaFor(PMONITOR);
+    const CBox   USABLE = layout->usableAreaFor(PMONITOR);
 
-    double     currentLeft = MAX_WIDTH < USABLE.w ? std::round((USABLE.w - MAX_WIDTH) / 2.0) : leftOffset; // layout pixels
+    double       currentLeft = 0;
+    const double cameraLeft  = MAX_WIDTH < USABLE.w ? std::round((MAX_WIDTH - USABLE.w) / 2.0) : leftOffset; // layout pixels
 
     for (const auto& COL : columns) {
         double       currentTop = 0.0;
         const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         for (const auto& WINDOW : COL->windowDatas) {
-            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft);
+            WINDOW->layoutBox =
+                CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft + Vector2D{-cameraLeft, 0.0});
 
             currentTop += WINDOW->windowSize * USABLE.h;
 
@@ -210,14 +220,29 @@ double SWorkspaceData::maxWidth() {
 
     PHLMONITOR        PMONITOR    = workspace->m_monitor.lock();
     double            currentLeft = 0;
+    const auto        USABLE      = layout->usableAreaFor(PMONITOR);
 
     for (const auto& COL : columns) {
-        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? PMONITOR->m_size.x : PMONITOR->m_size.x * COL->columnWidth;
+        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         currentLeft += ITEM_WIDTH;
     }
 
     return currentLeft;
+}
+
+bool SWorkspaceData::visible(SP<SColumnData> c) {
+    const auto USABLE    = layout->usableAreaFor(workspace->m_monitor.lock());
+    float      totalLeft = 0;
+    for (const auto& col : columns) {
+        if (col == c)
+            return (totalLeft >= leftOffset && totalLeft < leftOffset + USABLE.w) ||
+                (totalLeft + col->columnWidth * USABLE.w >= leftOffset && totalLeft + col->columnWidth * USABLE.w < leftOffset + USABLE.w);
+
+        totalLeft += col->columnWidth * USABLE.w;
+    }
+
+    return false;
 }
 
 void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool force) {
@@ -613,7 +638,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             const auto COL = DATA->next(WDATA->column.lock());
             if (!COL) {
                 // move to max
-                DATA->leftOffset = -DATA->maxWidth();
+                DATA->leftOffset = DATA->maxWidth();
                 DATA->recalculate();
                 g_pCompositor->focusWindow(nullptr);
                 return {};
@@ -716,6 +741,145 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         WDATA->column->workspace->recalculate();
     } else if (ARGS[0] == "movewindowto") {
         moveWindowTo(g_pCompositor->m_lastWindow.lock(), ARGS[1], false);
+    } else if (ARGS[0] == "fit") {
+
+        if (ARGS[1] == "active") {
+            // fit the current column to 1.F
+            const auto WDATA    = dataFor(g_pCompositor->m_lastWindow.lock());
+            const auto WORKDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+
+            if (!WDATA || !WORKDATA || WORKDATA->columns.size() == 0)
+                return {};
+
+            const auto USABLE = usableAreaFor(WORKDATA->workspace->m_monitor.lock());
+
+            WDATA->column->columnWidth = 1.F;
+
+            WORKDATA->leftOffset = 0;
+            for (size_t i = 0; i < WORKDATA->columns.size(); ++i) {
+                if (WORKDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                    break;
+
+                WORKDATA->leftOffset += USABLE.w * WORKDATA->columns[i]->columnWidth;
+            }
+
+            WDATA->column->workspace->recalculate();
+        } else if (ARGS[1] == "all") {
+            // fit all columns on screen
+            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+
+            if (!WDATA || WDATA->columns.size() == 0)
+                return {};
+
+            const size_t LEN = WDATA->columns.size();
+            for (const auto& c : WDATA->columns) {
+                c->columnWidth = 1.F / (float)LEN;
+            }
+
+            WDATA->recalculate();
+        } else if (ARGS[1] == "toend") {
+            // fit all columns on screen that start from the current and end on the last
+            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+
+            if (!WDATA || WDATA->columns.size() == 0)
+                return {};
+
+            bool   begun   = false;
+            size_t foundAt = 0;
+            for (size_t i = 0; i < WDATA->columns.size(); ++i) {
+                if (!begun && !WDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                    continue;
+
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
+
+                WDATA->columns[i]->columnWidth = 1.F / (float)(WDATA->columns.size() - i);
+            }
+
+            if (!begun)
+                return {};
+
+            const auto USABLE = usableAreaFor(WDATA->workspace->m_monitor.lock());
+
+            WDATA->leftOffset = 0;
+            for (size_t i = 0; i < foundAt; ++i) {
+                WDATA->leftOffset += USABLE.w * WDATA->columns[i]->columnWidth;
+            }
+
+            WDATA->recalculate();
+        } else if (ARGS[1] == "tobeg") {
+            // fit all columns on screen that start from the current and end on the last
+            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+
+            if (!WDATA || WDATA->columns.size() == 0)
+                return {};
+
+            bool   begun   = false;
+            size_t foundAt = 0;
+            for (int64_t i = (int64_t)WDATA->columns.size() - 1; i >= 0; --i) {
+                if (!begun && !WDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                    continue;
+
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
+
+                WDATA->columns[i]->columnWidth = 1.F / (float)(foundAt + 1);
+            }
+
+            if (!begun)
+                return {};
+
+            WDATA->leftOffset = 0;
+
+            WDATA->recalculate();
+        } else if (ARGS[1] == "visible") {
+            // fit all columns on screen that start from the current and end on the last
+            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+
+            if (!WDATA || WDATA->columns.size() == 0)
+                return {};
+
+            bool                         begun   = false;
+            size_t                       foundAt = 0;
+            std::vector<SP<SColumnData>> visible;
+            for (size_t i = 0; i < WDATA->columns.size(); ++i) {
+                if (!begun && !WDATA->visible(WDATA->columns[i]))
+                    continue;
+
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
+
+                if (!WDATA->visible(WDATA->columns[i]))
+                    break;
+
+                visible.emplace_back(WDATA->columns[i]);
+            }
+
+            if (!begun)
+                return {};
+
+            WDATA->leftOffset = 0;
+
+            if (foundAt != 0) {
+                const auto USABLE = usableAreaFor(WDATA->workspace->m_monitor.lock());
+
+                for (size_t i = 0; i < foundAt; ++i) {
+                    WDATA->leftOffset += USABLE.w * WDATA->columns[i]->columnWidth;
+                }
+            }
+
+            for (const auto& v : visible) {
+                v->columnWidth = 1.F / (float)visible.size();
+            }
+
+            WDATA->recalculate();
+        }
     }
 
     return {};
