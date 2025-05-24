@@ -927,6 +927,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
                 g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
                 WDATA->column->workspace->centerCol(PREV);
+                WDATA->column->workspace->recalculate();
                 break;
             }
 
@@ -937,6 +938,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
                 g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
                 WDATA->column->workspace->centerCol(NEXT);
+                WDATA->column->workspace->recalculate();
                 break;
             }
 
