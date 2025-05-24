@@ -1030,6 +1030,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
 
         DATA->column->remove(w);
         COL->add(DATA);
+        WS->centerCol(COL);
     } else if (dir == "r") {
         const auto COL = WS->next(DATA->column.lock());
 
@@ -1039,8 +1040,11 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             // make a new one
             const auto NEWCOL = WS->add();
             NEWCOL->add(DATA);
-        } else
+            WS->centerCol(NEWCOL);
+        } else {
             COL->add(DATA);
+            WS->centerCol(COL);
+        }
 
     } else if (dir == "t" || dir == "u")
         DATA->column->up(DATA);
