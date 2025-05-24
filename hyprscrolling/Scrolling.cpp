@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -106,6 +107,24 @@ SP<SColumnData> SWorkspaceData::add() {
     return col;
 }
 
+SP<SColumnData> SWorkspaceData::add(size_t after) {
+    static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("plugin:hyprscrolling:column_width");
+    auto              col       = makeShared<SColumnData>(self.lock());
+    col->self                   = col;
+    col->columnWidth            = *PCOLWIDTH;
+    columns.insert(columns.begin() + after + 1, col);
+    return col;
+}
+
+int64_t SWorkspaceData::idx(SP<SColumnData> c) {
+    for (size_t i = 0; i < columns.size(); ++i) {
+        if (columns[i] == c)
+            return i;
+    }
+
+    return -1;
+}
+
 void SWorkspaceData::remove(SP<SColumnData> c) {
     std::erase(columns, c);
 }
@@ -155,6 +174,28 @@ void SWorkspaceData::centerCol(SP<SColumnData> c) {
             currentLeft += ITEM_WIDTH;
         else {
             leftOffset = currentLeft - (USABLE.w - ITEM_WIDTH) / 2.F;
+            return;
+        }
+    }
+}
+
+void SWorkspaceData::fitCol(SP<SColumnData> c) {
+    if (!c)
+        return;
+
+    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
+
+    PHLMONITOR        PMONITOR    = workspace->m_monitor.lock();
+    double            currentLeft = 0;
+    const auto        USABLE      = layout->usableAreaFor(PMONITOR);
+
+    for (const auto& COL : columns) {
+        const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
+
+        if (COL != c)
+            currentLeft += ITEM_WIDTH;
+        else {
+            leftOffset = std::clamp((double)leftOffset, currentLeft - USABLE.w + ITEM_WIDTH, currentLeft);
             return;
         }
     }
@@ -409,26 +450,31 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
         workspaceData->self = workspaceData;
     }
 
-    const auto                     PLASTFOCUS      = g_pCompositor->m_lastWindow.lock();
-    const SP<SScrollingWindowData> LAST_FOCUS_DATA = PLASTFOCUS ? dataFor(PLASTFOCUS) : nullptr;
-    const auto                     PMONITOR        = window->m_monitor;
+    auto droppingOn = g_pCompositor->m_lastWindow.lock();
 
-    bool                           addNewColumn = !PLASTFOCUS || !LAST_FOCUS_DATA || PLASTFOCUS->m_workspace != window->m_workspace || workspaceData->columns.size() <= 1;
+    if (droppingOn == window)
+        droppingOn = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
 
-    if (!addNewColumn && PMONITOR) {
-        if (workspaceData->atCenter() == nullptr)
-            addNewColumn = true;
-    }
+    SP<SScrollingWindowData> droppingData   = droppingOn ? dataFor(droppingOn) : nullptr;
+    SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
 
-    Debug::log(LOG, "[scrolling] new window {:x}, addNewColumn: {}, columns before: {}", (uintptr_t)window.get(), addNewColumn, workspaceData->columns.size());
+    Debug::log(LOG, "[scrolling] new window {:x}, droppingColumn: {:x}, columns before: {}", (uintptr_t)window.get(), (uintptr_t)droppingColumn.get(),
+               workspaceData->columns.size());
 
-    if (addNewColumn) {
+    if (!droppingColumn) {
         auto col = workspaceData->add();
         col->add(window);
+        workspaceData->fitCol(col);
     } else {
-        // LAST_FOCUS_DATA has to be valid
-        auto col = LAST_FOCUS_DATA->column;
-        col->add(window);
+        if (window->m_draggingTiled) {
+            droppingColumn->add(window);
+            workspaceData->fitCol(droppingColumn);
+        } else {
+            auto idx = workspaceData->idx(droppingColumn);
+            auto col = idx == -1 ? workspaceData->add() : workspaceData->add(idx);
+            col->add(window);
+            workspaceData->fitCol(col);
+        }
     }
 
     workspaceData->recalculate();

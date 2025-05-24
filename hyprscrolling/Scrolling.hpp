@@ -57,6 +57,8 @@ struct SWorkspaceData {
     int                          leftOffset = 0;
 
     SP<SColumnData>              add();
+    SP<SColumnData>              add(size_t after);
+    int64_t                      idx(SP<SColumnData> c);
     void                         remove(SP<SColumnData> c);
     double                       maxWidth();
     SP<SColumnData>              next(SP<SColumnData> c);
@@ -65,6 +67,7 @@ struct SWorkspaceData {
 
     bool                         visible(SP<SColumnData> c);
     void                         centerCol(SP<SColumnData> c);
+    void                         fitCol(SP<SColumnData> c);
 
     void                         recalculate();
 
