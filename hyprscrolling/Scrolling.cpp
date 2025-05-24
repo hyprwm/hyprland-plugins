@@ -746,6 +746,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 c->columnWidth = abs;
             }
 
+            WDATA->column->workspace->recalculate();
             return {};
         }
 
@@ -763,6 +764,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     break;
                 }
 
+                WDATA->column->workspace->recalculate();
                 return {};
             } else if (ARGS[1] == "-conf") {
                 for (size_t i = m_config.configuredWidths.size() - 1; i >= 0; --i) {
@@ -777,6 +779,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     break;
                 }
 
+                WDATA->column->workspace->recalculate();
                 return {};
             }
 
