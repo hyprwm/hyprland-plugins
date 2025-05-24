@@ -24,3 +24,4 @@ Adds a scrolling layout to Hyprland.
 | movewindowto | same as the movewindow dispatcher but supports promotion to the right at the end | direction |
 | fit | executes a fit operation based on the argument. Available: `active`, `visible`, `all`, `toend`, `tobeg` | fit mode |
 | focus | moves the focus and centers the layout, while also wrapping instead of moving to neighbring monitors. | direction |
+| promote | moves a window to its own new column | none |

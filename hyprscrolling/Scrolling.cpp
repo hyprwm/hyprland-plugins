@@ -990,6 +990,18 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             default: return {};
         }
+    } else if (ARGS[0] == "promote") {
+        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+
+        if (!WDATA)
+            return {};
+
+        auto idx = WDATA->column->workspace->idx(WDATA->column.lock());
+        auto col = idx == -1 ? WDATA->column->workspace->add() : WDATA->column->workspace->add(idx);
+
+        WDATA->column->remove(WDATA->window.lock());
+
+        col->add(WDATA);
     }
 
     return {};
