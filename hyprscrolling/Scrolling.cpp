@@ -4,6 +4,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -486,7 +487,17 @@ void CScrollingLayout::onWindowRemovedTiling(PHLWINDOW window) {
     if (!DATA)
         return;
 
+    if (!DATA->column->workspace->next(DATA->column.lock())) {
+        // move the view if this is the last column
+        const auto USABLE = usableAreaFor(window->m_monitor.lock());
+        DATA->column->workspace->leftOffset -= USABLE.w * DATA->column->columnWidth;
+    }
+
+    const auto WS = DATA->column->workspace.lock();
+
     DATA->column->remove(window);
+
+    WS->recalculate();
 }
 
 bool CScrollingLayout::isWindowTiled(PHLWINDOW window) {
