@@ -56,6 +56,32 @@ this:
 }
 ```
 
+If you don't use Home Manager:
+
+```nix
+{ lib, pkgs, inputs, ... }:
+with lib; let
+  hyprPluginPkgs = inputs.hyprland-plugins.packages.${pkgs.system};
+  hypr-plugin-dir = pkgs.symlinkJoin {
+    name = "hyrpland-plugins";
+    paths = with hyprPluginPkgs; [
+      hyprexpo
+      #...plugins
+    ];
+  };
+in
+{
+  environment.sessionVariables = { HYPR_PLUGIN_DIR = hypr-plugin-dir; };
+}
+```
+
+And in `hyprland.conf`
+
+```hyprlang
+# load all the plugins you installed
+exec-once = hyprctl plugin load "$HYPR_PLUGIN_DIR/lib/libhyprexpo.so"
+```
+
 # Contributing
 
 Feel free to open issues and MRs with fixes.
