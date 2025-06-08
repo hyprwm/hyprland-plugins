@@ -504,7 +504,7 @@ void CScrollingLayout::onWindowRemovedTiling(PHLWINDOW window) {
     if (!DATA->column) {
         // column got removed, let's ensure we don't leave any cringe extra space
         const auto USABLE = usableAreaFor(window->m_monitor.lock());
-        WS->leftOffset    = std::clamp((double)WS->leftOffset, 0.0, WS->maxWidth() - USABLE.w);
+        WS->leftOffset    = std::clamp((double)WS->leftOffset, 0.0, std::max(WS->maxWidth() - USABLE.w, 1.0));
     }
 }
 
