@@ -10,7 +10,9 @@
 #include <hyprland/src/render/Renderer.hpp>
 
 #include <hyprutils/string/ConstVarList.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Utils;
 
 constexpr float MIN_COLUMN_WIDTH = 0.05F;
 constexpr float MAX_COLUMN_WIDTH = 1.F;
@@ -761,6 +763,12 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             return {};
         }
 
+        CScopeGuard x([WDATA] {
+            WDATA->column->columnWidth = std::clamp(WDATA->column->columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
+            WDATA->column->workspace->fitCol(WDATA->column.lock());
+            WDATA->column->workspace->recalculate();
+        });
+
         if (ARGS[1][0] == '+' || ARGS[1][0] == '-') {
             if (ARGS[1] == "+conf") {
                 for (size_t i = 0; i < m_config.configuredWidths.size(); ++i) {
@@ -775,7 +783,6 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     break;
                 }
 
-                WDATA->column->workspace->recalculate();
                 return {};
             } else if (ARGS[1] == "-conf") {
                 for (size_t i = m_config.configuredWidths.size() - 1; i >= 0; --i) {
@@ -790,7 +797,6 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     break;
                 }
 
-                WDATA->column->workspace->recalculate();
                 return {};
             }
 
@@ -808,10 +814,6 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             WDATA->column->columnWidth = abs;
         }
-
-        WDATA->column->columnWidth = std::clamp(WDATA->column->columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
-
-        WDATA->column->workspace->recalculate();
     } else if (ARGS[0] == "movewindowto") {
         moveWindowTo(g_pCompositor->m_lastWindow.lock(), ARGS[1], false);
     } else if (ARGS[0] == "fit") {
