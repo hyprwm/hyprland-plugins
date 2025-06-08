@@ -13,6 +13,7 @@ Adds a scrolling layout to Hyprland.
 | fullscreen_on_one_column | if there's only one column, should it be fullscreen | bool | false |
 | column_width | default column width as a fraction of the monitor width | float [0 - 1] | 0.5 |
 | explicit_column_widths | a comma-separated list of widths for columns to be used with `+conf` or `-conf` | string | `0.333, 0.5, 0.667, 1.0` |
+| focus_fit_method | when a column is focused, what method to use to bring it into view. 0 - center, 1 - fit | int | 0 |
 
 
 ## Layout messages

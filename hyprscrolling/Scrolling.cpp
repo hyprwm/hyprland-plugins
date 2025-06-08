@@ -689,6 +689,14 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
 }
 
 std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
+    static auto centerOrFit = [](const SP<SWorkspaceData> WS, const SP<SColumnData> COL) -> void {
+        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
+        if (*PFITMETHOD == 1)
+            WS->fitCol(COL);
+        else
+            WS->centerCol(COL);
+    };
+
     const auto ARGS = CVarList(message, 0, ' ');
     if (ARGS[0] == "move") {
         const auto DATA = currentWorkspaceData();
@@ -709,7 +717,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 return {};
             }
 
-            DATA->centerCol(COL);
+            centerOrFit(DATA, COL);
             DATA->recalculate();
 
             g_pCompositor->focusWindow(COL->windowDatas.front()->window.lock());
@@ -730,7 +738,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             const auto COL = DATA->prev(WDATA->column.lock());
             if (!COL)
                 return {};
-            DATA->centerCol(COL);
+
+            centerOrFit(DATA, COL);
             DATA->recalculate();
 
             g_pCompositor->focusWindow(COL->windowDatas.back()->window.lock());
@@ -994,7 +1003,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     PREV = WDATA->column->workspace->columns.back();
 
                 g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
-                WDATA->column->workspace->centerCol(PREV);
+                centerOrFit(WDATA->column->workspace.lock(), PREV);
                 WDATA->column->workspace->recalculate();
                 break;
             }
@@ -1005,7 +1014,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     NEXT = WDATA->column->workspace->columns.front();
 
                 g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
-                WDATA->column->workspace->centerCol(NEXT);
+                centerOrFit(WDATA->column->workspace.lock(), NEXT);
                 WDATA->column->workspace->recalculate();
                 break;
             }
