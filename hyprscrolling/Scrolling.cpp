@@ -489,17 +489,23 @@ void CScrollingLayout::onWindowRemovedTiling(PHLWINDOW window) {
     if (!DATA)
         return;
 
-    if (!DATA->column->workspace->next(DATA->column.lock())) {
+    const auto WS = DATA->column->workspace.lock();
+
+    if (!WS->next(DATA->column.lock())) {
         // move the view if this is the last column
         const auto USABLE = usableAreaFor(window->m_monitor.lock());
-        DATA->column->workspace->leftOffset -= USABLE.w * DATA->column->columnWidth;
+        WS->leftOffset -= USABLE.w * DATA->column->columnWidth;
     }
-
-    const auto WS = DATA->column->workspace.lock();
 
     DATA->column->remove(window);
 
     WS->recalculate();
+
+    if (!DATA->column) {
+        // column got removed, let's ensure we don't leave any cringe extra space
+        const auto USABLE = usableAreaFor(window->m_monitor.lock());
+        WS->leftOffset    = std::clamp((double)WS->leftOffset, 0.0, WS->maxWidth() - USABLE.w);
+    }
 }
 
 bool CScrollingLayout::isWindowTiled(PHLWINDOW window) {
