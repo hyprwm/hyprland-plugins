@@ -214,6 +214,16 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     touchDownHook   = g_pHookSystem->hookDynamic("touchDown", onCursorSelect);
 }
 
+void COverview::selectHoveredWorkspace() {
+    if (closing)
+        return;
+
+    // get tile x,y
+    int x = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
+    int y = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
+    closeOnID = x + y * SIDE_LENGTH;
+}
+
 void COverview::redrawID(int id, bool forcelowres) {
     if (pMonitor->m_activeWorkspace != startedOn && !closing) {
         // likely user changed.

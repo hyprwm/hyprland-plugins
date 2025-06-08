@@ -6,7 +6,7 @@ Overview plugin like gnome kde or wf.
 
 ```ini
 
-bind = SUPER, grave, hyprexpo:expo, toggle # can be: toggle, off/disable or on/enable
+bind = SUPER, grave, hyprexpo:expo, toggle # can be: toggle, select, off/disable or on/enable
 
 plugin {
     hyprexpo {
