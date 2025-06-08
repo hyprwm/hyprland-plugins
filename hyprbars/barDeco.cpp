@@ -95,14 +95,18 @@ bool CHyprBar::inputIsValid() {
 
     // check if input is on top or overlay shell layers
     auto PMONITOR                  = g_pCompositor->m_lastMonitor.lock();
-    PHLLS foundOverlayLayerSurface = nullptr;
-    PHLLS foundTopLayerSurface     = nullptr;
+    PHLLS foundSurface             = nullptr;
     Vector2D surfaceCoords;
 
-    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &foundOverlayLayerSurface);
-    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &foundTopLayerSurface);
+    // check top layer
+    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &foundSurface);
 
-    if (foundOverlayLayerSurface || foundTopLayerSurface)
+    if (foundSurface)
+        return false;
+    // check overlay layer
+    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &foundSurface);
+
+    if (foundSurface)
         return false;
 
     return true;
