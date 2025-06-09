@@ -130,6 +130,13 @@ static void onExpoDispatcher(std::string arg) {
 
     if (swipeActive)
         return;
+    if (arg == "select") { 
+        if (g_pOverview) {
+            g_pOverview->selectHoveredWorkspace();
+            g_pOverview->close();
+        }
+        return;
+    }
     if (arg == "toggle") {
         if (g_pOverview)
             g_pOverview->close();

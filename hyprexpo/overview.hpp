@@ -30,6 +30,7 @@ class COverview {
 
     // close without a selection
     void          close();
+    void          selectHoveredWorkspace();
 
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
