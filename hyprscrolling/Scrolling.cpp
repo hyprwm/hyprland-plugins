@@ -1162,12 +1162,13 @@ void CScrollingLayout::swap(PHLWINDOW w, const std::string &dir) {
     if(it != wds->columns.end())
     {
       auto i = std::distance(wds->columns.begin(), it);
-      if(i >= 0)
+      if(i >= 0 && i + offset < wds->columns.size())
       {
-        Debug::log(ERR,"i = {} offset = {} size = {}", i,offset,wds->columns.size());
+        // maybe focus the swapped out window? who knows.
+        //g_pCompositor->focusWindow(wds->columns[i+offset]->windowDatas.front()->window.lock());
         std::swap(wds->columns[i], wds->columns[i+offset]);
+        wds->centerCol(wds->columns[i+offset]);
+        wds->recalculate();
       }
-      wds->recalculate();
-      g_pCompositor->focusWindow(wd->window.lock());
   }
 }
