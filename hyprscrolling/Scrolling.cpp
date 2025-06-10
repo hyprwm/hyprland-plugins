@@ -97,6 +97,15 @@ SP<SScrollingWindowData> SColumnData::prev(SP<SScrollingWindowData> w) {
 
     return nullptr;
 }
+void SColumnData::swap(SP<SScrollingWindowData> w) {
+  auto it = std::find(windowDatas.begin(), windowDatas.end(), w);
+  if(it != windowDatas.end())
+  {
+    auto i = std::distance(windowDatas.begin(), it);
+    if(i > 0)
+      std::swap(windowDatas[i], windowDatas[i-1]);
+  }
+}
 
 bool SColumnData::has(PHLWINDOW w) {
     return std::ranges::find_if(windowDatas, [w](const auto& e) { return e->window == w; }) != windowDatas.end();
@@ -1033,6 +1042,9 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         WDATA->column->remove(WDATA->window.lock());
 
         col->add(WDATA);
+    } else if (ARGS[0] == "swapleft") {
+      auto w = dataFor(g_pCompositor->m_lastWindow.lock());
+      w->column->swap(w);
     }
 
     return {};

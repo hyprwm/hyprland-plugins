@@ -38,6 +38,7 @@ struct SColumnData {
 
     SP<SScrollingWindowData>              next(SP<SScrollingWindowData> w);
     SP<SScrollingWindowData>              prev(SP<SScrollingWindowData> w);
+    void                                  swap(SP<SScrollingWindowData> w);
 
     std::vector<SP<SScrollingWindowData>> windowDatas;
     float                                 columnSize  = 1.F;
