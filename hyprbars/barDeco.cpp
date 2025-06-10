@@ -9,6 +9,7 @@
 #include <hyprland/src/managers/LayoutManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/managers/AnimationManager.hpp>
+#include <hyprland/src/protocols/LayerShell.hpp>
 #include <pango/pangocairo.h>
 
 #include "globals.hpp"
@@ -90,6 +91,22 @@ bool CHyprBar::inputIsValid() {
     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
     if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_lastWindow)
+        return false;
+
+    // check if input is on top or overlay shell layers
+    auto PMONITOR                  = g_pCompositor->m_lastMonitor.lock();
+    PHLLS foundSurface             = nullptr;
+    Vector2D surfaceCoords;
+
+    // check top layer
+    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &foundSurface);
+
+    if (foundSurface)
+        return false;
+    // check overlay layer
+    g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &foundSurface);
+
+    if (foundSurface)
         return false;
 
     return true;
