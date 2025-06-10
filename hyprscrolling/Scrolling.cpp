@@ -97,15 +97,6 @@ SP<SScrollingWindowData> SColumnData::prev(SP<SScrollingWindowData> w) {
 
     return nullptr;
 }
-void SColumnData::swap(SP<SScrollingWindowData> w) {
-  auto it = std::find(windowDatas.begin(), windowDatas.end(), w);
-  if(it != windowDatas.end())
-  {
-    auto i = std::distance(windowDatas.begin(), it);
-    if(i > 0)
-      std::swap(windowDatas[i], windowDatas[i-1]);
-  }
-}
 
 bool SColumnData::has(PHLWINDOW w) {
     return std::ranges::find_if(windowDatas, [w](const auto& e) { return e->window == w; }) != windowDatas.end();
@@ -789,7 +780,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         CScopeGuard x([WDATA] {
             WDATA->column->columnWidth = std::clamp(WDATA->column->columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
-            WDATA->column->workspace->fitCol(WDATA->column.lock());
+WDATA->column->workspace->fitCol(WDATA->column.lock());
             WDATA->column->workspace->recalculate();
         });
 
@@ -1042,9 +1033,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         WDATA->column->remove(WDATA->window.lock());
 
         col->add(WDATA);
-    } else if (ARGS[0] == "swapleft") {
-      auto w = dataFor(g_pCompositor->m_lastWindow.lock());
-      w->column->swap(w);
+    } else if (ARGS[0] == "swap") {
+        swap(g_pCompositor->m_lastWindow.lock(),ARGS[1]);
     }
 
     return {};
@@ -1156,4 +1146,28 @@ SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
 
 CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
     return CBox{m->m_reservedTopLeft, m->m_size - m->m_reservedTopLeft - m->m_reservedBottomRight};
+}
+
+void CScrollingLayout::swap(PHLWINDOW w, const std::string &dir) {
+    auto wd = dataFor(w);
+    auto wds = wd->column->workspace.lock();
+    auto it = std::find(wds->columns.begin(), wds->columns.end(), wd->column);
+    int offset = 0;
+    if(dir == "l")
+      offset -= 1;
+    else if (dir == "r")
+      offset += 1;
+    else
+      return;
+    if(it != wds->columns.end())
+    {
+      auto i = std::distance(wds->columns.begin(), it);
+      if(i >= 0)
+      {
+        Debug::log(ERR,"i = {} offset = {} size = {}", i,offset,wds->columns.size());
+        std::swap(wds->columns[i], wds->columns[i+offset]);
+      }
+      wds->recalculate();
+      g_pCompositor->focusWindow(wd->window.lock());
+  }
 }

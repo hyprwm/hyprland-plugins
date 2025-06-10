@@ -38,7 +38,6 @@ struct SColumnData {
 
     SP<SScrollingWindowData>              next(SP<SScrollingWindowData> w);
     SP<SScrollingWindowData>              prev(SP<SScrollingWindowData> w);
-    void                                  swap(SP<SScrollingWindowData> w);
 
     std::vector<SP<SScrollingWindowData>> windowDatas;
     float                                 columnSize  = 1.F;
@@ -112,6 +111,7 @@ class CScrollingLayout : public IHyprLayout {
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
+    void                     swap(PHLWINDOW w, const std::string& dir);
 
     void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
 
