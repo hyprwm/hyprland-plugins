@@ -7,6 +7,25 @@ This repo houses official plugins for Hyprland.
 > hyprland-plugins follows hyprland-git and requires you to be on hyprland-git
 > or tagged >= v0.33.1.
 
+To install these plugins, first 
+```bash
+hyprpm update
+```
+Then add this repository:
+
+```bash
+hyprpm add https://github.com/hyprwm/hyprland-plugins
+```
+
+then enable the desired plugin with
+```bash
+hyprpm enable <plugin-name>
+```
+
+See the respective README's in the subdirectories for configuration options.
+
+See [the plugins wiki](https://wiki.hyprland.org/Plugins/Using-Plugins/#installing--using-plugins) and `hyprpm -h` for more details.
+
 # Plugin list
  - borders-plus-plus -> adds one or two additional borders to windows
  - csgo-vulkan-fix -> fixes custom resolutions on CS:GO with `-vulkan`
@@ -17,7 +36,7 @@ This repo houses official plugins for Hyprland.
  - hyprwinwrap -> clone of xwinwrap, allows you to put any app as a wallpaper
  - xtra-dispatchers -> adds some new dispatchers
 
-# Nix
+## Installation on Nix
 
 To use these plugins, it's recommended that you are already using the
 [Hyprland flake](https://github.com/hyprwm/Hyprland).
