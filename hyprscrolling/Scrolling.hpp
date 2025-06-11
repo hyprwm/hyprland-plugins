@@ -103,6 +103,8 @@ class CScrollingLayout : public IHyprLayout {
     void                             move(SP<SWorkspaceData> ws, std::string arg);
     void                             colresize(SP<SWorkspaceData> ws, Hyprutils::String::CVarList args);
     void                             fit(Hyprutils::String::CVarList args);
+    void                             focus(const std::string &arg);
+    void                             promote();
     CBox                             usableAreaFor(PHLMONITOR m);
 
   private:
@@ -121,7 +123,7 @@ class CScrollingLayout : public IHyprLayout {
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
-    void                     swap(PHLWINDOW w, const std::string& dir);
+    void                     swap(const std::string& dir);
 
     void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
 

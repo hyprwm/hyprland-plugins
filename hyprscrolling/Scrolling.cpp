@@ -882,6 +882,61 @@ void CScrollingLayout::colresize(SP<SWorkspaceData> ws, CVarList args) {
   ws->recalculate();
 }
 
+void CScrollingLayout::focus(const std::string &arg)
+{
+  const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
+  if (!w || arg.empty())
+    return;
+  switch (arg[0]) {
+    case 'u':
+    case 't': {
+      auto PREV = w->column->prev(w);
+      if (!PREV)
+        PREV = w->column->windowDatas.back();
+      g_pCompositor->focusWindow(PREV->window.lock());
+      break;
+    }
+    case 'b':
+    case 'd': {
+      auto NEXT = w->column->next(w);
+      if (!NEXT)
+        NEXT = w->column->windowDatas.front();
+      g_pCompositor->focusWindow(NEXT->window.lock());
+      break;
+    }
+    case 'l': {
+      auto PREV = w->column->workspace->prev(w->column.lock());
+      if (!PREV)
+        PREV = w->column->workspace->columns.back();
+      g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
+      centerOrFit(w->column->workspace.lock(), PREV);
+      w->column->workspace->recalculate();
+      break;
+    }
+    case 'r': {
+      auto NEXT = w->column->workspace->next(w->column.lock());
+      if (!NEXT)
+        NEXT = w->column->workspace->columns.front();
+      g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
+      centerOrFit(w->column->workspace.lock(), NEXT);
+      w->column->workspace->recalculate();
+      break;
+    }
+    default: return;
+  }
+}
+
+void CScrollingLayout::promote()
+{
+  const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
+  if (!w)
+    return;
+  auto idx = w->column->workspace->idx(w->column.lock());
+  auto col = idx == -1 ? w->column->workspace->add() : w->column->workspace->add(idx);
+  w->column->remove(w->window.lock());
+  col->add(w);
+}
+
 std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
   const auto args = CVarList(message, 0, 's');
 
@@ -892,89 +947,16 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
   ELIF_CHAIN("move", move(currentWorkspaceData(), args[1]))
   ELIF_CHAIN("colresize", colresize(currentWorkspaceData(), args))
-  ELIF_CHAIN("moveWindowto", moveWindowTo(g_pCompositor->m_lastWindow.lock(), args[1], false))
+  ELIF_CHAIN("movewindowto", moveWindowTo(g_pCompositor->m_lastWindow.lock(), args[1], false))
   ELIF_CHAIN("fit", fit(args))
-  /*ELIF_CHAIN("move", move())
-  ELIF_CHAIN("move", move())
-  ELIF_CHAIN("move", move())*/
+  ELIF_CHAIN("focus", focus(args[1]))
+  ELIF_CHAIN("promote", promote())
+  ELIF_CHAIN("swap", swap(args[1]))
   {
     // note: never forget the default... this to way to long to find..
   }
-
 #undef ELIF_CHAIN
-
-  auto ARGS = args;
- 
-
-    if (ARGS[0] == "focus") {
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
-
-        if (!WDATA || ARGS[1].empty())
-            return {};
-
-        switch (ARGS[1][0]) {
-            case 'u':
-            case 't': {
-                auto PREV = WDATA->column->prev(WDATA);
-                if (!PREV)
-                    PREV = WDATA->column->windowDatas.back();
-
-                g_pCompositor->focusWindow(PREV->window.lock());
-                break;
-            }
-
-            case 'b':
-            case 'd': {
-                auto NEXT = WDATA->column->next(WDATA);
-                if (!NEXT)
-                    NEXT = WDATA->column->windowDatas.front();
-
-                g_pCompositor->focusWindow(NEXT->window.lock());
-                break;
-            }
-
-            case 'l': {
-                auto PREV = WDATA->column->workspace->prev(WDATA->column.lock());
-                if (!PREV)
-                    PREV = WDATA->column->workspace->columns.back();
-
-                g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
-                centerOrFit(WDATA->column->workspace.lock(), PREV);
-                WDATA->column->workspace->recalculate();
-                break;
-            }
-
-            case 'r': {
-                auto NEXT = WDATA->column->workspace->next(WDATA->column.lock());
-                if (!NEXT)
-                    NEXT = WDATA->column->workspace->columns.front();
-
-                g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
-                centerOrFit(WDATA->column->workspace.lock(), NEXT);
-                WDATA->column->workspace->recalculate();
-                break;
-            }
-
-            default: return {};
-        }
-    } else if (ARGS[0] == "promote") {
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
-
-        if (!WDATA)
-            return {};
-
-        auto idx = WDATA->column->workspace->idx(WDATA->column.lock());
-        auto col = idx == -1 ? WDATA->column->workspace->add() : WDATA->column->workspace->add(idx);
-
-        WDATA->column->remove(WDATA->window.lock());
-
-        col->add(WDATA);
-    } else if (ARGS[0] == "swap") {
-        swap(g_pCompositor->m_lastWindow.lock(),ARGS[1]);
-        return {};
-    }
-
-    return {};
+  return {};
 }
 
 SWindowRenderLayoutHints CScrollingLayout::requestRenderHints(PHLWINDOW a) {
@@ -1085,14 +1067,11 @@ CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
     return CBox{m->m_reservedTopLeft, m->m_size - m->m_reservedTopLeft - m->m_reservedBottomRight};
 }
 
-void CScrollingLayout::swap(PHLWINDOW w, const std::string &dir) {
-    auto wd = dataFor(w);
-    if(!wd || wd->column->windowDatas.size() == 0)
-      return;
+void CScrollingLayout::swap(const std::string &dir) {
+    auto wd = dataFor(g_pCompositor->m_lastWindow.lock());
     auto wds = dataFor(g_pCompositor->m_lastMonitor->m_activeWorkspace);
-    if(!wds)
+    if(!wd || wd->column->windowDatas.size() == 0 || !wds)
       return;
-    auto it = std::find(wds->columns.begin(), wds->columns.end(), wd->column);
     int offset = 0;
     if(dir == "l")
       offset -= 1;
@@ -1100,6 +1079,8 @@ void CScrollingLayout::swap(PHLWINDOW w, const std::string &dir) {
       offset += 1;
     else
       return;
+
+    auto it = std::find(wds->columns.begin(), wds->columns.end(), wd->column);
     if(it != wds->columns.end())
     {
       auto i = std::distance(wds->columns.begin(), it);
