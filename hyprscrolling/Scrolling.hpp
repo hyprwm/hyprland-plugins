@@ -4,6 +4,8 @@
 #include <hyprland/src/layout/IHyprLayout.hpp>
 #include <hyprland/src/helpers/memory/Memory.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
+#include <hyprland/src/config/ConfigValue.hpp>
+#include <hyprutils/string/VarList.hpp>
 
 class CScrollingLayout;
 struct SColumnData;
@@ -96,7 +98,11 @@ class CScrollingLayout : public IHyprLayout {
 
     virtual void                     onEnable();
     virtual void                     onDisable();
-
+    void                             loadConfig();
+    void                             centerOrFit(const SP<SWorkspaceData> ws, const SP<SColumnData> col);
+    void                             move(SP<SWorkspaceData> ws, std::string arg);
+    void                             colresize(SP<SWorkspaceData> ws, Hyprutils::String::CVarList args);
+    void                             fit(Hyprutils::String::CVarList args);
     CBox                             usableAreaFor(PHLMONITOR m);
 
   private:
@@ -105,7 +111,11 @@ class CScrollingLayout : public IHyprLayout {
     SP<HOOK_CALLBACK_FN>            m_configCallback;
 
     struct {
+        float column_width;
         std::vector<float> configuredWidths;
+        int focus_fit_method;
+        bool fullscreen_on_one;
+        float special_scale_factor;
     } m_config;
 
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
