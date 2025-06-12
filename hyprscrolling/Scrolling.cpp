@@ -985,7 +985,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
   ELIF_CHAIN("fit", fit(message.substr(message.find(' ') + 1)))
   ELIF_CHAIN("focus", focus(args[1]))
   ELIF_CHAIN("promote", promote())
-  ELIF_CHAIN("swap", swap(args[1]))
+  ELIF_CHAIN("swapcol", swap(args[1]))
   {
     // note: never forget the default... this took way to long to find..
   }

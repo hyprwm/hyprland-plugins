@@ -14,7 +14,7 @@ Adds a scrolling layout to Hyprland.
 | column_width | default column width as a fraction of the monitor width | float [0 - 1] | 0.5 |
 | explicit_column_widths | a comma-separated list of widths for columns to be used with `+conf` or `-conf` | string | `0.333, 0.5, 0.667, 1.0` |
 | focus_fit_method | when a column is focused, what method to use to bring it into view. 0 - center, 1 - fit | int | 0 |
-
+| center_on_focus | always keep the currently focused window in the center | bool | false |
 
 ## Layout messages
 
@@ -26,3 +26,10 @@ Adds a scrolling layout to Hyprland.
 | fit | executes a fit operation based on the argument. Available: `active`, `visible`, `all`, `toend`, `tobeg` | fit mode |
 | focus | moves the focus and centers the layout, while also wrapping instead of moving to neighbring monitors. | direction |
 | promote | moves a window to its own new column | none |
+| swapcol | swap the current column with a neighbor. `l`/`r`| direction |
+
+## With dispatchers
+`hyprctl dispatch colresize +conf`
+
+## With bindings
+`bind = SUPER, left, focus, l`
