@@ -95,22 +95,29 @@ class CScrollingLayout : public IHyprLayout {
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to);
     virtual Vector2D                 predictSizeForNewWindowTiled();
+    virtual void                     moveActiveWindow(const Vector2D&, PHLWINDOW w);
 
     virtual void                     onEnable();
     virtual void                     onDisable();
+    virtual void                     onWindowFocusChange(PHLWINDOW w);
+
+
     void                             loadConfig();
     void                             centerOrFit(const SP<SWorkspaceData> ws, const SP<SColumnData> col);
-    void                             move(SP<SWorkspaceData> ws, std::string arg);
-    void                             colresize(SP<SWorkspaceData> ws, Hyprutils::String::CVarList args);
-    void                             fit(Hyprutils::String::CVarList args);
-    void                             focus(const std::string &arg);
-    void                             promote();
     CBox                             usableAreaFor(PHLMONITOR m);
+
+    SDispatchResult                  move(const std::string &arg);
+    SDispatchResult                  colresize(const std::string &args);
+    SDispatchResult                  fit(const std::string &args);
+    SDispatchResult                  focus(const std::string &arg);
+    SDispatchResult                  promote();
+    SDispatchResult                  swap(const std::string& dir);
 
   private:
     std::vector<SP<SWorkspaceData>> m_workspaceDatas;
 
     SP<HOOK_CALLBACK_FN>            m_configCallback;
+    SP<HOOK_CALLBACK_FN>            m_activewindowCB;
 
     struct {
         float column_width;
@@ -118,12 +125,12 @@ class CScrollingLayout : public IHyprLayout {
         int focus_fit_method;
         bool fullscreen_on_one;
         float special_scale_factor;
+        int center_on_focus;
     } m_config;
 
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
-    void                     swap(const std::string& dir);
 
     void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
 

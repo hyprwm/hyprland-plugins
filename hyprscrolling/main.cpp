@@ -47,7 +47,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprscrolling:column_width", Hyprlang::FLOAT{0.5F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprscrolling:focus_fit_method", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprscrolling:explicit_column_widths", Hyprlang::STRING{"0.333, 0.5, 0.667, 1.0"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprscrolling:center_on_focus", Hyprlang::INT{0});
     HyprlandAPI::addLayout(PHANDLE, "scrolling", g_pScrollingLayout.get());
+
+    HyprlandAPI::addDispatcherV2(PHANDLE, "move", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->move(args); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "fit", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->fit(args); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "focus", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->focus(args); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "colresize", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->colresize(args); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "swapcol", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->swap(args); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "promote", [](const std::string& args) -> SDispatchResult { return g_pScrollingLayout->promote(); });
 
         if (success) HyprlandAPI::addNotification(PHANDLE, "[hyprscrolling] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
     else {
@@ -60,5 +68,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     HyprlandAPI::removeLayout(PHANDLE, g_pScrollingLayout.get());
+    HyprlandAPI::removeDispatcher(PHANDLE, "move");
+    HyprlandAPI::removeDispatcher(PHANDLE, "fit");
+    HyprlandAPI::removeDispatcher(PHANDLE, "focus");
+    HyprlandAPI::removeDispatcher(PHANDLE, "colresize");
+    HyprlandAPI::removeDispatcher(PHANDLE, "swapcol");
+    HyprlandAPI::removeDispatcher(PHANDLE, "promote");
     g_pScrollingLayout.reset();
 }

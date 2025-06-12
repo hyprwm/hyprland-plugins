@@ -419,7 +419,9 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
 void CScrollingLayout::onEnable() {
   m_configCallback = g_pHookSystem->hookDynamic("configReloaded", 
       [this](void* handle, SCallbackInfo& info, std::any param) { this->loadConfig(); });
+  
   loadConfig();
+
   for (auto const& w : g_pCompositor->m_windows) {
     if (w->m_isFloating || !w->m_isMapped || w->isHidden())
       continue;
@@ -437,6 +439,7 @@ void CScrollingLayout::loadConfig() {
   m_config.focus_fit_method = *CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
   m_config.special_scale_factor = *CConfigValue<Hyprlang::FLOAT>("dwindle:special_scale_factor");
   m_config.fullscreen_on_one = (*CConfigValue<Hyprlang::STRING>("plugin:hyprscrolling:fullscreen_on_one_column") == "true");
+  m_config.center_on_focus = *CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:center_on_focus");
   static const auto PCONFWIDTHS = CConfigValue<Hyprlang::STRING>("plugin:hyprscrolling:explicit_column_widths");
   CConstVarList widths(*PCONFWIDTHS, 0, ',');
   for (auto& w : widths) {
@@ -698,16 +701,17 @@ void CScrollingLayout::centerOrFit(const SP<SWorkspaceData> ws, const SP<SColumn
   }
 }
 
-void CScrollingLayout::move(SP<SWorkspaceData> ws, std::string arg)
+SDispatchResult CScrollingLayout::move(const std::string& arg)
 {
+  const auto ws = currentWorkspaceData();
   if (!ws)
-    return;
+    return{ .success = false, .error = "Unable to find workspace"};
 
   const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
   PHLWINDOW focus = nullptr;
   if (arg == "+col" || arg == "col") {
     if(!w)
-      return;
+      return { .success = false, .error = "Failed to find window"};
     const auto col = ws->next(w->column.lock());
     if (!col) {
       ws->leftOffset = ws->maxWidth();
@@ -724,7 +728,7 @@ void CScrollingLayout::move(SP<SWorkspaceData> ws, std::string arg)
     } else {
       const auto col = ws->prev(w->column.lock());
       if (!col)
-        return;
+        return { .success = false, .error = "Failed to find column"};
       centerOrFit(ws, col);
       focus = col->windowDatas.back()->window.lock();
     }
@@ -732,21 +736,23 @@ void CScrollingLayout::move(SP<SWorkspaceData> ws, std::string arg)
   else {
     const auto PLUSMINUS = getPlusMinusKeywordResult(arg, 0);
     if (!PLUSMINUS.has_value())
-      return;
+      return { .success = false, .error = "Invalid value"};
     ws->leftOffset -= *PLUSMINUS;
     auto col = ws->atCenter(); 
     focus = (col ? (*col->windowDatas.begin())->window.lock() : nullptr);
   }
   ws->recalculate();
   g_pCompositor->focusWindow(focus);
+  return {};
 }
 
-void CScrollingLayout::fit(CVarList args) {
+SDispatchResult CScrollingLayout::fit(const std::string &str) {
   const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
-  const auto ws = dataFor(w->window->m_workspace);
+  const auto ws = w->column->workspace;
+  const auto args = CVarList(str, 0, 's');
   if (!w || !ws || ws->columns.size() == 0)
-    return;
-  if (args[1] == "active") {
+    return { .success = false, .error = "Invalid window or workspace" };
+  if (args[0] == "active") {
     const auto USABLE = usableAreaFor(ws->workspace->m_monitor.lock());
     w->column->columnWidth = 1.F;
     ws->leftOffset = 0;
@@ -756,14 +762,14 @@ void CScrollingLayout::fit(CVarList args) {
       ws->leftOffset += USABLE.w * ws->columns[i]->columnWidth;
     }
     w->column->workspace->recalculate();
-  } else if (args[1] == "all") {
+  } else if (args[0] == "all") {
     // fit all columns on screen
     const size_t LEN = ws->columns.size();
     for (const auto& c : ws->columns) {
       c->columnWidth = 1.F / (float)LEN;
     }
     ws->recalculate();
-  } else if (args[1] == "toend") {
+  } else if (args[0] == "toend") {
     // fit all columns on screen that start from the current and end on the last
     bool   begun   = false;
     size_t foundAt = 0;
@@ -777,7 +783,7 @@ void CScrollingLayout::fit(CVarList args) {
       ws->columns[i]->columnWidth = 1.F / (float)(ws->columns.size() - i);
     }
     if (!begun)
-      return;
+      return { .success = false, .error = "Failed to find column on workspace" };
     
     const auto USABLE = usableAreaFor(ws->workspace->m_monitor.lock());
     ws->leftOffset = 0;
@@ -785,7 +791,7 @@ void CScrollingLayout::fit(CVarList args) {
       ws->leftOffset += USABLE.w * ws->columns[i]->columnWidth;
     }
     ws->recalculate();
-  } else if (args[1] == "tobeg") {
+  } else if (args[0] == "tobeg") {
     // fit all columns on screen that start from the current and end on the last
     bool begun   = false;
     size_t foundAt = 0;
@@ -799,10 +805,10 @@ void CScrollingLayout::fit(CVarList args) {
       ws->columns[i]->columnWidth = 1.F / (float)(foundAt + 1);
     }
     if (!begun)
-      return;
+      return { .success = false, .error = "Failed to find column on workspace" };
     ws->leftOffset = 0;
     ws->recalculate();
-  } else if (args[1] == "visible") {
+  } else if (args[0] == "visible") {
     // fit all columns on screen that start from the current and end on the last
     bool    begun   = false;
     size_t  foundAt = 0;
@@ -819,7 +825,7 @@ void CScrollingLayout::fit(CVarList args) {
       visible.emplace_back(ws->columns[i]);
     }
     if (!begun)
-      return;
+      return { .success = false, .error = "Failed to find any visible columns on workspace" };
     ws->leftOffset = 0;
     if (foundAt != 0) {
       const auto USABLE = usableAreaFor(ws->workspace->m_monitor.lock());
@@ -832,16 +838,21 @@ void CScrollingLayout::fit(CVarList args) {
     }
     ws->recalculate();
   }
+  return {};
 }
 
-void CScrollingLayout::colresize(SP<SWorkspaceData> ws, CVarList args) {
+SDispatchResult CScrollingLayout::colresize(const std::string& str) {
   const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
+  const auto ws = w->column->workspace;
+  const auto args = CVarList(str, 0, 's');
+  Debug::log(ERR, "args : {} , args[0] : {} , args[0][0] : {}", str, args[0], args[0][0]);
+  float width = 0.0;
   if (!ws)
-    return;
-  if (args[1] == "all") {
+    return { .success = false, .error = "Unable to find workspace"};
+  if (args[0] == "all") {
     float abs = 0;
-    try { abs = std::stof(args[2]); }
-    catch (...) { return; }
+    try { abs = std::stof(args[1]); }
+    catch (...) { return { .success = false, .error = "Invalid value"}; }
     for (const auto& col : ws->columns) {
       col->columnWidth = abs;
     }
@@ -852,41 +863,43 @@ void CScrollingLayout::colresize(SP<SWorkspaceData> ws, CVarList args) {
     w->column->workspace->fitCol(w->column.lock());
     w->column->workspace->recalculate();
   });
-  if (args[1][0] == '+' || args[1][0] == '-') {
-    if (args[1] == "+conf") {
+  if (args[0][0] == '+' || args[0][0] == '-') {
+    if (args[0] == "+conf") {
       auto it = std::upper_bound(m_config.configuredWidths.begin(), m_config.configuredWidths.end(), w->column->columnWidth);
-      w->column->columnWidth = (it != m_config.configuredWidths.end()) ? *it : m_config.configuredWidths[0];
-    } else if (args[1] == "-conf") {
+      width = (it != m_config.configuredWidths.end()) ? *it : m_config.configuredWidths[0];
+    } else if (args[0] == "-conf") {
       auto it = std::lower_bound(m_config.configuredWidths.begin(), m_config.configuredWidths.end(), w->column->columnWidth);
-      w->column->columnWidth = (it != m_config.configuredWidths.begin()) ? *(--it) : m_config.configuredWidths.back();
+      width = (it != m_config.configuredWidths.begin()) ? *(--it) : m_config.configuredWidths.back();
     } else {
-      const auto PLUSMINUS = getPlusMinusKeywordResult(args[1], 0);
-      Debug::log(ERR, "Got arg: {} and val: {}",args[1], *PLUSMINUS);
+      const auto PLUSMINUS = getPlusMinusKeywordResult(args[0], 0);
+      Debug::log(ERR, "Got arg: {} and val: {}",args[0], *PLUSMINUS);
       if (!PLUSMINUS.has_value())
-        return;
-      if(*PLUSMINUS > 1)
-      {
-        // TODO calc pixels to % of screen
-      }
-      w->column->columnWidth += *PLUSMINUS;
+        return { .success = false, .error = "Invalid value"};
+      width = w->column->columnWidth + *PLUSMINUS;
     }
   } else {
     float abs = 0;
     try { 
-      abs = std::stof(args[1]);
+      abs = std::stof(args[0]);
     }
-    catch (...) { return; }
-    w->column->columnWidth = abs;
+    catch (...) { return { .success = false, .error = "Invalid value"}; }
+    width = abs;
   }
-  centerOrFit(ws, w->column.lock());
+  if(width > 1.0 || width <= 0)
+  {
+    return { .success = false, .error = "Value larger than 1.0 is not supported at the moment."};
+  }
+  w->column->columnWidth = width;
+  centerOrFit(ws.lock(), w->column.lock());
   ws->recalculate();
+  return {};
 }
 
-void CScrollingLayout::focus(const std::string &arg)
+SDispatchResult CScrollingLayout::focus(const std::string &arg)
 {
   const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
   if (!w || arg.empty())
-    return;
+    return {.success = false, .error = "Invalid window"};
   switch (arg[0]) {
     case 'u':
     case 't': {
@@ -922,49 +935,85 @@ void CScrollingLayout::focus(const std::string &arg)
       w->column->workspace->recalculate();
       break;
     }
-    default: return;
+    default: return {.success = false, .error = "Invalid input. Valid inputs are: u,d,l,r"};
   }
+  return {};
 }
 
-void CScrollingLayout::promote()
+SDispatchResult CScrollingLayout::promote()
 {
   const auto w = dataFor(g_pCompositor->m_lastWindow.lock());
   if (!w)
-    return;
+    return {.success = false, .error = "Unable to find window"};
   auto idx = w->column->workspace->idx(w->column.lock());
   auto col = idx == -1 ? w->column->workspace->add() : w->column->workspace->add(idx);
   w->column->remove(w->window.lock());
   col->add(w);
+  return {};
+}
+
+void CScrollingLayout::onWindowFocusChange(PHLWINDOW w)
+{
+  if (m_config.center_on_focus)
+  {
+    auto wd = dataFor(w);
+    if(!wd || w->m_isFloating)
+      return;
+    wd->column->workspace->centerCol(wd->column.lock());
+    wd->column->workspace->recalculate();
+  }
+  // Maybe?
+  //g_pCompositor->focusWindow(wd.lock());
+}
+void CScrollingLayout::moveActiveWindow(const Vector2D& vec, PHLWINDOW w = nullptr)
+{
+  Debug::log(ERR,"vec: {} {}, w: {}", vec.x, vec.y, w);
 }
 
 std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
   const auto args = CVarList(message, 0, 's');
+  SDispatchResult ret = {};
 
 #define ELIF_CHAIN(str, func_call) \
   if (args[0] == str) { \
-    func_call; \
+    ret = func_call; \
   } else 
 
-  ELIF_CHAIN("move", move(currentWorkspaceData(), args[1]))
-  ELIF_CHAIN("colresize", colresize(currentWorkspaceData(), args))
-  ELIF_CHAIN("movewindowto", moveWindowTo(g_pCompositor->m_lastWindow.lock(), args[1], false))
-  ELIF_CHAIN("fit", fit(args))
+  ELIF_CHAIN("move", move(args[1]))
+  ELIF_CHAIN("colresize", colresize(message.substr(message.find(' ') + 1)))
+//  ELIF_CHAIN("movewindowto", moveWindowTo(g_pCompositor->m_lastWindow.lock(), args[1], false))
+  ELIF_CHAIN("fit", fit(message.substr(message.find(' ') + 1)))
   ELIF_CHAIN("focus", focus(args[1]))
   ELIF_CHAIN("promote", promote())
   ELIF_CHAIN("swap", swap(args[1]))
   {
-    // note: never forget the default... this to way to long to find..
+    // note: never forget the default... this took way to long to find..
   }
 #undef ELIF_CHAIN
-  return {};
+  return ret;
 }
 
 SWindowRenderLayoutHints CScrollingLayout::requestRenderHints(PHLWINDOW a) {
     return {};
 }
 
+/* NOTE: Doesn't work like you'd expect. It switches with the last window focused. So PHLWINDOW b is almost always m_lastWindow*/
 void CScrollingLayout::switchWindows(PHLWINDOW a, PHLWINDOW b) {
-    ;
+  auto w_a = dataFor(a);
+  auto w_b = dataFor(b);
+  auto ws = currentWorkspaceData();
+  if(!w_a || !ws)
+    return;
+  auto col_a = ws->idx(w_a->column.lock());
+  auto col_b = ws->idx(w_b->column.lock());
+
+  if((col_a >= 0 && col_a < ws->columns.size()) && (col_b >= 0 && col_b < ws->columns.size()))
+  {
+    std::swap(ws->columns[col_a], ws->columns[col_b]);
+    g_pCompositor->focusWindow(a);
+    centerOrFit(ws,w_a->column.lock());
+    ws->recalculate();
+  }
 }
 
 void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool silent) {
@@ -1067,30 +1116,31 @@ CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
     return CBox{m->m_reservedTopLeft, m->m_size - m->m_reservedTopLeft - m->m_reservedBottomRight};
 }
 
-void CScrollingLayout::swap(const std::string &dir) {
-    auto wd = dataFor(g_pCompositor->m_lastWindow.lock());
-    auto wds = dataFor(g_pCompositor->m_lastMonitor->m_activeWorkspace);
-    if(!wd || wd->column->windowDatas.size() == 0 || !wds)
-      return;
-    int offset = 0;
-    if(dir == "l")
-      offset -= 1;
-    else if (dir == "r")
-      offset += 1;
-    else
-      return;
+SDispatchResult CScrollingLayout::swap(const std::string &dir) {
+  auto wd = dataFor(g_pCompositor->m_lastWindow.lock());
+  auto wds = dataFor(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+  if(!wd || wd->column->windowDatas.size() == 0 || !wds)
+    return { .success = false, .error = "Failed to find window data"};
+  int offset = 0;
+  if(dir == "l")
+    offset -= 1;
+  else if (dir == "r")
+    offset += 1;
+  else
+    return { .success = false, .error = "Invalid direction"};
 
-    auto it = std::find(wds->columns.begin(), wds->columns.end(), wd->column);
-    if(it != wds->columns.end())
+  auto it = std::find(wds->columns.begin(), wds->columns.end(), wd->column);
+  if(it != wds->columns.end())
+  {
+    auto i = std::distance(wds->columns.begin(), it);
+    if(i >= 0 && i + offset < wds->columns.size())
     {
-      auto i = std::distance(wds->columns.begin(), it);
-      if(i >= 0 && i + offset < wds->columns.size())
-      {
-        // maybe focus the swapped out window? who knows.
-        //g_pCompositor->focusWindow(wds->columns[i+offset]->windowDatas.front()->window.lock());
-        std::swap(wds->columns[i], wds->columns[i+offset]);
-        wds->centerCol(wds->columns[i+offset]);
-        wds->recalculate();
-      }
+      // maybe focus the swapped out window? who knows.
+      //g_pCompositor->focusWindow(wds->columns[i+offset]->windowDatas.front()->window.lock());
+      std::swap(wds->columns[i], wds->columns[i+offset]);
+      wds->centerCol(wds->columns[i+offset]);
+      wds->recalculate();
+    }
   }
+  return {};
 }
