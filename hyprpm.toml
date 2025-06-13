@@ -1,0 +1,102 @@
+[repository]
+name = "hyprland-plugins"
+authors = ["Vaxry"]
+commit_pins = [
+    ["3bb9c7c5cf4f2ee30bf821501499f2308d616f94", "efee74a7404495dbda70205824d6e9fc923ccdae"],
+    ["d74607e414dcd16911089a6d4b6aeb661c880923", "efee74a7404495dbda70205824d6e9fc923ccdae"],
+    ["03ebbe18ed8517ee22591eac82cd54322f42cb7d", "f7853b9cc6aab627b37b7be6575628e788ad6d1d"],
+    ["84ab8d11e8951a6551d1e1bf87796a8589da6d47", "8af29f09c5b132d5087c2931fe9bd34f63923ba1"],
+    ["1c460e98f870676b15871fe4e5bfeb1a32a3d6d8", "f99822818ec8276cfd6ec99ab60c4708c9884e3d"],
+    ["c5e28ebcfe00a510922779b2c568cfa52a317445", "4c9d83b981ad4668b89b8a3dc24d6f3ea7ad08fd"], # 0.37.0
+    ["19c90048d65a5660384d2fb865926a366696d6be", "4c9d83b981ad4668b89b8a3dc24d6f3ea7ad08fd"], # 0.37.1
+    ["3875679755014997776e091ff8903acfb311dd2f", "e45066d0741a1a4b9298a4c5ec43a5e57b059a4e"], # 0.38.0
+    ["360ede79d124ffdeebbe8401f1ac4bc0dbec2c91", "e45066d0741a1a4b9298a4c5ec43a5e57b059a4e"], # 0.38.1
+    ["e93fbd7c4f991cb8ef03e433ccc4d43587923e15", "e9457e08ca3ff16dc5a815be62baf9e18b539197"], # 0.39.0
+    ["fe7b748eb668136dd0558b7c8279bfcd7ab4d759", "e9457e08ca3ff16dc5a815be62baf9e18b539197"], # 0.39.1
+    ["cba1ade848feac44b2eda677503900639581c3f4", "18daf37b7c4e6e51ca2bf8953ce4cff1c38ca725"], # 0.40.0
+    ["ea2501d4556f84d3de86a4ae2f4b22a474555b9f", "8571aa9badf7db9c4911018a5611c038cc776256"], # 0.41.0
+    ["9e781040d9067c2711ec2e9f5b47b76ef70762b3", "8571aa9badf7db9c4911018a5611c038cc776256"], # 0.41.1
+    ["918d8340afd652b011b937d29d5eea0be08467f5", "135de7b88649dbe5fea8c997447bdc9d6f15ad86"], # 0.41.2
+    ["9a09eac79b85c846e3a865a9078a3f8ff65a9259", "4fcb4038f23e5273af9a5684f3ee10b0652b3bab"], # 0.42.0
+    ["0f594732b063a90d44df8c5d402d658f27471dfe", "b73d7b901d8cb1172dd25c7b7159f0242c625a77"], # 0.43.0
+    ["0c7a7e2d569eeed9d6025f3eef4ea0690d90845d", "9215288eb2ded9d0c08d468ea90ba68f43162c67"], # 0.44.0
+    ["4520b30d498daca8079365bdb909a8dea38e8d55", "9215288eb2ded9d0c08d468ea90ba68f43162c67"], # 0.44.1
+    ["a425fbebe4cf4238e48a42f724ef2208959d66cf", "44859f877739c05d031fcab4a2991ec004fa9bc4"], # 0.45.0
+    ["500d2a3580388afc8b620b0a3624147faa34f98b", "344a69db96fa8c6dc3b8f1f8f5a75f6eb441cbf2"], # 0.45.1
+    ["12f9a0d0b93f691d4d9923716557154d74777b0a", "344a69db96fa8c6dc3b8f1f8f5a75f6eb441cbf2"], # 0.45.2
+    ["788ae588979c2a1ff8a660f16e3c502ef5796755", "17ef806444fee729d00b3ba5cb8c623b7fbb699b"], # 0.46.0
+    ["254fc2bc6000075f660b4b8ed818a6af544d1d64", "17ef806444fee729d00b3ba5cb8c623b7fbb699b"], # 0.46.1
+    ["0bd541f2fd902dbfa04c3ea2ccf679395e316887", "17ef806444fee729d00b3ba5cb8c623b7fbb699b"], # 0.46.2
+    ["04ac46c54357278fc68f0a95d26347ea0db99496", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"], # 0.47.0
+    ["75dff7205f6d2bd437abfb4196f700abee92581a", "3e51162d83b0cd9ee35acbd3b91e6d7ba856f5eb"], # 0.47.1
+    ["5ee35f914f921e5696030698e74fb5566a804768", "1f332c09a2382cb23da0f69a6f504f8b33433831"], # 0.48.0
+    ["29e2e59fdbab8ed2cc23a20e3c6043d5decb5cdc", "1f332c09a2382cb23da0f69a6f504f8b33433831"], # 0.48.1
+    ["9958d297641b5c84dcff93f9039d80a5ad37ab00", "c491d2831448645f24a1597a17f564aa52691ac6"]  # 0.49.0
+]
+
+[borders-plus-plus]
+description = "A plugin to add more borders to windows."
+authors = ["Vaxry"]
+output = "borders-plus-plus/borders-plus-plus.so"
+build = [
+    "make -C borders-plus-plus all",
+]
+
+[csgo-vulkan-fix]
+description = "A plugin to fix incorrect mouse offsets on csgo in Vulkan"
+authors = ["Vaxry"]
+output = "csgo-vulkan-fix/csgo-vulkan-fix.so"
+build = [
+    "make -C csgo-vulkan-fix all",
+]
+
+[hyprbars]
+description = "A plugin to add title bars to windows"
+authors = ["Vaxry"]
+output = "hyprbars/hyprbars.so"
+build = [
+    "make -C hyprbars all",
+]
+
+[hyprtrails]
+description = "A plugin to add trails behind moving windows"
+authors = ["Vaxry"]
+output = "hyprtrails/hyprtrails.so"
+build = [
+    "make -C hyprtrails all",
+]
+
+[hyprwinwrap]
+description = "A clone of xwinwrap for Hyprland"
+authors = ["Vaxry"]
+output = "hyprwinwrap/hyprwinwrap.so"
+build = [
+    "make -C hyprwinwrap all",
+]
+
+[hyprexpo]
+description = "A plugin to add expo (overlay) for workspaces"
+authors = ["Vaxry"]
+output = "hyprexpo/hyprexpo.so"
+build = [
+    "make -C hyprexpo all",
+]
+since_hyprland = 4364
+
+[xtra-dispatchers]
+description = "A plugin to add some extra dispatchers"
+authors = ["Vaxry"]
+output = "xtra-dispatchers/xtra-dispatchers.so"
+build = [
+    "make -C xtra-dispatchers all",
+]
+since_hyprland = 5573
+
+[hyprscrolling]
+description = "A plugin to add a scrolling layout"
+authors = ["Vaxry"]
+output = "hyprscrolling/hyprscrolling.so"
+build = [
+    "make -C hyprscrolling all",
+]
+since_hyprland = 6066
