@@ -1033,6 +1033,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         WDATA->column->remove(WDATA->window.lock());
 
         col->add(WDATA);
+
+        WDATA->column->workspace->recalculate();
     }
 
     return {};
