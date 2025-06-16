@@ -34,22 +34,6 @@ commit_pins = [
     ["9958d297641b5c84dcff93f9039d80a5ad37ab00", "c491d2831448645f24a1597a17f564aa52691ac6"]  # 0.49.0
 ]
 
-[borders-plus-plus]
-description = "A plugin to add more borders to windows."
-authors = ["Vaxry"]
-output = "borders-plus-plus/borders-plus-plus.so"
-build = [
-    "make -C borders-plus-plus all",
-]
-
-[csgo-vulkan-fix]
-description = "A plugin to fix incorrect mouse offsets on csgo in Vulkan"
-authors = ["Vaxry"]
-output = "csgo-vulkan-fix/csgo-vulkan-fix.so"
-build = [
-    "make -C csgo-vulkan-fix all",
-]
-
 [hyprbars]
 description = "A plugin to add title bars to windows"
 authors = ["Vaxry"]
@@ -58,45 +42,3 @@ build = [
     "make -C hyprbars all",
 ]
 
-[hyprtrails]
-description = "A plugin to add trails behind moving windows"
-authors = ["Vaxry"]
-output = "hyprtrails/hyprtrails.so"
-build = [
-    "make -C hyprtrails all",
-]
-
-[hyprwinwrap]
-description = "A clone of xwinwrap for Hyprland"
-authors = ["Vaxry"]
-output = "hyprwinwrap/hyprwinwrap.so"
-build = [
-    "make -C hyprwinwrap all",
-]
-
-[hyprexpo]
-description = "A plugin to add expo (overlay) for workspaces"
-authors = ["Vaxry"]
-output = "hyprexpo/hyprexpo.so"
-build = [
-    "make -C hyprexpo all",
-]
-since_hyprland = 4364
-
-[xtra-dispatchers]
-description = "A plugin to add some extra dispatchers"
-authors = ["Vaxry"]
-output = "xtra-dispatchers/xtra-dispatchers.so"
-build = [
-    "make -C xtra-dispatchers all",
-]
-since_hyprland = 5573
-
-[hyprscrolling]
-description = "A plugin to add a scrolling layout"
-authors = ["Vaxry"]
-output = "hyprscrolling/hyprscrolling.so"
-build = [
-    "make -C hyprscrolling all",
-]
-since_hyprland = 6066
