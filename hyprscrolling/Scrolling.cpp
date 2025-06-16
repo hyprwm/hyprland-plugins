@@ -223,7 +223,7 @@ SP<SColumnData> SWorkspaceData::atCenter() {
     return nullptr;
 }
 
-void SWorkspaceData::recalculate() {
+void SWorkspaceData::recalculate(bool forceInstant) {
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
     if (!workspace || !workspace) {
@@ -252,7 +252,7 @@ void SWorkspaceData::recalculate() {
 
             currentTop += WINDOW->windowSize * USABLE.h;
 
-            layout->applyNodeDataToWindow(WINDOW, false);
+            layout->applyNodeDataToWindow(WINDOW, forceInstant);
         }
 
         currentLeft += ITEM_WIDTH;
@@ -634,7 +634,7 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
         }
     }
 
-    DATA->column->workspace->recalculate();
+    DATA->column->workspace->recalculate(true);
 }
 
 void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) {
@@ -1033,6 +1033,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         WDATA->column->remove(WDATA->window.lock());
 
         col->add(WDATA);
+
+        WDATA->column->workspace->recalculate();
     }
 
     return {};

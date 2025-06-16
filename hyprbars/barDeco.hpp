@@ -8,6 +8,7 @@
 #include <hyprland/src/devices/ITouch.hpp>
 #include <hyprland/src/desktop/WindowRule.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
+#include <hyprland/src/helpers/time/Time.hpp>
 #include "globals.hpp"
 
 #define private public
@@ -64,6 +65,8 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                      m_bWindowHasFocus    = false;
     std::optional<CHyprColor> m_bForcedBarColor;
     std::optional<CHyprColor> m_bForcedTitleColor;
+
+    Time::steady_tp           m_lastMouseDown = Time::steadyNow();
 
     PHLANIMVAR<CHyprColor>    m_cRealBarColor;
 

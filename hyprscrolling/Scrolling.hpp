@@ -69,7 +69,7 @@ struct SWorkspaceData {
     void                         centerCol(SP<SColumnData> c);
     void                         fitCol(SP<SColumnData> c);
 
-    void                         recalculate();
+    void                         recalculate(bool forceInstant = false);
 
     CScrollingLayout*            layout = nullptr;
     WP<SWorkspaceData>           self;
@@ -112,7 +112,7 @@ class CScrollingLayout : public IHyprLayout {
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
 
-    void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool force);
+    void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool instant);
 
     friend struct SWorkspaceData;
 };
