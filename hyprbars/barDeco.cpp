@@ -380,7 +380,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
     const int xOffset = std::string{*PALIGN} == "left" ? std::round(scaledBarPadding + (BUTTONSRIGHT ? 0 : scaledButtonsSize)) :
                                                          std::round(((bufferSize.x - scaledBorderSize) / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
-    const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
+    const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0 - scaledBorderSize / 2.0));
 
     cairo_move_to(CAIRO, xOffset, yOffset);
     pango_cairo_show_layout(CAIRO, layout);
@@ -435,6 +435,10 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
+    const auto         PWINDOW = m_pWindow.lock();
+    const auto         BORDERSIZE = PWINDOW->getRealBorderSize();
+    const auto         scaledBorderSize = BORDERSIZE * scale;
+    
     // clear the pixmap
     cairo_save(CAIRO);
     cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
@@ -448,7 +452,7 @@ void CHyprBar::renderBarButtons(const Vector2D& bufferSize, const float scale) {
         const auto  scaledButtonSize = button.size * scale;
         const auto  scaledButtonsPad = **PBARBUTTONPADDING * scale;
 
-        const auto  pos = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0, bufferSize.y / 2.0}.floor();
+        const auto  pos = Vector2D{BUTTONSRIGHT ? bufferSize.x - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0, bufferSize.y / 2.0 - scaledBorderSize / 2.0}.floor();
 
         cairo_set_source_rgba(CAIRO, button.bgcol.r, button.bgcol.g, button.bgcol.b, button.bgcol.a);
         cairo_arc(CAIRO, pos.x, pos.y, scaledButtonSize / 2, 0, 2 * M_PI);
@@ -489,7 +493,11 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 
     int                offset        = **PBARPADDING * scale;
     float              noScaleOffset = **PBARPADDING;
-
+    
+    const auto         PWINDOW = m_pWindow.lock();
+    const auto         BORDERSIZE = PWINDOW->getRealBorderSize();
+    const auto         scaledBorderSize = BORDERSIZE * scale;
+    
     for (size_t i = 0; i < visibleCount; ++i) {
         auto&      button           = g_pGlobalState->buttons[i];
         const auto scaledButtonSize = button.size * scale;
@@ -498,7 +506,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         // check if hovering here
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, **PHEIGHT};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - **PBARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
-        bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + **PBARBUTTONPADDING, currentPos.y + button.size);
+        bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + **PBARBUTTONPADDING, currentPos.y + button.size - scaledBorderSize / 2.0);
         noScaleOffset += **PBARBUTTONPADDING + button.size;
 
         if (button.iconTex->m_texID == 0 /* icon is not rendered */ && !button.icon.empty()) {
@@ -512,7 +520,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         if (button.iconTex->m_texID == 0)
             continue;
 
-        CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
+        CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0 - scaledBorderSize / 2.0, scaledButtonSize,
                     scaledButtonSize};
 
         if (!**PICONONHOVER || (**PICONONHOVER && m_iButtonHoverState > 0))
