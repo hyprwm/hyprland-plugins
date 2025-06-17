@@ -55,6 +55,8 @@ plugin {
 
 `icon_on_hover` -> (bool) whether the icons show on mouse hovering over the buttons (default `false`)
 
+`inactive_button_color` -> (col) buttons bg color when window isn't focused
+
 `on_double_click` -> (str) command to run on double click of the bar (not on a button)
 
 ## Buttons Config
