@@ -100,3 +100,12 @@ build = [
     "make -C hyprscrolling all",
 ]
 since_hyprland = 6066
+
+[hyprfocus]
+description = "Flashfocus for Hyprland"
+authors = ["Vaxry"]
+output = "hyprfocus/hyprfocus.so"
+build = [
+    "make -C hyprfocus all",
+]
+since_hyprland = 6066
