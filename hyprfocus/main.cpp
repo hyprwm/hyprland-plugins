@@ -33,6 +33,13 @@ static void onFocusChange(PHLWINDOW window) {
     if (!window)
         return;
 
+    static PHLWINDOWREF lastWindow;
+
+    if (lastWindow == window)
+        return;
+
+    lastWindow = window;
+
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
     static const auto PBOUNCE  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:bounce_strength");
     static const auto PSLIDE   = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:slide_height");
