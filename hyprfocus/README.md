@@ -19,4 +19,4 @@ animation = hyprfocusOut, 1, 1.7, myCurve2
 |mode|which mode to use (flash / bounce / slide) | str | flash |
 | fade_opacity | for flash, what opacity to flash to | float | 0.8 |
 | bounce_strength | for bounce, what fraction of the window's size to jump to | float | 0.95 |
-| slide_height | for slice, how far up to slide | float | 20 |
+| slide_height | for slide, how far up to slide | float | 20 |
