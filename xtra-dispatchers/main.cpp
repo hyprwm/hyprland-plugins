@@ -104,7 +104,7 @@ static SDispatchResult closeUnfocused(std::string in) {
         return SDispatchResult{.success = false, .error = "No focused monitor"};
 
     for (const auto& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != g_pCompositor->m_lastMonitor->m_activeWorkspace || w->m_monitor != g_pCompositor->m_lastMonitor || !w->m_isMapped)
+        if (w->m_workspace != g_pCompositor->m_lastMonitor->m_activeWorkspace || w->m_monitor != g_pCompositor->m_lastMonitor || !w->m_isMapped || w == g_pCompositor->m_lastWindow)
             continue;
 
         g_pCompositor->closeWindow(w);
