@@ -1,10 +1,12 @@
-# hyprexpo
-
-Overview plugin like gnome kde or wf.
-
+# HyprExpo
+HyprExpo is an overview plugin like Gnome, KDE or wf.
+  
+![HyprExpo](https://github.com/user-attachments/assets/e89df9d2-9800-4268-9929-239ad9bc3a54)
+  
 ## Config
-A great start to configure this plugin would be this code:  
+A great start to configure this plugin would be adding this code to the `plugin` section of your hyprland configuration file:  
 ```ini
+# .config/hypr/hyprland.conf
 plugin {
     hyprexpo {
         columns = 3
@@ -36,8 +38,15 @@ gesture_positive | boolean | whether to swipe down (true), or up (false) | `true
 ### Binding
 ```bash
 # hyprland.conf
-bind = SUPER, grave, hyprexpo:expo, OPTION
+bind = MODIFIER, KEY, hyprexpo:expo, OPTION
 ```
+
+Example:  
+```bash
+# This will toggle HyprExpo when SUPER+g is pressed
+bind = SUPER, g, hyprexpo:expo, toggle
+```
+
 Here are a list of options you can use:  
 | option | description |
 | --- | --- |
