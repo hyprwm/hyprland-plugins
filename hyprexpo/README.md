@@ -30,7 +30,7 @@ columns | number | how many desktops are displayed on one line | `3`
 gap_size | number | gap between desktops | `5`
 bg_col | color | color in gaps (between desktops) | `rgb(000000)`
 workspace_method | [center/first] [workspace] | position of the desktops | `center current`
-enable_gesture | boolean | enable touchp[ad gestures | `true`
+enable_gesture | boolean | enable touchpad gestures | `true`
 gesture_fingers | `3` or `4` | how many fingers are needed in the gesture | `3`
 gesture_distance | number | how far is the max | `300`
 gesture_positive | boolean | whether to swipe down (true), or up (false) | `true`
