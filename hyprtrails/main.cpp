@@ -85,14 +85,13 @@ int onTick(void* data) {
 void initGlobal() {
     g_pHyprRenderer->makeEGLCurrent();
 
-    GLuint prog                           = CreateProgram(QUADTRAIL, FRAGTRAIL);
-    g_pGlobalState->trailShader.program   = prog;
-    g_pGlobalState->trailShader.proj      = glGetUniformLocation(prog, "proj");
-    g_pGlobalState->trailShader.tex       = glGetUniformLocation(prog, "tex");
-    g_pGlobalState->trailShader.color     = glGetUniformLocation(prog, "color");
-    g_pGlobalState->trailShader.texAttrib = glGetAttribLocation(prog, "colors");
-    g_pGlobalState->trailShader.posAttrib = glGetAttribLocation(prog, "pos");
-    g_pGlobalState->trailShader.gradient  = glGetUniformLocation(prog, "snapshots");
+    GLuint prog                                                     = CreateProgram(QUADTRAIL, FRAGTRAIL);
+    g_pGlobalState->trailShader.program                             = prog;
+    g_pGlobalState->trailShader.uniformLocations[SHADER_PROJ]       = glGetUniformLocation(prog, "proj");
+    g_pGlobalState->trailShader.uniformLocations[SHADER_TEX]        = glGetUniformLocation(prog, "tex");
+    g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR]      = glGetUniformLocation(prog, "color");
+    g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
+    g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT]   = glGetUniformLocation(prog, "snapshots");
 
     g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, &onTick, nullptr);
     wl_event_source_timer_update(g_pGlobalState->tick, 1);

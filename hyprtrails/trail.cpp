@@ -94,7 +94,7 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
 }
 
 void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
-    const auto PWINDOW = m_pWindow.lock();
+    const auto         PWINDOW = m_pWindow.lock();
 
     static auto* const PBEZIERSTEP    = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:bezier_step")->getDataStaticPtr();
     static auto* const PPOINTSPERSTEP = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:points_per_step")->getDataStaticPtr();
@@ -114,7 +114,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
-    glEnable(GL_STENCIL_TEST);
+    g_pHyprOpenGL->setCapStatus(GL_STENCIL_TEST, true);
 
     glStencilFunc(GL_ALWAYS, 1, -1);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -135,12 +135,8 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     glUseProgram(g_pGlobalState->trailShader.program);
 
-#ifndef GLES2
-    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
     glMatrix.transpose();
-    glUniformMatrix3fv(g_pGlobalState->trailShader.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
+    g_pGlobalState->trailShader.setUniformMatrix3fv(SHADER_PROJ, 1, GL_FALSE, glMatrix.getMatrix());
 
     std::vector<point2>   points;
     std::vector<Vector2D> bezierPts;
@@ -193,7 +189,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     if (pointsForBezier.size() < 3) {
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
-        glDisable(GL_STENCIL_TEST);
+        g_pHyprOpenGL->setCapStatus(GL_STENCIL_TEST, false);
 
         glStencilMask(-1);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -246,20 +242,20 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    box thisboxopengl = box{(PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x,
-                            (PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y,
-                            (PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x,
-                            (PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y};
-    glUniform4f(g_pGlobalState->trailShader.gradient, thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
-    glUniform4f(g_pGlobalState->trailShader.color, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
+    box thisboxopengl =
+        box{(PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x, (PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y,
+            (PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x,
+            (PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y};
+    glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
+    glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR], COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     CBox transformedBox = monbox;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(g_pHyprOpenGL->m_renderData.pMonitor->m_transform)), g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x,
                              g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y);
 
-    glVertexAttribPointer(g_pGlobalState->trailShader.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
+    glVertexAttribPointer(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
 
-    glEnableVertexAttribArray(g_pGlobalState->trailShader.posAttrib);
+    glEnableVertexAttribArray(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB]);
 
     if (g_pHyprOpenGL->m_renderData.clipBox.width != 0 && g_pHyprOpenGL->m_renderData.clipBox.height != 0) {
         CRegion damageClip{g_pHyprOpenGL->m_renderData.clipBox.x, g_pHyprOpenGL->m_renderData.clipBox.y, g_pHyprOpenGL->m_renderData.clipBox.width,
@@ -279,11 +275,11 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    glDisableVertexAttribArray(g_pGlobalState->trailShader.posAttrib);
+    glDisableVertexAttribArray(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB]);
 
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
-    glDisable(GL_STENCIL_TEST);
+    g_pHyprOpenGL->setCapStatus(GL_STENCIL_TEST, false);
 
     glStencilMask(-1);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
