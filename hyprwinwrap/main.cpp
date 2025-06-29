@@ -35,8 +35,15 @@ std::vector<PHLWINDOWREF> bgWindows;
 //
 void onNewWindow(PHLWINDOW pWindow) {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
+    static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
 
-    if (pWindow->m_initialClass != *PCLASS)
+    const std::string classRule(*PCLASS);
+    const std::string titleRule(*PTITLE);
+
+    const bool classMatches = !classRule.empty() && pWindow->m_initialClass == classRule;
+    const bool titleMatches = !titleRule.empty() && pWindow->m_title == titleRule;
+
+    if (!classMatches && !titleMatches)
         return;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
@@ -49,9 +56,9 @@ void onNewWindow(PHLWINDOW pWindow) {
 
     pWindow->m_realSize->setValueAndWarp(PMONITOR->m_size);
     pWindow->m_realPosition->setValueAndWarp(PMONITOR->m_position);
-    pWindow->m_size     = PMONITOR->m_size;
-    pWindow->m_position = PMONITOR->m_position;
-    pWindow->m_pinned   = true;
+    pWindow->m_size      = PMONITOR->m_size;
+    pWindow->m_position  = PMONITOR->m_position;
+    pWindow->m_pinned    = true;
     pWindow->sendWindowSize(true);
 
     bgWindows.push_back(pWindow);
@@ -126,8 +133,18 @@ void onCommit(void* owner, void* data) {
 
 void onConfigReloaded() {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
-    g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + *PCLASS + ")$");
-    g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + *PCLASS + ")$");
+    const std::string classRule(*PCLASS);
+    if (!classRule.empty()) {
+        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + classRule + ")$");
+        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + classRule + ")$");
+    }
+
+    static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
+    const std::string titleRule(*PTITLE);
+    if (!titleRule.empty()) {
+        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, title:^("} + titleRule + ")$");
+        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, title:^("} + titleRule + ")$");
+    }
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -169,7 +186,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("hyprwinwrap: hooks failed");
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", Hyprlang::STRING{"kitty-bg"});
-
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:title", Hyprlang::STRING{""});
+    
     HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"hyprwinwrap", "A clone of xwinwrap for Hyprland", "Vaxry", "1.0"};
@@ -178,3 +196,4 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 APICALL EXPORT void PLUGIN_EXIT() {
     ;
 }
+
