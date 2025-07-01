@@ -8,6 +8,8 @@ plugin {
     hyprwinwrap {
         # class is an EXACT match and NOT a regex!
         class = kitty-bg
+        # you can also use title
+        title = kitty-bg
     }
 }
 
