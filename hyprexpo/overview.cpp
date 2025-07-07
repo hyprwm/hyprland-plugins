@@ -33,6 +33,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static auto* const* PCOLUMNS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
     static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gap_size")->getDataStaticPtr();
     static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
+    static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
     static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
 
     SIDE_LENGTH = **PCOLUMNS;
@@ -54,14 +55,25 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
+    // r includes empty workspaces; m skips over them
+    std::string selector = **PSKIP ? "m" : "r";
+
     if (methodCenter) {
         int currentID = methodStartID;
         int firstID   = currentID;
 
         int backtracked = 0;
 
+        // Initialize tiles to WORKSPACE_INVALID; cliking one of these results
+        // in changing to "emptynm" (next empty workspace). Tiles with this id
+        // will only remain if skip_empty is on.
+        for (size_t i = 0; i < images.size(); i++) {
+            images[i].workspaceID = WORKSPACE_INVALID;
+        }
+
+        // Scan through workspaces lower than methodStartID until we wrap; count how many
         for (size_t i = 1; i < images.size() / 2; ++i) {
-            currentID = getWorkspaceIDNameFromString("r-" + std::to_string(i)).id;
+            currentID = getWorkspaceIDNameFromString(selector + "-" + std::to_string(i)).id;
             if (currentID >= firstID)
                 break;
 
@@ -69,12 +81,21 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             firstID = currentID;
         }
 
+        // Scan through workspaces higher than methodStartID. If using "m"
+        // (skip_empty), stop when we wrap, leaving the rest of the workspace
+        // ID's set to WORKSPACE_INVALID
         for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
             auto& image = images[i];
-            currentID =
-                getWorkspaceIDNameFromString("r" + ((int64_t)i - backtracked < 0 ? std::to_string((int64_t)i - backtracked) : "+" + std::to_string((int64_t)i - backtracked))).id;
+            if ((int64_t)i - backtracked < 0) {
+                currentID = getWorkspaceIDNameFromString(selector + std::to_string((int64_t)i - backtracked)).id;
+            } else {
+                currentID = getWorkspaceIDNameFromString(selector + "+" + std::to_string((int64_t)i - backtracked)).id;
+                if (i > 0 && currentID <= firstID)
+                    break;
+            }
             image.workspaceID = currentID;
         }
+
     } else {
         int currentID         = methodStartID;
         images[0].workspaceID = currentID;
@@ -85,9 +106,14 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         pMonitor->m_activeWorkspace = PWORKSPACESTART;
 
+        // Scan through workspaces higher than methodStartID. If using "m"
+        // (skip_empty), stop when we wrap, leaving the rest of the workspace
+        // ID's set to WORKSPACE_INVALID
         for (size_t i = 1; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
             auto& image       = images[i];
-            currentID         = getWorkspaceIDNameFromString("r+" + std::to_string(i)).id;
+            currentID         = getWorkspaceIDNameFromString(selector + "+" + std::to_string(i)).id;
+            if (currentID <= methodStartID)
+                break;
             image.workspaceID = currentID;
         }
 
@@ -349,12 +375,17 @@ void COverview::close() {
     if (TILE.workspaceID != pMonitor->activeWorkspaceID()) {
         pMonitor->setSpecialWorkspace(0);
 
-        const auto NEWIDWS = g_pCompositor->getWorkspaceByID(TILE.workspaceID);
+        // If this tile's workspace was WORKSPACE_INVALID, move to the next
+        // empty workspace. This should only happen if skip_empty is on, in
+        // which case some tiles will be left with this ID intentionally.
+        const int  NEWID = TILE.workspaceID == WORKSPACE_INVALID ? getWorkspaceIDNameFromString("emptynm").id : TILE.workspaceID;
+
+        const auto NEWIDWS = g_pCompositor->getWorkspaceByID(NEWID);
 
         const auto OLDWS = pMonitor->m_activeWorkspace;
 
         if (!NEWIDWS)
-            g_pKeybindManager->changeworkspace(std::to_string(TILE.workspaceID));
+            g_pKeybindManager->changeworkspace(std::to_string(NEWID));
         else
             g_pKeybindManager->changeworkspace(NEWIDWS->getConfigName());
 
