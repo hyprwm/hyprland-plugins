@@ -73,7 +73,7 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
     CBorderPPPassElement::SBorderPPData data;
     data.deco = this;
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CBorderPPPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPPPassElement>(data));
 }
 
 void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
