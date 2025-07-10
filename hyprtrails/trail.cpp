@@ -90,7 +90,7 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
         return;
 
     auto data = CTrailPassElement::STrailData{this, a};
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTrailPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTrailPassElement>(data));
 }
 
 void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {

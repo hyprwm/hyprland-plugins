@@ -422,7 +422,7 @@ void COverview::onWorkspaceChange() {
 }
 
 void COverview::render() {
-    g_pHyprRenderer->m_renderPass.add(makeShared<COverviewPassElement>());
+    g_pHyprRenderer->m_renderPass.add(makeUnique<COverviewPassElement>());
 }
 
 void COverview::fullRender() {

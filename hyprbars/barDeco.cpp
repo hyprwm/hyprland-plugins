@@ -554,7 +554,7 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
         return;
 
     auto data = CBarPassElement::SBarData{this, a};
-    g_pHyprRenderer->m_renderPass.add(makeShared<CBarPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CBarPassElement>(data));
 }
 
 void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
