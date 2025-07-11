@@ -256,6 +256,8 @@ void SWorkspaceData::recalculate(bool forceInstant) {
         }
 
         currentLeft += ITEM_WIDTH;
+        if (currentLeft == USABLE.width)
+            currentLeft++; // avoid ffm from "grabbing" the window on the right
     }
 }
 
@@ -418,7 +420,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
 
 void CScrollingLayout::onEnable() {
     static const auto PCONFWIDTHS = CConfigValue<Hyprlang::STRING>("plugin:hyprscrolling:explicit_column_widths");
-
+    
     m_configCallback = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // bitch ass
         m_config.configuredWidths.clear();
@@ -445,7 +447,7 @@ void CScrollingLayout::onEnable() {
         if (!PWINDOW->m_workspace->isVisible())
             return;
 
-        const auto DATA       = dataFor(PWINDOW->m_workspace);
+        const auto DATA = dataFor(PWINDOW->m_workspace);
         const auto WINDOWDATA = dataFor(PWINDOW);
 
         if (!DATA || !WINDOWDATA)
