@@ -242,7 +242,8 @@ void SWorkspaceData::recalculate(bool forceInstant) {
     double       currentLeft = 0;
     const double cameraLeft  = MAX_WIDTH < USABLE.w ? std::round((MAX_WIDTH - USABLE.w) / 2.0) : leftOffset; // layout pixels
 
-    for (const auto& COL : columns) {
+    for (size_t i = 0; i < columns.size(); ++i) {
+        const auto& COL = columns[i]; 
         double       currentTop = 0.0;
         const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
@@ -252,7 +253,7 @@ void SWorkspaceData::recalculate(bool forceInstant) {
 
             currentTop += WINDOW->windowSize * USABLE.h;
 
-            layout->applyNodeDataToWindow(WINDOW, forceInstant);
+            layout->applyNodeDataToWindow(WINDOW, forceInstant, i != columns.size() - 1, i != 0);
         }
 
         currentLeft += ITEM_WIDTH;
@@ -291,7 +292,7 @@ bool SWorkspaceData::visible(SP<SColumnData> c) {
     return false;
 }
 
-void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool force) {
+void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool force, bool hasWindowsRight, bool hasWindowsLeft) {
     PHLMONITOR   PMONITOR;
     PHLWORKSPACE PWORKSPACE;
 
@@ -314,8 +315,8 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     }
 
     // for gaps outer
-    const bool DISPLAYLEFT   = STICKS(data->layoutBox.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
-    const bool DISPLAYRIGHT  = STICKS(data->layoutBox.x + data->layoutBox.w, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
+    const bool DISPLAYLEFT   = !hasWindowsLeft && STICKS(data->layoutBox.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
+    const bool DISPLAYRIGHT  = !hasWindowsRight && STICKS(data->layoutBox.x + data->layoutBox.w, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
     const bool DISPLAYTOP    = STICKS(data->layoutBox.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
     const bool DISPLAYBOTTOM = STICKS(data->layoutBox.y + data->layoutBox.h, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
 
@@ -681,7 +682,7 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
         // if it got its fullscreen disabled, set back its node if it had one
 
         if (PNODE)
-            applyNodeDataToWindow(PNODE, false);
+            applyNodeDataToWindow(PNODE, false, false, false);
         else {
             // get back its' dimensions from position and size
             *pWindow->m_realPosition = pWindow->m_lastFloatingPosition;
@@ -707,7 +708,7 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
             fakeNode->ignoreFullscreenChecks = true;
             fakeNode->overrideWorkspace      = pWindow->m_workspace;
 
-            applyNodeDataToWindow(fakeNode, false);
+            applyNodeDataToWindow(fakeNode, false, false, false);
         }
     }
 

@@ -113,7 +113,7 @@ class CScrollingLayout : public IHyprLayout {
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
 
-    void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool instant);
+    void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool instant, bool hasWindowsRight, bool hasWindowsLeft);
 
     friend struct SWorkspaceData;
 };
