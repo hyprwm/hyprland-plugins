@@ -61,7 +61,7 @@ struct SWorkspaceData {
     int                          leftOffset = 0;
 
     SP<SColumnData>              add();
-    SP<SColumnData>              add(size_t after);
+    SP<SColumnData>              add(int after);
     int64_t                      idx(SP<SColumnData> c);
     void                         remove(SP<SColumnData> c);
     double                       maxWidth();

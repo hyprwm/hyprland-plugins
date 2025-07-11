@@ -145,7 +145,7 @@ SP<SColumnData> SWorkspaceData::add() {
     return col;
 }
 
-SP<SColumnData> SWorkspaceData::add(size_t after) {
+SP<SColumnData> SWorkspaceData::add(int after) {
     static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("plugin:hyprscrolling:column_width");
     auto              col       = makeShared<SColumnData>(self.lock());
     col->self                   = col;
@@ -1125,15 +1125,20 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
 
     if (dir == "l") {
         const auto COL = WS->prev(DATA->column.lock());
-        if (!COL)
-            return;
 
         DATA->column->remove(w);
-        if (COL->windowDatas.size() > 1 || DATA->column)
-            COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
-        else
-            COL->add(DATA);
-        WS->centerCol(COL);
+
+        if (!COL) {
+            const auto NEWCOL = WS->add(-1);
+            NEWCOL->add(DATA);
+            WS->centerCol(NEWCOL);
+        } else {
+            if (COL->windowDatas.size() > 1 || DATA->column)
+                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
+            else
+                COL->add(DATA);
+            WS->centerCol(COL);
+        }
     } else if (dir == "r") {
         const auto COL = WS->next(DATA->column.lock());
 
