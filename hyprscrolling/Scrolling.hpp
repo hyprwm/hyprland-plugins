@@ -103,6 +103,7 @@ class CScrollingLayout : public IHyprLayout {
     std::vector<SP<SWorkspaceData>> m_workspaceDatas;
 
     SP<HOOK_CALLBACK_FN>            m_configCallback;
+    SP<HOOK_CALLBACK_FN>            m_focusCallback;
 
     struct {
         std::vector<float> configuredWidths;

@@ -14,6 +14,7 @@ Adds a scrolling layout to Hyprland.
 | column_width | default column width as a fraction of the monitor width | float [0 - 1] | 0.5 |
 | explicit_column_widths | a comma-separated list of widths for columns to be used with `+conf` or `-conf` | string | `0.333, 0.5, 0.667, 1.0` |
 | focus_fit_method | when a column is focused, what method to use to bring it into view. 0 - center, 1 - fit | int | 0 |
+| follow_focus | when a window is focused, the layout will move to make it visible | bool | true |
 
 
 ## Layout messages

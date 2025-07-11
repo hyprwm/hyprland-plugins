@@ -431,6 +431,30 @@ void CScrollingLayout::onEnable() {
         }
     });
 
+    m_focusCallback = g_pHookSystem->hookDynamic("activeWindow", [this](void* hk, SCallbackInfo& info, std::any param) {
+        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
+
+        if (!PWINDOW)
+            return;
+
+        static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:follow_focus");
+
+        if (!*PFOLLOW_FOCUS)
+            return;
+
+        if (!PWINDOW->m_workspace->isVisible())
+            return;
+
+        const auto DATA       = dataFor(PWINDOW->m_workspace);
+        const auto WINDOWDATA = dataFor(PWINDOW);
+
+        if (!DATA || !WINDOWDATA)
+            return;
+
+        DATA->fitCol(WINDOWDATA->column.lock());
+        DATA->recalculate();
+    });
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_isFloating || !w->m_isMapped || w->isHidden())
             continue;
