@@ -29,9 +29,13 @@ struct SColumnData {
     }
 
     void                                  add(PHLWINDOW w);
+    void                                  add(PHLWINDOW w, int after);
     void                                  add(SP<SScrollingWindowData> w);
+    void                                  add(SP<SScrollingWindowData> w, int after);
     void                                  remove(PHLWINDOW w);
     bool                                  has(PHLWINDOW w);
+    size_t                                idx(PHLWINDOW w);
+    size_t                                idxForHeight(float y);
 
     void                                  up(SP<SScrollingWindowData> w);
     void                                  down(SP<SScrollingWindowData> w);
