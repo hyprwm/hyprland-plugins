@@ -19,12 +19,10 @@
 
 #include "globals.hpp"
 
-// Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-// hooks
 inline CFunctionHook* subsurfaceHook = nullptr;
 inline CFunctionHook* commitHook     = nullptr;
 typedef void (*origCommitSubsurface)(CSubsurface* thisptr);
@@ -32,10 +30,14 @@ typedef void (*origCommit)(void* owner, void* data);
 
 std::vector<PHLWINDOWREF> bgWindows;
 
-//
 void onNewWindow(PHLWINDOW pWindow) {
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
-    static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
+    static auto* const PCLASS   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
+    static auto* const PTITLE   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
+
+    static auto* const PSIZEX   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:size_x")->getDataStaticPtr();
+    static auto* const PSIZEY   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:size_y")->getDataStaticPtr();
+    static auto* const PPOSX    = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_x")->getDataStaticPtr();
+    static auto* const PPOSY    = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_y")->getDataStaticPtr();
 
     const std::string classRule(*PCLASS);
     const std::string titleRule(*PTITLE);
@@ -47,26 +49,57 @@ void onNewWindow(PHLWINDOW pWindow) {
         return;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
-
     if (!PMONITOR)
         return;
 
     if (!pWindow->m_isFloating)
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
 
-    pWindow->m_realSize->setValueAndWarp(PMONITOR->m_size);
-    pWindow->m_realPosition->setValueAndWarp(PMONITOR->m_position);
-    pWindow->m_size      = PMONITOR->m_size;
-    pWindow->m_position  = PMONITOR->m_position;
+    int sx = 100, sy = 100, px = 0, py = 0;
+
+    try { sx = std::stoi(*PSIZEX); } catch (...) {}
+    try { sy = std::stoi(*PSIZEY); } catch (...) {}
+    try { px = std::stoi(*PPOSX);  } catch (...) {}
+    try { py = std::stoi(*PPOSY);  } catch (...) {}
+
+    sx = std::clamp(sx, 1, 100);
+    sy = std::clamp(sy, 1, 100);
+    px = std::clamp(px, 0, 100);
+    py = std::clamp(py, 0, 100);
+
+    if (px + sx > 100) {
+        Debug::log(WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100 - px);
+        sx = 100 - px;
+    }
+    if (py + sy > 100) {
+        Debug::log(WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100 - py);
+        sy = 100 - py;
+    }
+
+    const Vector2D monitorSize = PMONITOR->m_size;
+    const Vector2D monitorPos  = PMONITOR->m_position;
+
+    const Vector2D newSize = {
+        static_cast<int>(monitorSize.x * (sx / 100.0)),
+        static_cast<int>(monitorSize.y * (sy / 100.0))
+    };
+
+    const Vector2D newPos = {
+        static_cast<int>(monitorPos.x + (monitorSize.x * (px / 100.0))),
+        static_cast<int>(monitorPos.y + (monitorSize.y * (py / 100.0)))
+    };
+
+    pWindow->m_realSize->setValueAndWarp(newSize);
+    pWindow->m_realPosition->setValueAndWarp(newPos);
+    pWindow->m_size      = newSize;
+    pWindow->m_position  = newPos;
     pWindow->m_pinned    = true;
     pWindow->sendWindowSize(true);
 
     bgWindows.push_back(pWindow);
-
-    pWindow->m_hidden = true; // no renderino hyprland pls
+    pWindow->m_hidden = true;
 
     g_pInputManager->refocus();
-
     Debug::log(LOG, "[hyprwinwrap] new window moved to bg {}", pWindow);
 }
 
@@ -187,6 +220,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:class", Hyprlang::STRING{"kitty-bg"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:title", Hyprlang::STRING{""});
+
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:size_x", Hyprlang::STRING{"100"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:size_y", Hyprlang::STRING{"100"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_x",  Hyprlang::STRING{"0"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_y",  Hyprlang::STRING{"0"});
     
     HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
