@@ -10,6 +10,12 @@ plugin {
         class = kitty-bg
         # you can also use title
         title = kitty-bg
+        # you can add the position of the window in a percentage
+        pos_x = 25
+        pos_y = 30
+        # you can add the size of the window in a percentage
+        size_x = 40
+        size_y = 70
     }
 }
 
