@@ -19,10 +19,12 @@
 
 #include "globals.hpp"
 
+// Do NOT change this function
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
+// hooks
 inline CFunctionHook* subsurfaceHook = nullptr;
 inline CFunctionHook* commitHook     = nullptr;
 typedef void (*origCommitSubsurface)(CSubsurface* thisptr);
