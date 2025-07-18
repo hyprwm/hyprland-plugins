@@ -57,38 +57,38 @@ void onNewWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_isFloating)
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(pWindow);
 
-    int sx = 100, sy = 100, px = 0, py = 0;
+    float sx = 100.f, sy = 100.f, px = 0.f, py = 0.f;
 
-    try { sx = std::stoi(*PSIZEX); } catch (...) {}
-    try { sy = std::stoi(*PSIZEY); } catch (...) {}
-    try { px = std::stoi(*PPOSX);  } catch (...) {}
-    try { py = std::stoi(*PPOSY);  } catch (...) {}
+    try { sx = std::stof(*PSIZEX); } catch (...) {}
+    try { sy = std::stof(*PSIZEY); } catch (...) {}
+    try { px = std::stof(*PPOSX);  } catch (...) {}
+    try { py = std::stof(*PPOSY);  } catch (...) {}
 
-    sx = std::clamp(sx, 1, 100);
-    sy = std::clamp(sy, 1, 100);
-    px = std::clamp(px, 0, 100);
-    py = std::clamp(py, 0, 100);
+    sx = std::clamp(sx, 1.f, 100.f);
+    sy = std::clamp(sy, 1.f, 100.f);
+    px = std::clamp(px, 0.f, 100.f);
+    py = std::clamp(py, 0.f, 100.f);
 
-    if (px + sx > 100) {
-        Debug::log(WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100 - px);
-        sx = 100 - px;
+    if (px + sx > 100.f) {
+        Debug::log(WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100.f - px);
+        sx = 100.f - px;
     }
-    if (py + sy > 100) {
-        Debug::log(WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100 - py);
-        sy = 100 - py;
+    if (py + sy > 100.f) {
+        Debug::log(WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100.f - py);
+        sy = 100.f - py;
     }
 
     const Vector2D monitorSize = PMONITOR->m_size;
     const Vector2D monitorPos  = PMONITOR->m_position;
 
     const Vector2D newSize = {
-        static_cast<int>(monitorSize.x * (sx / 100.0)),
-        static_cast<int>(monitorSize.y * (sy / 100.0))
+        static_cast<int>(monitorSize.x * (sx / 100.f)),
+        static_cast<int>(monitorSize.y * (sy / 100.f))
     };
 
     const Vector2D newPos = {
-        static_cast<int>(monitorPos.x + (monitorSize.x * (px / 100.0))),
-        static_cast<int>(monitorPos.y + (monitorSize.y * (py / 100.0)))
+        static_cast<int>(monitorPos.x + (monitorSize.x * (px / 100.f))),
+        static_cast<int>(monitorPos.y + (monitorSize.y * (py / 100.f)))
     };
 
     pWindow->m_realSize->setValueAndWarp(newSize);
