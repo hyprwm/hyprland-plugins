@@ -4,6 +4,28 @@ Adds simple title bars to windows.
 
 ![image](https://github.com/user-attachments/assets/184a66b9-eb91-4f6f-8953-b265a2735939)
 
+_Example config taken from [EvanKoe's dotfiles](https://github.com/EvanKoe/dotfiles_2023) (requires light wallpaper to look good):_  
+
+```
+plugin {
+	hyprbars {
+		bar_height = 30
+		bar_buttons_alignment = left
+		bar_part_of_window = true
+		bar_blur = true
+		bar_padding = 12
+		bar_button_padding = 8
+		bar_color = rgba(ffffff55)
+		col.text = rgb(212121)
+
+		hyprbars-button = rgb(dd0000), 15, , hyprctl dispatch killactive
+		hyprbars-button = rgb(00dd00), 15, , hyprctl dispatch fullscreen 1
+		hyprbars-button = rgb(eeee00), 15, , hyprctl dispatch pseudo
+		hyprbars-button = rgb(5577ff), 15, , hyprctl dispatch togglefloating
+	}
+}
+```
+
 ## Config
 
 All config options are in `plugin:hyprbars`:
