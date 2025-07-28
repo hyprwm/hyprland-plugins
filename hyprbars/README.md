@@ -15,7 +15,7 @@ plugin {
 		bar_blur = true
 		bar_padding = 12
 		bar_button_padding = 8
-		bar_color = rgba(ffffff55)
+		bar_color = rgba(ffffffcc)
 		col.text = rgb(212121)
 
 		hyprbars-button = rgb(dd0000), 15, , hyprctl dispatch killactive
@@ -24,6 +24,14 @@ plugin {
 		hyprbars-button = rgb(5577ff), 15, , hyprctl dispatch togglefloating
 	}
 }
+windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+windowrule = plugin:hyprbars:bar_color rgb(CDE7ED), class:^(google-chrome)
+
+windowrule = plugin:hyprbars:bar_color rgba(1d2330ea), class:^(kitty)
+windowrule = plugin:hyprbars:title_color rgb(dddddd), class:^(kitty)
+
+windowrule = plugin:hyprbars:bar_color rgb(273F44), class:^(google-chrome) initialTitle:DevTools
+windowrule = plugin:hyprbars:title_color rgb(dddddd), class:^(google-chrome) initialTitle:DevTools
 ```
 
 ## Config
