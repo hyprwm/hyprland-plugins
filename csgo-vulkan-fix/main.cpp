@@ -11,6 +11,9 @@
 
 #include "globals.hpp"
 
+#include <hyprutils/string/ConstVarList.hpp>
+using namespace Hyprutils::String;
+
 // Methods
 inline CFunctionHook* g_pMouseMotionHook     = nullptr;
 inline CFunctionHook* g_pSurfaceSizeHook     = nullptr;
@@ -24,28 +27,39 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
+struct SAppConfig {
+    std::string szClass;
+    Vector2D    res;
+};
+
+std::vector<SAppConfig>  g_appConfigs;
+
+static const SAppConfig* getAppConfig(const std::string& appClass) {
+    for (const auto& ac : g_appConfigs) {
+        if (ac.szClass != appClass)
+            continue;
+        return &ac;
+    }
+    return nullptr;
+}
+
 void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& local) {
-    static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
-    static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
-    static auto* const PFIX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse")->getDataStaticPtr();
+    static auto* const PFIX = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse")->getDataStaticPtr();
 
     Vector2D           newCoords = local;
 
-    if (**PFIX && !g_pCompositor->m_lastWindow.expired() && g_pCompositor->m_lastWindow->m_initialClass == *PCLASS && g_pCompositor->m_lastMonitor) {
+    const auto         CONFIG = g_pCompositor->m_lastWindow && g_pCompositor->m_lastMonitor ? getAppConfig(g_pCompositor->m_lastWindow->m_initialClass) : nullptr;
+
+    if (**PFIX && CONFIG) {
         // fix the coords
-        newCoords.x *= (**RESX / g_pCompositor->m_lastMonitor->m_size.x) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
-        newCoords.y *= (**RESY / g_pCompositor->m_lastMonitor->m_size.y) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
+        newCoords.x *= (CONFIG->res.x / g_pCompositor->m_lastMonitor->m_size.x) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
+        newCoords.y *= (CONFIG->res.y / g_pCompositor->m_lastMonitor->m_size.y) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_original)(thisptr, time_msec, newCoords);
 }
 
 void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
-    static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
-    static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
-
     if (!surface) {
         (*(origSurfaceSize)g_pSurfaceSizeHook->m_original)(surface, box);
         return;
@@ -56,9 +70,14 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
 
     CBox       newBox = box;
 
-    if (PWINDOW && PWINDOW->m_initialClass == *PCLASS) {
-        newBox.w = **RESX;
-        newBox.h = **RESY;
+    if (!PWINDOW) {
+        (*(origSurfaceSize)g_pSurfaceSizeHook->m_original)(surface, newBox);
+        return;
+    }
+
+    if (const auto CONFIG = getAppConfig(PWINDOW->m_initialClass); CONFIG) {
+        newBox.w = CONFIG->res.x;
+        newBox.h = CONFIG->res.y;
 
         CWLSurface::fromResource(SURF)->m_fillIgnoreSmall = true;
     }
@@ -67,16 +86,18 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
 }
 
 CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
-    const auto         RG = (*(origWLSurfaceDamage)g_pWLSurfaceDamageHook->m_original)(thisptr);
+    const auto RG = (*(origWLSurfaceDamage)g_pWLSurfaceDamageHook->m_original)(thisptr);
 
-    static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+    if (thisptr->exists() && thisptr->getWindow()) {
+        const auto CONFIG = getAppConfig(thisptr->getWindow()->m_initialClass);
 
-    if (thisptr->exists() && thisptr->getWindow() && thisptr->getWindow()->m_initialClass == *PCLASS) {
-        const auto PMONITOR = thisptr->getWindow()->m_monitor.lock();
-        if (PMONITOR)
-            g_pHyprRenderer->damageMonitor(PMONITOR);
-        else
-            g_pHyprRenderer->damageWindow(thisptr->getWindow());
+        if (CONFIG) {
+            const auto PMONITOR = thisptr->getWindow()->m_monitor.lock();
+            if (PMONITOR)
+                g_pHyprRenderer->damageMonitor(PMONITOR);
+            else
+                g_pHyprRenderer->damageWindow(thisptr->getWindow());
+        }
     }
 
     return RG;
@@ -97,6 +118,40 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h", Hyprlang::INT{1050});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class", Hyprlang::STRING{"cs2"});
+
+    static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "preConfigReload", [&](void* self, SCallbackInfo& info, std::any data) {
+        g_appConfigs.clear();
+
+        static auto* const RESX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_w")->getDataStaticPtr();
+        static auto* const RESY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:res_h")->getDataStaticPtr();
+        static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:class")->getDataStaticPtr();
+
+        g_appConfigs.emplace_back(SAppConfig{.szClass = *PCLASS, .res = Vector2D{(int)**RESX, (int)**RESY}});
+    });
+
+    HyprlandAPI::addConfigKeyword(PHANDLE, "vkfix-app", [](const char* l, const char* r) -> Hyprlang::CParseResult {
+        const std::string      str = r;
+        CConstVarList          data(str, 0, ',', true);
+
+        Hyprlang::CParseResult result;
+
+        if (data.size() != 3) {
+            result.setError("vkfix-app requires 3 params");
+            return result;
+        }
+
+        try {
+            SAppConfig config;
+            config.szClass = data[0];
+            config.res     = Vector2D{std::stoi(std::string{data[1]}), std::stoi(std::string{data[2]})};
+            g_appConfigs.emplace_back(std::move(config));
+        } catch (std::exception& e) {
+            result.setError("failed to parse line");
+            return result;
+        }
+
+        return result;
+    }, Hyprlang::SHandlerOptions{});
 
     auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
     for (auto& fn : FNS) {
