@@ -1038,7 +1038,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->recalculate();
         }
     } else if (ARGS[0] == "focus") {
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto        WDATA       = dataFor(g_pCompositor->m_lastWindow.lock());
+        static const auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
 
         if (!WDATA || ARGS[1].empty())
             return {};
@@ -1047,8 +1048,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'u':
             case 't': {
                 auto PREV = WDATA->column->prev(WDATA);
-                if (!PREV)
-                    PREV = WDATA->column->windowDatas.back();
+                if (!PREV) {
+                    if (*PNOFALLBACK) {
+                        break;
+                    } else {
+                        PREV = WDATA->column->windowDatas.back();
+                    }
+                }
 
                 g_pCompositor->focusWindow(PREV->window.lock());
                 break;
@@ -1057,8 +1063,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'b':
             case 'd': {
                 auto NEXT = WDATA->column->next(WDATA);
-                if (!NEXT)
-                    NEXT = WDATA->column->windowDatas.front();
+                if (!NEXT) {
+                    if (*PNOFALLBACK) {
+                        break;
+                    } else {
+                        NEXT = WDATA->column->windowDatas.front();
+                    }
+                }
 
                 g_pCompositor->focusWindow(NEXT->window.lock());
                 break;
@@ -1066,8 +1077,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             case 'l': {
                 auto PREV = WDATA->column->workspace->prev(WDATA->column.lock());
-                if (!PREV)
-                    PREV = WDATA->column->workspace->columns.back();
+                if (!PREV) {
+                    if (*PNOFALLBACK) {
+                        break;
+                    } else {
+                        PREV = WDATA->column->workspace->columns.back();
+                    }
+                }
 
                 g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), PREV);
@@ -1077,8 +1093,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             case 'r': {
                 auto NEXT = WDATA->column->workspace->next(WDATA->column.lock());
-                if (!NEXT)
-                    NEXT = WDATA->column->workspace->columns.front();
+                if (!NEXT) {
+                    if (*PNOFALLBACK) {
+                        break;
+                    } else {
+                        NEXT = WDATA->column->workspace->columns.front();
+                    }
+                }
 
                 g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), NEXT);
