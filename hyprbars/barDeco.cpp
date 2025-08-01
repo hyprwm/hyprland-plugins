@@ -525,7 +525,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
                     scaledButtonSize};
 
         if (!**PICONONHOVER || (**PICONONHOVER && m_iButtonHoverState > 0))
-            g_pHyprOpenGL->renderTexture(button.iconTex, pos, a);
+            g_pHyprOpenGL->renderTexture(button.iconTex, pos, {.a = a});
         offset += scaledButtonsPad + scaledButtonSize;
 
         bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
@@ -635,7 +635,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->m_scale).round();
-        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), scaledRounding, m_pWindow->roundingPower());
+        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower()});
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -643,9 +643,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRectWithBlur(titleBarBox, color, scaledRounding, m_pWindow->roundingPower(), a);
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower(), .blur = true, .blurA = a});
     else
-        g_pHyprOpenGL->renderRect(titleBarBox, color, scaledRounding, m_pWindow->roundingPower());
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower()});
 
     // render title
     if (**PENABLETITLE && (m_szLastTitle != PWINDOW->m_title || m_bWindowSizeChanged || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
@@ -664,14 +664,14 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     CBox textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
     if (**PENABLETITLE)
-        g_pHyprOpenGL->renderTexture(m_pTextTex, textBox, a);
+        g_pHyprOpenGL->renderTexture(m_pTextTex, textBox, {.a = a});
 
     if (m_bButtonsDirty || m_bWindowSizeChanged) {
         renderBarButtons(BARBUF, pMonitor->m_scale);
         m_bButtonsDirty = false;
     }
 
-    g_pHyprOpenGL->renderTexture(m_pButtonsTex, textBox, a);
+    g_pHyprOpenGL->renderTexture(m_pButtonsTex, textBox, {.a = a});
 
     g_pHyprOpenGL->scissor(nullptr);
 
