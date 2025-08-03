@@ -612,6 +612,7 @@ void CScrollingLayout::onBeginDragWindow() {
 
 void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner corner, PHLWINDOW pWindow) {
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    Vector2D   mod_delta = delta;
 
     if (!validMapped(PWINDOW))
         return;
@@ -625,9 +626,6 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
         PWINDOW->updateWindowDecos();
         return;
     }
-
-    if (corner == CORNER_NONE)
-        return;
 
     if (!DATA->column || !DATA->column->workspace || !DATA->column->workspace->workspace || !DATA->column->workspace->workspace->m_monitor)
         return;
@@ -666,6 +664,14 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
         const auto CURR_WD = DATA;
         const auto NEXT_WD = DATA->column->next(DATA);
         const auto PREV_WD = DATA->column->prev(DATA);
+        if (corner == CORNER_NONE) {
+            if (!PREV_WD) {
+                corner = CORNER_BOTTOMRIGHT;
+            } else {
+                corner = CORNER_TOPRIGHT;
+                mod_delta.y *= -1.0f;
+            }
+        }
 
         switch (corner) {
             case CORNER_BOTTOMLEFT:
@@ -687,10 +693,10 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
                 if (!PREV_WD)
                     break;
 
-                if (PREV_WD->windowSize <= MIN_ROW_HEIGHT && delta.y <= 0 || CURR_WD->windowSize <= MIN_ROW_HEIGHT && delta.y >= 0)
+                if (PREV_WD->windowSize <= MIN_ROW_HEIGHT && mod_delta.y <= 0 || CURR_WD->windowSize <= MIN_ROW_HEIGHT && delta.y >= 0)
                     break;
 
-                float adjust = std::clamp((float)(delta.y / USABLE.h), -(PREV_WD->windowSize - MIN_ROW_HEIGHT), (CURR_WD->windowSize - MIN_ROW_HEIGHT));
+                float adjust = std::clamp((float)(mod_delta.y / USABLE.h), -(PREV_WD->windowSize - MIN_ROW_HEIGHT), (CURR_WD->windowSize - MIN_ROW_HEIGHT));
 
                 PREV_WD->windowSize = std::clamp(PREV_WD->windowSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
                 CURR_WD->windowSize = std::clamp(CURR_WD->windowSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT);
