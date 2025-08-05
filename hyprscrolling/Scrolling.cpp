@@ -1049,11 +1049,10 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 't': {
                 auto PREV = WDATA->column->prev(WDATA);
                 if (!PREV) {
-                    if (*PNOFALLBACK) {
+                    if (*PNOFALLBACK)
                         break;
-                    } else {
+                    else
                         PREV = WDATA->column->windowDatas.back();
-                    }
                 }
 
                 g_pCompositor->focusWindow(PREV->window.lock());
@@ -1064,11 +1063,10 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'd': {
                 auto NEXT = WDATA->column->next(WDATA);
                 if (!NEXT) {
-                    if (*PNOFALLBACK) {
+                    if (*PNOFALLBACK)
                         break;
-                    } else {
+                    else
                         NEXT = WDATA->column->windowDatas.front();
-                    }
                 }
 
                 g_pCompositor->focusWindow(NEXT->window.lock());
@@ -1078,11 +1076,10 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'l': {
                 auto PREV = WDATA->column->workspace->prev(WDATA->column.lock());
                 if (!PREV) {
-                    if (*PNOFALLBACK) {
+                    if (*PNOFALLBACK)
                         break;
-                    } else {
+                    else
                         PREV = WDATA->column->workspace->columns.back();
-                    }
                 }
 
                 g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
@@ -1094,11 +1091,10 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'r': {
                 auto NEXT = WDATA->column->workspace->next(WDATA->column.lock());
                 if (!NEXT) {
-                    if (*PNOFALLBACK) {
+                    if (*PNOFALLBACK)
                         break;
-                    } else {
+                    else
                         NEXT = WDATA->column->workspace->columns.front();
-                    }
                 }
 
                 g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
