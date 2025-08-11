@@ -1082,9 +1082,11 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'l': {
                 auto PREV = WDATA->column->workspace->prev(WDATA->column.lock());
                 if (!PREV) {
-                    if (*PNOFALLBACK)
+                    if (*PNOFALLBACK) {
+                        centerOrFit(WDATA->column->workspace.lock(), WDATA->column.lock());
+                        WDATA->column->workspace->recalculate();
                         break;
-                    else
+                    } else
                         PREV = WDATA->column->workspace->columns.back();
                 }
 
@@ -1097,9 +1099,11 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             case 'r': {
                 auto NEXT = WDATA->column->workspace->next(WDATA->column.lock());
                 if (!NEXT) {
-                    if (*PNOFALLBACK)
+                    if (*PNOFALLBACK) {
+                        centerOrFit(WDATA->column->workspace.lock(), WDATA->column.lock());
+                        WDATA->column->workspace->recalculate();
                         break;
-                    else
+                    } else
                         NEXT = WDATA->column->workspace->columns.front();
                 }
 
