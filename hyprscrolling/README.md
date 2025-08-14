@@ -6,6 +6,8 @@ Adds a scrolling layout to Hyprland.
 
 ## Config
 
+Make sure to set the `general:layout` to `scrolling` to use this layout.
+
 *All config values are in `plugin:hyprscrolling`.*
 
 | name | description | type | default |
