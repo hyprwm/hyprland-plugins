@@ -239,6 +239,18 @@ void SWorkspaceData::fitCol(SP<SColumnData> c) {
     }
 }
 
+void SWorkspaceData::centerOrFitCol(SP<SColumnData> c) {
+    if (!c)
+        return;
+
+    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
+
+    if (*PFITMETHOD == 1)
+        this->fitCol(c);
+    else
+        this->centerCol(c);
+}
+
 SP<SColumnData> SWorkspaceData::atCenter() {
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
@@ -265,8 +277,6 @@ void SWorkspaceData::recalculate(bool forceInstant) {
         Debug::log(ERR, "[scroller] broken internal state on workspace data");
         return;
     }
-
-    leftOffset = std::clamp((double)leftOffset, 0.0, maxWidth());
 
     const auto   MAX_WIDTH = maxWidth();
 
@@ -1158,13 +1168,13 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
         if (!COL) {
             const auto NEWCOL = WS->add(-1);
             NEWCOL->add(DATA);
-            WS->centerCol(NEWCOL);
+            WS->centerOrFitCol(NEWCOL);
         } else {
             if (COL->windowDatas.size() > 1 || DATA->column)
                 COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
             else
                 COL->add(DATA);
-            WS->centerCol(COL);
+            WS->centerOrFitCol(COL);
         }
     } else if (dir == "r") {
         const auto COL = WS->next(DATA->column.lock());
@@ -1175,13 +1185,13 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             // make a new one
             const auto NEWCOL = WS->add();
             NEWCOL->add(DATA);
-            WS->centerCol(NEWCOL);
+            WS->centerOrFitCol(NEWCOL);
         } else {
             if (COL->windowDatas.size() > 1 || DATA->column)
                 COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
             else
                 COL->add(DATA);
-            WS->centerCol(COL);
+            WS->centerOrFitCol(COL);
         }
 
     } else if (dir == "t" || dir == "u")
