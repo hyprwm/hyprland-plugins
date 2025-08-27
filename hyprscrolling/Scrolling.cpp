@@ -796,6 +796,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             DATA->recalculate();
 
             g_pCompositor->focusWindow(COL->windowDatas.front()->window.lock());
+            g_pCompositor->warpCursorTo(COL->windowDatas.front()->window.lock()->middle());
 
             return {};
         } else if (ARGS[1] == "-col") {
@@ -805,6 +806,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     DATA->centerCol(DATA->columns.back());
                     DATA->recalculate();
                     g_pCompositor->focusWindow((DATA->columns.back()->windowDatas.back())->window.lock());
+                    g_pCompositor->warpCursorTo((DATA->columns.back()->windowDatas.back())->window.lock()->middle());
                 }
 
                 return {};
@@ -818,6 +820,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             DATA->recalculate();
 
             g_pCompositor->focusWindow(COL->windowDatas.back()->window.lock());
+            g_pCompositor->warpCursorTo(COL->windowDatas.front()->window.lock()->middle());
 
             return {};
         }
@@ -1064,6 +1067,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 }
 
                 g_pCompositor->focusWindow(PREV->window.lock());
+                g_pCompositor->warpCursorTo(PREV->window.lock()->middle());
                 break;
             }
 
@@ -1078,6 +1082,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 }
 
                 g_pCompositor->focusWindow(NEXT->window.lock());
+                g_pCompositor->warpCursorTo(NEXT->window.lock()->middle());
                 break;
             }
 
@@ -1087,6 +1092,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     if (*PNOFALLBACK) {
                         centerOrFit(WDATA->column->workspace.lock(), WDATA->column.lock());
                         WDATA->column->workspace->recalculate();
+                        g_pCompositor->warpCursorTo(WDATA->window.lock()->middle());
                         break;
                     } else
                         PREV = WDATA->column->workspace->columns.back();
@@ -1095,6 +1101,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), PREV);
                 WDATA->column->workspace->recalculate();
+                g_pCompositor->warpCursorTo(PREV->windowDatas.front()->window.lock()->middle());
                 break;
             }
 
@@ -1104,6 +1111,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     if (*PNOFALLBACK) {
                         centerOrFit(WDATA->column->workspace.lock(), WDATA->column.lock());
                         WDATA->column->workspace->recalculate();
+                        g_pCompositor->warpCursorTo(WDATA->window.lock()->middle());
                         break;
                     } else
                         NEXT = WDATA->column->workspace->columns.front();
@@ -1112,6 +1120,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), NEXT);
                 WDATA->column->workspace->recalculate();
+                g_pCompositor->warpCursorTo(NEXT->windowDatas.front()->window.lock()->middle());
                 break;
             }
 
@@ -1192,6 +1201,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
         DATA->column->down(DATA);
 
     WS->recalculate();
+    g_pCompositor->warpCursorTo(w->middle());
 }
 
 void CScrollingLayout::alterSplitRatio(PHLWINDOW, float, bool) {
