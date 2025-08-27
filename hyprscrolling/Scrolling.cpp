@@ -99,6 +99,7 @@ void SColumnData::up(SP<SScrollingWindowData> w) {
             continue;
 
         std::swap(windowDatas[i], windowDatas[i - 1]);
+        break;
     }
 }
 
@@ -108,6 +109,7 @@ void SColumnData::down(SP<SScrollingWindowData> w) {
             continue;
 
         std::swap(windowDatas[i], windowDatas[i + 1]);
+        break;
     }
 }
 
