@@ -246,9 +246,9 @@ void SWorkspaceData::centerOrFitCol(SP<SColumnData> c) {
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
 
     if (*PFITMETHOD == 1)
-        this->fitCol(c);
+        fitCol(c);
     else
-        this->centerCol(c);
+        centerCol(c);
 }
 
 SP<SColumnData> SWorkspaceData::atCenter() {
