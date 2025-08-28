@@ -227,8 +227,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:size_y", Hyprlang::STRING{"100"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_x",  Hyprlang::STRING{"0"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_y",  Hyprlang::STRING{"0"});
-    
-    HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
+
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:disable_notification",  Hyprlang::INT{0});
+
+    if (!HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:disable_notification")) {
+        HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
+    }
 
     return {"hyprwinwrap", "A clone of xwinwrap for Hyprland", "Vaxry", "1.0"};
 }

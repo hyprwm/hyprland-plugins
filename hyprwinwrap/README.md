@@ -16,6 +16,9 @@ plugin {
         # you can add the size of the window in a percentage
         size_x = 40
         size_y = 70
+
+        # disable the init notification
+        disable_notification = true
     }
 }
 
