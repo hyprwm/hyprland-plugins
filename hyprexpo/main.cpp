@@ -126,16 +126,16 @@ static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
     g_pOverview->onSwipeEnd();
 }
 
-static void onExpoDispatcher(std::string arg) {
+static SDispatchResult onExpoDispatcher(std::string arg) {
 
     if (swipeActive)
-        return;
+        return {};
     if (arg == "select") { 
         if (g_pOverview) {
             g_pOverview->selectHoveredWorkspace();
             g_pOverview->close();
         }
-        return;
+        return {};
     }
     if (arg == "toggle") {
         if (g_pOverview)
@@ -145,21 +145,22 @@ static void onExpoDispatcher(std::string arg) {
             g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
             renderingOverview = false;
         }
-        return;
+        return {};
     }
 
     if (arg == "off" || arg == "close" || arg == "disable") {
         if (g_pOverview)
             g_pOverview->close();
-        return;
+        return {};
     }
 
     if (g_pOverview)
-        return;
+        return {};
 
     renderingOverview = true;
     g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     renderingOverview = false;
+    return {};
 }
 
 static void failNotif(const std::string& reason) {
@@ -219,7 +220,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeEnd", [](void* self, SCallbackInfo& info, std::any data) { swipeEnd(self, info, data); });
     static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeUpdate", [](void* self, SCallbackInfo& info, std::any data) { swipeUpdate(self, info, data); });
 
-    HyprlandAPI::addDispatcher(PHANDLE, "hyprexpo:expo", onExpoDispatcher);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", onExpoDispatcher);
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});

@@ -5,7 +5,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
-#include <hyprland/src/managers/AnimationManager.hpp>
+#include <hyprland/src/managers/animation/AnimationManager.hpp>
+#include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
@@ -156,7 +157,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         if (PWORKSPACE) {
             image.pWorkspace          = PWORKSPACE;
             PMONITOR->m_activeWorkspace = PWORKSPACE;
-            PWORKSPACE->startAnim(true, true, true);
+            g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
             PWORKSPACE->m_visible = true;
 
             if (PWORKSPACE == startedOn)
@@ -165,7 +166,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
             PWORKSPACE->m_visible = false;
-            PWORKSPACE->startAnim(false, false, true);
+            g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
             if (PWORKSPACE == startedOn)
                 PMONITOR->m_activeSpecialWorkspace.reset();
@@ -184,7 +185,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     PMONITOR->m_activeSpecialWorkspace = openSpecial;
     PMONITOR->m_activeWorkspace        = startedOn;
     startedOn->m_visible            = true;
-    startedOn->startAnim(true, true, true);
+    g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     // zoom on the current workspace.
     // const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
@@ -294,7 +295,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     if (PWORKSPACE) {
         pMonitor->m_activeWorkspace = PWORKSPACE;
-        PWORKSPACE->startAnim(true, true, true);
+        g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         PWORKSPACE->m_visible = true;
 
         if (PWORKSPACE == startedOn)
@@ -303,7 +304,7 @@ void COverview::redrawID(int id, bool forcelowres) {
         g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
         PWORKSPACE->m_visible = false;
-        PWORKSPACE->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
         if (PWORKSPACE == startedOn)
             pMonitor->m_activeSpecialWorkspace.reset();
@@ -316,7 +317,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     pMonitor->m_activeSpecialWorkspace = openSpecial;
     pMonitor->m_activeWorkspace        = startedOn;
     startedOn->m_visible            = true;
-    startedOn->startAnim(true, true, true);
+    g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     blockOverviewRendering = false;
 }
@@ -389,8 +390,8 @@ void COverview::close() {
         else
             g_pKeybindManager->changeworkspace(NEWIDWS->getConfigName());
 
-        pMonitor->m_activeWorkspace->startAnim(true, true, true);
-        OLDWS->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(pMonitor->m_activeWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
+        g_pDesktopAnimationManager->startAnimation(OLDWS, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
 
         startedOn = pMonitor->m_activeWorkspace;
     }
@@ -405,7 +406,7 @@ void COverview::onPreRender() {
 
 void COverview::onWorkspaceChange() {
     if (valid(startedOn))
-        startedOn->startAnim(false, false, true);
+        g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
     else
         startedOn = pMonitor->m_activeWorkspace;
 
