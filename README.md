@@ -16,8 +16,10 @@ This repo houses official plugins for Hyprland.
 # Install
 > [!IMPORTANT]
 > hyprland-plugins only officially supports installation via `hyprpm`.
-> hyprland-plugins follows hyprland-git and requires you to be on hyprland-git
-> or tagged >= v0.33.1.
+> `hyprpm` automatically detects your hyprland version & installs only
+> the corresponding "pinned" release of hyprland-plugins.
+> If you want the latest commits to hyprland-plugins, you need to use
+> `hyprland-git`.
 
 ## Install with `hyprpm`
 
