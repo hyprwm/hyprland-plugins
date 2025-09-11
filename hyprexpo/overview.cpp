@@ -111,8 +111,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         // (skip_empty), stop when we wrap, leaving the rest of the workspace
         // ID's set to WORKSPACE_INVALID
         for (size_t i = 1; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
-            auto& image       = images[i];
-            currentID         = getWorkspaceIDNameFromString(selector + "+" + std::to_string(i)).id;
+            auto& image = images[i];
+            currentID   = getWorkspaceIDNameFromString(selector + "+" + std::to_string(i)).id;
             if (currentID <= methodStartID)
                 break;
             image.workspaceID = currentID;
@@ -155,7 +155,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             currentid = i;
 
         if (PWORKSPACE) {
-            image.pWorkspace          = PWORKSPACE;
+            image.pWorkspace            = PWORKSPACE;
             PMONITOR->m_activeWorkspace = PWORKSPACE;
             g_pDesktopAnimationManager->startAnimation(PWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
             PWORKSPACE->m_visible = true;
@@ -246,8 +246,8 @@ void COverview::selectHoveredWorkspace() {
         return;
 
     // get tile x,y
-    int x = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-    int y = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
+    int x     = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
+    int y     = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
     closeOnID = x + y * SIDE_LENGTH;
 }
 
@@ -337,12 +337,12 @@ void COverview::damage() {
 void COverview::onDamageReported() {
     damageDirty = true;
 
-    Vector2D    SIZE = size->value();
+    Vector2D SIZE = size->value();
 
-    Vector2D    tileSize       = (SIZE / SIDE_LENGTH);
-    Vector2D    tileRenderSize = (SIZE - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
+    Vector2D tileSize       = (SIZE / SIDE_LENGTH);
+    Vector2D tileRenderSize = (SIZE - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     // const auto& TILE           = images[std::clamp(openedID, 0, SIDE_LENGTH * SIDE_LENGTH)];
-    CBox        texbox         = CBox{(openedID % SIDE_LENGTH) * tileRenderSize.x + (openedID % SIDE_LENGTH) * GAP_WIDTH,
+    CBox texbox = CBox{(openedID % SIDE_LENGTH) * tileRenderSize.x + (openedID % SIDE_LENGTH) * GAP_WIDTH,
                        (openedID / SIDE_LENGTH) * tileRenderSize.y + (openedID / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x, tileRenderSize.y}
                       .translate(pMonitor->m_position);
 
@@ -461,6 +461,8 @@ static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc)
 }
 
 void COverview::onSwipeUpdate(double delta) {
+    m_isSwiping = true;
+
     if (swipeWasCommenced)
         return;
 
@@ -495,4 +497,5 @@ void COverview::onSwipeEnd() {
     size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
 
     swipeWasCommenced = true;
+    m_isSwiping       = false;
 }

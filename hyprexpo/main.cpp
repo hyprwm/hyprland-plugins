@@ -7,9 +7,15 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/input/trackpad/GestureTypes.hpp>
+#include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
+
+#include <hyprutils/string/ConstVarList.hpp>
+using namespace Hyprutils::String;
 
 #include "globals.hpp"
 #include "overview.hpp"
+#include "ExpoGesture.hpp"
 
 // Methods
 inline CFunctionHook* g_pRenderWorkspaceHook = nullptr;
@@ -56,81 +62,12 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     g_pOverview->onDamageReported();
 }
 
-static float gestured       = 0;
-bool         swipeActive    = false;
-char         swipeDirection = 0; // 0 = no direction, 'v' = vertical, 'h' = horizontal
-
-static void  swipeBegin(void* self, SCallbackInfo& info, std::any param) {
-    swipeActive    = false;
-    swipeDirection = 0;
-}
-
-static void swipeUpdate(void* self, SCallbackInfo& info, std::any param) {
-    static auto* const* PENABLE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture")->getDataStaticPtr();
-    static auto* const* FINGERS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_fingers")->getDataStaticPtr();
-    static auto* const* PPOSITIVE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive")->getDataStaticPtr();
-    static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
-    auto                e         = std::any_cast<IPointer::SSwipeUpdateEvent>(param);
-
-    if (!swipeDirection) {
-        if (std::abs(e.delta.x) > std::abs(e.delta.y))
-            swipeDirection = 'h';
-        else if (std::abs(e.delta.y) > std::abs(e.delta.x))
-            swipeDirection = 'v';
-        else
-            swipeDirection = 0;
-    }
-
-    if (swipeActive || g_pOverview)
-        info.cancelled = true;
-
-    if (!**PENABLE || e.fingers != **FINGERS || swipeDirection != 'v')
-        return;
-
-    info.cancelled = true;
-    if (!swipeActive) {
-        if (g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y <= 0) {
-            renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace, true);
-            renderingOverview = false;
-            gestured          = **PDISTANCE;
-            swipeActive       = true;
-        }
-
-        else if (!g_pOverview && (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y > 0) {
-            renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace, true);
-            renderingOverview = false;
-            gestured          = 0;
-            swipeActive       = true;
-        }
-
-        else {
-            return;
-        }
-    }
-
-    gestured += (**PPOSITIVE ? 1.0 : -1.0) * e.delta.y;
-    if (gestured <= 0.01) // plugin will crash if swipe ends at <= 0
-        gestured = 0.01;
-    g_pOverview->onSwipeUpdate(gestured);
-}
-
-static void swipeEnd(void* self, SCallbackInfo& info, std::any param) {
-    if (!g_pOverview)
-        return;
-
-    swipeActive    = false;
-    info.cancelled = true;
-
-    g_pOverview->onSwipeEnd();
-}
-
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
-    if (swipeActive)
-        return {};
-    if (arg == "select") { 
+    if (g_pOverview->m_isSwiping)
+        return {.success = false, .error = "already swiping"};
+
+    if (arg == "select") {
         if (g_pOverview) {
             g_pOverview->selectHoveredWorkspace();
             g_pOverview->close();
@@ -165,6 +102,76 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
 
 static void failNotif(const std::string& reason) {
     HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason, CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
+}
+
+static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
+    Hyprlang::CParseResult    result;
+
+    CConstVarList             data(RHS);
+
+    size_t                    fingerCount = 0;
+    eTrackpadGestureDirection direction   = TRACKPAD_GESTURE_DIR_NONE;
+
+    try {
+        fingerCount = std::stoul(std::string{data[0]});
+    } catch (...) {
+        result.setError(std::format("Invalid value {} for finger count", data[0]).c_str());
+        return result;
+    }
+
+    if (fingerCount <= 1 || fingerCount >= 10) {
+        result.setError(std::format("Invalid value {} for finger count", data[0]).c_str());
+        return result;
+    }
+
+    direction = g_pTrackpadGestures->dirForString(data[1]);
+
+    if (direction == TRACKPAD_GESTURE_DIR_NONE) {
+        result.setError(std::format("Invalid direction: {}", data[1]).c_str());
+        return result;
+    }
+
+    int      startDataIdx = 2;
+    uint32_t modMask      = 0;
+    float    deltaScale   = 1.F;
+
+    while (true) {
+
+        if (data[startDataIdx].starts_with("mod:")) {
+            modMask = g_pKeybindManager->stringToModMask(std::string{data[startDataIdx].substr(4)});
+            startDataIdx++;
+            continue;
+        } else if (data[startDataIdx].starts_with("scale:")) {
+            try {
+                deltaScale = std::clamp(std::stof(std::string{data[startDataIdx].substr(6)}), 0.1F, 10.F);
+                startDataIdx++;
+                continue;
+            } catch (...) {
+                result.setError(std::format("Invalid delta scale: {}", std::string{data[startDataIdx].substr(6)}).c_str());
+                return result;
+            }
+        }
+
+        break;
+    }
+
+    std::expected<void, std::string> resultFromGesture;
+
+    if (data[startDataIdx] == "expo")
+        resultFromGesture = g_pTrackpadGestures->addGesture(makeUnique<CExpoGesture>(), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "unset")
+        resultFromGesture = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
+    else {
+        result.setError(std::format("Invalid gesture: {}", data[startDataIdx]).c_str());
+        return result;
+    }
+
+    if (!resultFromGesture) {
+        result.setError(resultFromGesture.error().c_str());
+        return result;
+    }
+
+    return result;
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -216,11 +223,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         g_pOverview->onPreRender();
     });
 
-    static auto P2 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeBegin", [](void* self, SCallbackInfo& info, std::any data) { swipeBegin(self, info, data); });
-    static auto P3 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeEnd", [](void* self, SCallbackInfo& info, std::any data) { swipeEnd(self, info, data); });
-    static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "swipeUpdate", [](void* self, SCallbackInfo& info, std::any data) { swipeUpdate(self, info, data); });
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", ::onExpoDispatcher);
 
-    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", onExpoDispatcher);
+    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo-gesture", ::expoGestureKeyword, {});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});
@@ -228,10 +233,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty", Hyprlang::INT{0});
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:enable_gesture", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_positive", Hyprlang::INT{1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_fingers", Hyprlang::INT{4});
 
     HyprlandAPI::reloadConfig();
 
