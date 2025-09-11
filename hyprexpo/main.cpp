@@ -25,6 +25,8 @@ typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, 
 typedef void (*origAddDamageA)(void*, const CBox&);
 typedef void (*origAddDamageB)(void*, const pixman_region32_t*);
 
+static bool g_unloading = false;
+
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
@@ -106,6 +108,9 @@ static void failNotif(const std::string& reason) {
 
 static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
     Hyprlang::CParseResult    result;
+
+    if (g_unloading)
+        return result;
 
     CConstVarList             data(RHS);
 
@@ -242,4 +247,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     g_pHyprRenderer->m_renderPass.removeAllOfType("COverviewPassElement");
+
+    g_unloading = true;
+
+    g_pConfigManager->reload(); // we need to reload now to clear all the gestures
 }
