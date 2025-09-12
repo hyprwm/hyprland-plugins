@@ -66,7 +66,7 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
 
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
-    if (g_pOverview->m_isSwiping)
+    if (g_pOverview && g_pOverview->m_isSwiping)
         return {.success = false, .error = "already swiping"};
 
     if (arg == "select") {
