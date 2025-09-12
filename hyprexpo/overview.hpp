@@ -25,6 +25,9 @@ class COverview {
     void onDamageReported();
     void onPreRender();
 
+    void setClosing(bool closing);
+
+    void resetSwipe();
     void onSwipeUpdate(double delta);
     void onSwipeEnd();
 

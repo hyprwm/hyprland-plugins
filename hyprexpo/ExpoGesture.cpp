@@ -13,6 +13,10 @@ void CExpoGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
 
     if (!g_pOverview)
         g_pOverview = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+    else {
+        g_pOverview->selectHoveredWorkspace();
+        g_pOverview->setClosing(true);
+    }
 }
 
 void CExpoGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
@@ -30,5 +34,7 @@ void CExpoGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
 }
 
 void CExpoGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+    g_pOverview->setClosing(false);
     g_pOverview->onSwipeEnd();
+    g_pOverview->resetSwipe();
 }

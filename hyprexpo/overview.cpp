@@ -184,7 +184,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     PMONITOR->m_activeSpecialWorkspace = openSpecial;
     PMONITOR->m_activeWorkspace        = startedOn;
-    startedOn->m_visible            = true;
+    startedOn->m_visible               = true;
     g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     // zoom on the current workspace.
@@ -225,11 +225,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         info.cancelled = true;
 
-        // get tile x,y
-        int x = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-        int y = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
-
-        closeOnID = x + y * SIDE_LENGTH;
+        selectHoveredWorkspace();
 
         close();
     };
@@ -316,7 +312,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     pMonitor->m_activeSpecialWorkspace = openSpecial;
     pMonitor->m_activeWorkspace        = startedOn;
-    startedOn->m_visible            = true;
+    startedOn->m_visible               = true;
     g_pDesktopAnimationManager->startAnimation(startedOn, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
 
     blockOverviewRendering = false;
@@ -460,6 +456,14 @@ static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc)
     return Vector2D{lerp(from.x, to.x, perc), lerp(from.y, to.y, perc)};
 }
 
+void COverview::setClosing(bool closing_) {
+    closing = closing_;
+}
+
+void COverview::resetSwipe() {
+    swipeWasCommenced = false;
+}
+
 void COverview::onSwipeUpdate(double delta) {
     m_isSwiping = true;
 
@@ -468,13 +472,14 @@ void COverview::onSwipeUpdate(double delta) {
 
     static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
 
-    const float         PERC = 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+    const float         PERC               = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+    const auto          WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
     Vector2D            tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
     const auto          SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto          POSMAX =
-        (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{openedID % SIDE_LENGTH, openedID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    const auto          POSMAX  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
+        (pMonitor->m_size / tileSize);
 
     const auto SIZEMIN = pMonitor->m_size;
     const auto POSMIN  = Vector2D{0, 0};
