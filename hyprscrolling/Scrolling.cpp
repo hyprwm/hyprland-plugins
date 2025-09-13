@@ -378,7 +378,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
         return;
     }
 
-    if (PWINDOW->isFullscreen())
+    if (PWINDOW->isFullscreen() && !data->ignoreFullscreenChecks)
         return;
 
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
