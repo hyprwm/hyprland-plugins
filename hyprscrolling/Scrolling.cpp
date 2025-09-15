@@ -1150,6 +1150,45 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         col->add(WDATA);
 
         WDATA->column->workspace->recalculate();
+    } else if (ARGS[0] == "swapcol") {
+        if (ARGS.size() < 2) {
+            return {};
+        }
+
+        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        if (!WDATA)
+            return {};
+
+        const auto CURRENT_COL = WDATA->column.lock();
+        if (!CURRENT_COL)
+            return {};
+
+        const auto WS_DATA = CURRENT_COL->workspace.lock();
+        if (!WS_DATA || WS_DATA->columns.size() < 2) {
+            return {};
+        }
+
+        const int64_t current_idx = WS_DATA->idx(CURRENT_COL);
+        const size_t  col_count   = WS_DATA->columns.size();
+
+        if (current_idx == -1)
+            return {};
+
+        const std::string& direction  = ARGS[1];
+        int64_t            target_idx = -1;
+
+        if (direction == "l") {
+            target_idx = (current_idx == 0) ? (col_count - 1) : (current_idx - 1);
+        } else if (direction == "r") {
+            target_idx = (current_idx == (int64_t)col_count - 1) ? 0 : (current_idx + 1);
+        } else {
+            // invalid direction
+            return {};
+        }
+
+        std::swap(WS_DATA->columns[current_idx], WS_DATA->columns[target_idx]);
+        WS_DATA->centerOrFitCol(CURRENT_COL);
+        WS_DATA->recalculate();
     }
 
     return {};
