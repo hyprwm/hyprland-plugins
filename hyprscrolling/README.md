@@ -30,3 +30,4 @@ Make sure to set the `general:layout` to `scrolling` to use this layout.
 | focus | moves the focus and centers the layout, while also wrapping instead of moving to neighbring monitors. | direction |
 | promote | moves a window to its own new column | none |
 | swapcol | Swaps the current column with its neighbor to the left (`l`) or right (`r`). The swap wraps around (e.g., swapping the first column left moves it to the end). | `l` or `r` |
+| movecoltoworkspace | Moves the entire current column to the specified workspace, preserving its internal layout. Works with existing, new, and special workspaces. e.g. like `1`, `2`, `-1`, `+2`, `special`, etc. | workspace identifier|
