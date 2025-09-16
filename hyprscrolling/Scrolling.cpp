@@ -773,6 +773,35 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
     g_pCompositor->changeWindowZOrder(pWindow, true);
 }
 
+SP<SScrollingWindowData> CScrollingLayout::findBestNeighbor(SP<SScrollingWindowData> pCurrent, SP<SColumnData> pTargetCol) {
+    if (!pCurrent || !pTargetCol || pTargetCol->windowDatas.empty()) {
+        return nullptr;
+    }
+
+    const double currentTop = pCurrent->layoutBox.y;
+    const double currentBottom = pCurrent->layoutBox.y + pCurrent->layoutBox.h;
+    SP<SScrollingWindowData> bestMatch = nullptr;
+
+    for (const auto& candidate : pTargetCol->windowDatas) {
+        const double candidateTop = candidate->layoutBox.y;
+        const double candidateBottom = candidate->layoutBox.y + candidate->layoutBox.h;
+
+        const bool overlaps = (candidateTop < currentBottom) && (candidateBottom > currentTop);
+
+        if (overlaps) {
+            if (!bestMatch || candidateTop < bestMatch->layoutBox.y) {
+                bestMatch = candidate;
+            }
+        }
+    }
+
+    if (!bestMatch && !pTargetCol->windowDatas.empty()) {
+        return pTargetCol->windowDatas.front();
+    }
+
+    return bestMatch;
+}
+
 std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::string message) {
     static auto centerOrFit = [](const SP<SWorkspaceData> WS, const SP<SColumnData> COL) -> void {
         static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
@@ -1108,7 +1137,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                         PREV = WDATA->column->workspace->columns.back();
                 }
 
-                g_pCompositor->focusWindow(PREV->windowDatas.front()->window.lock());
+                auto pTargetWindowData = findBestNeighbor(WDATA, PREV);
+                g_pCompositor->focusWindow(pTargetWindowData->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), PREV);
                 WDATA->column->workspace->recalculate();
                 g_pCompositor->warpCursorTo(PREV->windowDatas.front()->window.lock()->middle());
@@ -1127,7 +1157,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                         NEXT = WDATA->column->workspace->columns.front();
                 }
 
-                g_pCompositor->focusWindow(NEXT->windowDatas.front()->window.lock());
+                auto pTargetWindowData = findBestNeighbor(WDATA, NEXT);
+                g_pCompositor->focusWindow(pTargetWindowData->window.lock());
                 centerOrFit(WDATA->column->workspace.lock(), NEXT);
                 WDATA->column->workspace->recalculate();
                 g_pCompositor->warpCursorTo(NEXT->windowDatas.front()->window.lock()->middle());

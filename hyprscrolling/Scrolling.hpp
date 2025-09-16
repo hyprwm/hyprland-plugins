@@ -114,6 +114,7 @@ class CScrollingLayout : public IHyprLayout {
         std::vector<float> configuredWidths;
     } m_config;
 
+    SP<SScrollingWindowData> findBestNeighbor(SP<SScrollingWindowData> pCurrent, SP<SColumnData> pTargetCol);
     SP<SWorkspaceData>       dataFor(PHLWORKSPACE ws);
     SP<SScrollingWindowData> dataFor(PHLWINDOW w);
     SP<SWorkspaceData>       currentWorkspaceData();
