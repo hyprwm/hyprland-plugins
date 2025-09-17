@@ -787,9 +787,8 @@ SP<SScrollingWindowData> CScrollingLayout::findBestNeighbor(SP<SScrollingWindowD
 
         const bool   overlaps = (candidateTop < currentBottom) && (candidateBottom > currentTop);
 
-        if (overlaps)
-            if (!bestMatch || candidateTop < bestMatch->layoutBox.y)
-                bestMatch = candidate;
+        if (overlaps && (!bestMatch || candidateTop < bestMatch->layoutBox.y))
+            bestMatch = candidate;
     }
 
     if (!bestMatch && !pTargetCol->windowDatas.empty())
