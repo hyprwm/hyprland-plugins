@@ -1259,14 +1259,12 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         NEW_COL->columnWidth = CURRENT_COL->columnWidth;
         NEW_COL->windowDatas = CURRENT_COL->windowDatas;
 
-        for (const auto& wd : NEW_COL->windowDatas)
-        {
+        for (const auto& wd : NEW_COL->windowDatas) {
             wd->column = NEW_COL;
         }
 
         std::vector<PHLWINDOW> windowsToMove;
-        for (const auto& wd : CURRENT_COL->windowDatas)
-        {
+        for (const auto& wd : CURRENT_COL->windowDatas) {
             windowsToMove.push_back(wd->window.lock());
         }
 
@@ -1277,8 +1275,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             m_columnMoveState.isMovingColumn    = false;
             m_columnMoveState.targetWorkspaceID = -1;
 
-            for (auto& ws : m_workspaceDatas)
-            {
+            for (auto& ws : m_workspaceDatas) {
                 ws->recalculate();
             }
         });
@@ -1286,8 +1283,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         m_columnMoveState.isMovingColumn    = true;
         m_columnMoveState.targetWorkspaceID = PWORKSPACE->m_id;
 
-        for (const auto& win : windowsToMove)
-        {
+        for (const auto& win : windowsToMove) {
             g_pCompositor->moveWindowToWorkspaceSafe(win, PWORKSPACE);
         }
 
