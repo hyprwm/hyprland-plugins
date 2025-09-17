@@ -519,9 +519,8 @@ void CScrollingLayout::onDisable() {
 }
 
 void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
-    if (m_columnMoveState.isMovingColumn && window->m_workspace->m_id == m_columnMoveState.targetWorkspaceID) {
+    if (m_columnMoveState.isMovingColumn && window->m_workspace->m_id == m_columnMoveState.targetWorkspaceID)
         return;
-    }
 
     auto workspaceData = dataFor(window->m_workspace);
 
@@ -1155,9 +1154,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         WDATA->column->workspace->recalculate();
     } else if (ARGS[0] == "swapcol") {
-        if (ARGS.size() < 2) {
+        if (ARGS.size() < 2)
             return {};
-        }
 
         const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
         if (!WDATA)
@@ -1168,9 +1166,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             return {};
 
         const auto WS_DATA = CURRENT_COL->workspace.lock();
-        if (!WS_DATA || WS_DATA->columns.size() < 2) {
+        if (!WS_DATA || WS_DATA->columns.size() < 2)
             return {};
-        }
 
         const int64_t current_idx = WS_DATA->idx(CURRENT_COL);
         const size_t  col_count   = WS_DATA->columns.size();
@@ -1210,9 +1207,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             return {};
 
         const auto PMONITOR = g_pCompositor->m_lastWindow->m_monitor.lock();
-        if (!PMONITOR) {
+        if (!PMONITOR)
             return {};
-        }
 
         PHLWORKSPACE       PWORKSPACE = nullptr;
         const std::string& arg        = ARGS[1];
@@ -1223,38 +1219,34 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 const int currentWorkspaceID = WDATA->window->m_workspace->m_id;
                 const int targetWorkspaceID  = currentWorkspaceID + offset;
 
-                if (targetWorkspaceID < 1) {
+                if (targetWorkspaceID < 1)
                     return {};
-                }
 
                 PWORKSPACE = g_pCompositor->getWorkspaceByID(targetWorkspaceID);
-                if (!PWORKSPACE) {
+                if (!PWORKSPACE)
                     PWORKSPACE = g_pCompositor->createNewWorkspace(targetWorkspaceID, PMONITOR->m_id);
-                }
             } catch (...) { return {}; }
         } else if (arg == "special") {
             const int SPECIAL_WORKSPACE_ID = -99;
             PWORKSPACE                     = g_pCompositor->getWorkspaceByID(SPECIAL_WORKSPACE_ID);
-            if (!PWORKSPACE) {
+            if (!PWORKSPACE)
                 PWORKSPACE = g_pCompositor->createNewWorkspace(SPECIAL_WORKSPACE_ID, PMONITOR->m_id, "special");
-            }
         } else {
             PWORKSPACE = g_pCompositor->getWorkspaceByString(arg);
             if (!PWORKSPACE) {
                 try {
                     const int workspaceID = std::stoi(arg);
                     PWORKSPACE            = g_pCompositor->getWorkspaceByID(workspaceID);
-                    if (!PWORKSPACE) {
+                    if (!PWORKSPACE)
                         PWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->m_id);
-                    }
                 } catch (const std::invalid_argument&) { PWORKSPACE = g_pCompositor->createNewWorkspace(0, PMONITOR->m_id, arg); } catch (const std::out_of_range&) {
                     return {};
                 }
             }
         }
-        if (!PWORKSPACE) {
+        if (!PWORKSPACE)
             return {};
-        }
+
         if (PWORKSPACE == WDATA->window->m_workspace)
             return {};
 
@@ -1269,14 +1261,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         NEW_COL->columnWidth = CURRENT_COL->columnWidth;
         NEW_COL->windowDatas = CURRENT_COL->windowDatas;
 
-        for (const auto& wd : NEW_COL->windowDatas) {
+        for (const auto& wd : NEW_COL->windowDatas)
             wd->column = NEW_COL;
-        }
 
         std::vector<PHLWINDOW> windowsToMove;
-        for (const auto& wd : CURRENT_COL->windowDatas) {
+        for (const auto& wd : CURRENT_COL->windowDatas)
             windowsToMove.push_back(wd->window.lock());
-        }
+
         CURRENT_COL->windowDatas.clear();
         SOURCE_WS_DATA->remove(CURRENT_COL);
 
@@ -1284,17 +1275,15 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             m_columnMoveState.isMovingColumn    = false;
             m_columnMoveState.targetWorkspaceID = -1;
 
-            for (auto& ws : m_workspaceDatas) {
+            for (auto& ws : m_workspaceDatas)
                 ws->recalculate();
-            }
         });
 
         m_columnMoveState.isMovingColumn    = true;
         m_columnMoveState.targetWorkspaceID = PWORKSPACE->m_id;
 
-        for (const auto& win : windowsToMove) {
+        for (const auto& win : windowsToMove)
             g_pCompositor->moveWindowToWorkspaceSafe(win, PWORKSPACE);
-        }
 
         g_pCompositor->focusWindow(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
