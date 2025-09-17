@@ -774,30 +774,26 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
 }
 
 SP<SScrollingWindowData> CScrollingLayout::findBestNeighbor(SP<SScrollingWindowData> pCurrent, SP<SColumnData> pTargetCol) {
-    if (!pCurrent || !pTargetCol || pTargetCol->windowDatas.empty()) {
+    if (!pCurrent || !pTargetCol || pTargetCol->windowDatas.empty())
         return nullptr;
-    }
 
-    const double currentTop = pCurrent->layoutBox.y;
-    const double currentBottom = pCurrent->layoutBox.y + pCurrent->layoutBox.h;
-    SP<SScrollingWindowData> bestMatch = nullptr;
+    const double             currentTop    = pCurrent->layoutBox.y;
+    const double             currentBottom = pCurrent->layoutBox.y + pCurrent->layoutBox.h;
+    SP<SScrollingWindowData> bestMatch     = nullptr;
 
     for (const auto& candidate : pTargetCol->windowDatas) {
-        const double candidateTop = candidate->layoutBox.y;
+        const double candidateTop    = candidate->layoutBox.y;
         const double candidateBottom = candidate->layoutBox.y + candidate->layoutBox.h;
 
-        const bool overlaps = (candidateTop < currentBottom) && (candidateBottom > currentTop);
+        const bool   overlaps = (candidateTop < currentBottom) && (candidateBottom > currentTop);
 
-        if (overlaps) {
-            if (!bestMatch || candidateTop < bestMatch->layoutBox.y) {
+        if (overlaps)
+            if (!bestMatch || candidateTop < bestMatch->layoutBox.y)
                 bestMatch = candidate;
-            }
-        }
     }
 
-    if (!bestMatch && !pTargetCol->windowDatas.empty()) {
+    if (!bestMatch && !pTargetCol->windowDatas.empty())
         return pTargetCol->windowDatas.front();
-    }
 
     return bestMatch;
 }
