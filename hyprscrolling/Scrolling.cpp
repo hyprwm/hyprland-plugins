@@ -1178,14 +1178,12 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         const std::string& direction  = ARGS[1];
         int64_t            target_idx = -1;
 
-        if (direction == "l") {
+        if (direction == "l")
             target_idx = (current_idx == 0) ? (col_count - 1) : (current_idx - 1);
-        } else if (direction == "r") {
+        else if (direction == "r")
             target_idx = (current_idx == (int64_t)col_count - 1) ? 0 : (current_idx + 1);
-        } else {
-            // invalid direction
+        else
             return {};
-        }
 
         std::swap(WS_DATA->columns[current_idx], WS_DATA->columns[target_idx]);
         WS_DATA->centerOrFitCol(CURRENT_COL);
@@ -1262,11 +1260,15 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         NEW_COL->windowDatas = CURRENT_COL->windowDatas;
 
         for (const auto& wd : NEW_COL->windowDatas)
+        {
             wd->column = NEW_COL;
+        }
 
         std::vector<PHLWINDOW> windowsToMove;
         for (const auto& wd : CURRENT_COL->windowDatas)
+        {
             windowsToMove.push_back(wd->window.lock());
+        }
 
         CURRENT_COL->windowDatas.clear();
         SOURCE_WS_DATA->remove(CURRENT_COL);
@@ -1276,14 +1278,18 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             m_columnMoveState.targetWorkspaceID = -1;
 
             for (auto& ws : m_workspaceDatas)
+            {
                 ws->recalculate();
+            }
         });
 
         m_columnMoveState.isMovingColumn    = true;
         m_columnMoveState.targetWorkspaceID = PWORKSPACE->m_id;
 
         for (const auto& win : windowsToMove)
+        {
             g_pCompositor->moveWindowToWorkspaceSafe(win, PWORKSPACE);
+        }
 
         g_pCompositor->focusWindow(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
