@@ -47,6 +47,7 @@ struct SColumnData {
     float                                 columnSize  = 1.F;
     float                                 columnWidth = 1.F;
     WP<SWorkspaceData>                    workspace;
+    WP<SScrollingWindowData>              lastFocusedWindow;
 
     WP<SColumnData>                       self;
 };
@@ -120,6 +121,7 @@ class CScrollingLayout : public IHyprLayout {
     SP<SWorkspaceData>       currentWorkspaceData();
 
     void                     applyNodeDataToWindow(SP<SScrollingWindowData> node, bool instant, bool hasWindowsRight, bool hasWindowsLeft);
+    void                     focusWindowUpdate(PHLWINDOW pWindow);
 
     friend struct SWorkspaceData;
 };
