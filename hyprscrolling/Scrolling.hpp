@@ -111,6 +111,11 @@ class CScrollingLayout : public IHyprLayout {
     SP<HOOK_CALLBACK_FN>            m_focusCallback;
 
     struct {
+        bool isMovingColumn    = false;
+        int  targetWorkspaceID = -1;
+    } m_columnMoveState;
+
+    struct {
         std::vector<float> configuredWidths;
     } m_config;
 
