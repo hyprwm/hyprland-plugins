@@ -3,7 +3,7 @@
   hyprland,
   hyprlandPlugins,
 }:
-hyprlandPlugins.mkHyprlandPlugin hyprland {
+hyprlandPlugins.mkHyprlandPlugin {
   pluginName = "csgo-vulkan-fix";
   version = "0.1";
   src = ./.;

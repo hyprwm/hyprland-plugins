@@ -3,7 +3,7 @@
   hyprland,
   hyprlandPlugins,
 }:
-hyprlandPlugins.mkHyprlandPlugin hyprland {
+hyprlandPlugins.mkHyprlandPlugin {
   pluginName = "xtra-dispatchers";
   version = "0.1";
   src = ./.;
