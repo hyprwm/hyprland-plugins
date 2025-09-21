@@ -780,9 +780,10 @@ void CScrollingLayout::focusWindowUpdate(PHLWINDOW pWindow) {
     }
     g_pCompositor->focusWindow(pWindow);
     const auto WINDOWDATA = dataFor(pWindow);
-    if (WINDOWDATA)
+    if (WINDOWDATA) {
         if (auto col = WINDOWDATA->column.lock())
             col->lastFocusedWindow = WINDOWDATA;
+    }
 }
 
 SP<SScrollingWindowData> CScrollingLayout::findBestNeighbor(SP<SScrollingWindowData> pCurrent, SP<SColumnData> pTargetCol) {
@@ -798,19 +799,18 @@ SP<SScrollingWindowData> CScrollingLayout::findBestNeighbor(SP<SScrollingWindowD
         const bool   overlaps        = (candidateTop < currentBottom) && (candidateBottom > currentTop);
 
         if (overlaps)
-            overlappingWindows.push_back(candidate);
+            overlappingWindows.emplace_back(candidate);
     }
     if (!overlappingWindows.empty()) {
         auto lastFocused = pTargetCol->lastFocusedWindow.lock();
 
         if (lastFocused) {
-            auto it = std::find(overlappingWindows.begin(), overlappingWindows.end(), lastFocused);
+            auto it = std::ranges::find(overlappingWindows, lastFocused);
             if (it != overlappingWindows.end())
                 return lastFocused;
         }
 
-        auto topmost = std::min_element(overlappingWindows.begin(), overlappingWindows.end(), [](const auto& a, const auto& b) { return a->layoutBox.y < b->layoutBox.y; });
-
+        auto topmost = std::ranges::min_element(overlappingWindows, std::less<>{}, [](const SP<SScrollingWindowData>& w) { return w->layoutBox.y; });
         return *topmost;
     }
     if (!pTargetCol->windowDatas.empty())
