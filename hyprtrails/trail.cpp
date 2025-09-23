@@ -243,7 +243,8 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     box thisboxopengl =
-        box{static_cast<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x), static_cast<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
+        box{static_cast<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x), 
+            static_cast<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
             static_cast<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
             static_cast<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
