@@ -334,6 +334,6 @@ void CTrail::updateWindow(PHLWINDOW pWindow) {
 
 void CTrail::damageEntire() {
     CBox dm = {static_cast<double>(m_lastWindowPos.x - m_seExtents.topLeft.x), static_cast<double>(m_lastWindowPos.y - m_seExtents.topLeft.y),
-               static_cast<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), static_cast<double>(m_seExtents.topLeft.y};
-    g_pHyprRenderer->damageBox(dm));
+               static_cast<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), static_cast<double>(m_seExtents.topLeft.y)};
+    g_pHyprRenderer->damageBox(dm);
 }
