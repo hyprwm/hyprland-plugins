@@ -58,7 +58,7 @@ struct SWorkspaceData {
 
     PHLWORKSPACEREF              workspace;
     std::vector<SP<SColumnData>> columns;
-    int                          leftOffset = 0;
+    float                        leftOffset = 0;
 
     SP<SColumnData>              add();
     SP<SColumnData>              add(int after);

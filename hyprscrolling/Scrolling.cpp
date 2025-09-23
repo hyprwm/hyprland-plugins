@@ -329,9 +329,13 @@ bool SWorkspaceData::visible(SP<SColumnData> c) {
     const auto USABLE    = layout->usableAreaFor(workspace->m_monitor.lock());
     float      totalLeft = 0;
     for (const auto& col : columns) {
-        if (col == c)
-            return (totalLeft >= leftOffset && totalLeft < leftOffset + USABLE.w) ||
-                (totalLeft + col->columnWidth * USABLE.w >= leftOffset && totalLeft + col->columnWidth * USABLE.w < leftOffset + USABLE.w);
+        if (col == c) {
+            const float colLeft   = totalLeft;
+            const float colRight  = totalLeft + col->columnWidth * USABLE.w;
+            const float viewLeft  = leftOffset;
+            const float viewRight = leftOffset + USABLE.w;
+            return colLeft < viewRight && viewLeft < colRight;
+        }
 
         totalLeft += col->columnWidth * USABLE.w;
     }
