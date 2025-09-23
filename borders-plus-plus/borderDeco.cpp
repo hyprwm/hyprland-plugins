@@ -138,11 +138,11 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         g_pHyprOpenGL->scissor(nullptr);
 
         g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{(uint64_t)**PCOLORS[i]},
-                                    {.round = *PNATURALROUND ? static_cast<int>(ORIGINALROUND) : static_cast<int>(rounding),
+                                    {.round         = **PNATURALROUND ? static_cast<int>(ORIGINALROUND) : static_cast<int>(rounding),
                                      .roundingPower = ROUNDINGPOWER,
                                      .borderSize    = THISBORDERSIZE,
                                      .a             = a,
-                                     .outerRound = *PNATURALROUND ? static_cast<int>(ORIGINALROUND) : -1});
+                                     .outerRound    = **PNATURALROUND ? static_cast<int>(ORIGINALROUND) : -1});
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
