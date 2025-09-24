@@ -3,7 +3,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
 #include "globals.hpp"
 #include "TrailPassElement.hpp"
 
@@ -333,7 +334,7 @@ void CTrail::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CTrail::damageEntire() {
-    CBox dm = {static_cast<double>(m_lastWindowPos.x - m_seExtents.topLeft.x), static_cast<double>(m_lastWindowPos.y - m_seExtents.topLeft.y),
-               static_cast<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), static_cast<double>(m_seExtents.topLeft.y)};
+    CBox dm = {sc<double>(m_lastWindowPos.x - m_seExtents.topLeft.x), sc<double>(m_lastWindowPos.y - m_seExtents.topLeft.y),
+               sc<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), sc<double>(m_seExtents.topLeft.y)};
     g_pHyprRenderer->damageBox(dm);
 }
