@@ -121,7 +121,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    g_pHyprOpenGL->renderRect(wlrbox, CHyprColor(0, 0, 0, 0), {.round = static_cast<int>(PWINDOW->rounding() * pMonitor->m_scale), .roundingPower = PWINDOW->roundingPower()});
+    g_pHyprOpenGL->renderRect(wlrbox, CHyprColor(0, 0, 0, 0), {.round = sc<int>(PWINDOW->rounding() * pMonitor->m_scale), .roundingPower = PWINDOW->roundingPower()});
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -228,7 +228,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
             float ageFloor = std::floor(ageCoeff);
             float ageCeil  = std::ceil(ageCoeff);
             float approxAge =
-                agesForBezier[static_cast<int>(ageFloor)] + (agesForBezier[static_cast<int>(ageCeil)] - agesForBezier[static_cast<int>(ageFloor)]) * (ageCoeff - ageFloor);
+                agesForBezier[sc<int>(ageFloor)] + (agesForBezier[sc<int>(ageCeil)] - agesForBezier[sc<int>(ageFloor)]) * (ageCoeff - ageFloor);
             float    coeff  = originalCoeff * (1.0 - (approxAge / maxAge));
             Vector2D newVec = {vecNormal.x * coeff / pMonitor->m_size.x, vecNormal.y * coeff / pMonitor->m_size.y};
 
@@ -244,10 +244,10 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     box thisboxopengl =
-        box{static_cast<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x), 
-            static_cast<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
-            static_cast<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
-            static_cast<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
+        box{sc<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x),
+            sc<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
+            sc<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
+            sc<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR], COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
