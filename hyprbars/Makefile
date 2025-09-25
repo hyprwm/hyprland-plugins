@@ -1,4 +1,11 @@
-CXXFLAGS = -shared -fPIC --no-gnu-unique -g -std=c++2b -Wno-c++11-narrowing
+# Else exist specifically for clang
+ifeq ($(CXX),g++)
+    EXTRA_FLAGS = --no-gnu-unique
+else
+    EXTRA_FLAGS =
+endif
+
+CXXFLAGS = -shared -fPIC -g -std=c++2b -Wno-c++11-narrowing
 INCLUDES = `pkg-config --cflags pixman-1 libdrm hyprland pangocairo libinput libudev wayland-server xkbcommon`
 LIBS = `pkg-config --libs pangocairo`
 
@@ -8,7 +15,7 @@ TARGET = hyprbars.so
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ $> -o $@ $(LIBS) -O2
+	$(CXX) $(CXXFLAGS) $(EXTRA_FLAGS) $(INCLUDES) $^ $> -o $@ $(LIBS) -O2
 
 clean:
 	rm ./$(TARGET)
