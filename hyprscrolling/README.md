@@ -8,7 +8,15 @@ Adds a scrolling layout to Hyprland.
 
 Make sure to set the `general:layout` to `scrolling` to use this layout.
 
-*All config values are in `plugin:hyprscrolling`.*
+All config values can be set in your Hyprland config file, for example:
+```
+plugin {
+    hyprscrolling {
+        column_width = 0.7
+        fullscreen_on_one_column = false
+    }
+}
+```
 
 | name | description | type | default |
 | -- | -- | -- | -- |
@@ -31,3 +39,13 @@ Make sure to set the `general:layout` to `scrolling` to use this layout.
 | promote | moves a window to its own new column | none |
 | swapcol | Swaps the current column with its neighbor to the left (`l`) or right (`r`). The swap wraps around (e.g., swapping the first column left moves it to the end). | `l` or `r` |
 | movecoltoworkspace | Moves the entire current column to the specified workspace, preserving its internal layout. Works with existing, new, and special workspaces. e.g. like `1`, `2`, `-1`, `+2`, `special`, etc. | workspace identifier|
+
+Example key bindings for your Hyprland config:
+```
+bind = $mainMod, period, layoutmsg, move +col
+bind = $mainMod, comma, layoutmsg, move -col
+bind = $mainMod SHIFT, period, layoutmsg, movewindowto r
+bind = $mainMod SHIFT, comma, layoutmsg, movewindowto l
+bind = $mainMod SHIFT, up, layoutmsg, movewindowto u
+bind = $mainMod SHIFT, down, layoutmsg, movewindowto d
+```
