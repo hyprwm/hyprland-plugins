@@ -3,7 +3,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
 #include "globals.hpp"
 #include "TrailPassElement.hpp"
 
@@ -120,7 +121,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    g_pHyprOpenGL->renderRect(wlrbox, CHyprColor(0, 0, 0, 0), {.round = PWINDOW->rounding() * pMonitor->m_scale, .roundingPower = PWINDOW->roundingPower()});
+    g_pHyprOpenGL->renderRect(wlrbox, CHyprColor(0, 0, 0, 0), {.round = sc<int>(PWINDOW->rounding() * pMonitor->m_scale), .roundingPower = PWINDOW->roundingPower()});
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -227,7 +228,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
             float ageFloor = std::floor(ageCoeff);
             float ageCeil  = std::ceil(ageCoeff);
             float approxAge =
-                agesForBezier[static_cast<int>(ageFloor)] + (agesForBezier[static_cast<int>(ageCeil)] - agesForBezier[static_cast<int>(ageFloor)]) * (ageCoeff - ageFloor);
+                agesForBezier[sc<int>(ageFloor)] + (agesForBezier[sc<int>(ageCeil)] - agesForBezier[sc<int>(ageFloor)]) * (ageCoeff - ageFloor);
             float    coeff  = originalCoeff * (1.0 - (approxAge / maxAge));
             Vector2D newVec = {vecNormal.x * coeff / pMonitor->m_size.x, vecNormal.y * coeff / pMonitor->m_size.y};
 
@@ -243,9 +244,10 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     box thisboxopengl =
-        box{(PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x, (PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y,
-            (PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x,
-            (PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y};
+        box{sc<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x),
+            sc<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
+            sc<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
+            sc<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR], COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -332,7 +334,7 @@ void CTrail::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CTrail::damageEntire() {
-    CBox dm = {(int)(m_lastWindowPos.x - m_seExtents.topLeft.x), (int)(m_lastWindowPos.y - m_seExtents.topLeft.y),
-               (int)(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), (int)m_seExtents.topLeft.y};
+    CBox dm = {sc<double>(m_lastWindowPos.x - m_seExtents.topLeft.x), sc<double>(m_lastWindowPos.y - m_seExtents.topLeft.y),
+               sc<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), sc<double>(m_seExtents.topLeft.y)};
     g_pHyprRenderer->damageBox(dm);
 }

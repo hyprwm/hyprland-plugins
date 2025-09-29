@@ -25,6 +25,9 @@ class COverview {
     void onDamageReported();
     void onPreRender();
 
+    void setClosing(bool closing);
+
+    void resetSwipe();
     void onSwipeUpdate(double delta);
     void onSwipeEnd();
 
@@ -36,6 +39,7 @@ class COverview {
     bool          blockDamageReporting   = false;
 
     PHLMONITORREF pMonitor;
+    bool          m_isSwiping = false;
 
   private:
     void       redrawID(int id, bool forcelowres = false);

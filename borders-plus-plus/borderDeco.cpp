@@ -3,7 +3,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
 #include "BorderppPassElement.hpp"
 #include "globals.hpp"
 
@@ -138,11 +139,11 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         g_pHyprOpenGL->scissor(nullptr);
 
         g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{(uint64_t)**PCOLORS[i]},
-                                    {.round         = **PNATURALROUND ? ORIGINALROUND : rounding,
+                                    {.round         = **PNATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
                                      .roundingPower = ROUNDINGPOWER,
                                      .borderSize    = THISBORDERSIZE,
                                      .a             = a,
-                                     .outerRound    = **PNATURALROUND ? ORIGINALROUND : -1});
+                                     .outerRound    = **PNATURALROUND ? sc<int>(ORIGINALROUND) : -1});
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
