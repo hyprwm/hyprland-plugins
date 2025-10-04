@@ -10,6 +10,7 @@
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
