@@ -88,7 +88,7 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
             if (IS_SCROLLING)
                 g_pOverview = makeShared<CScrollOverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
             else
-                makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+                g_pOverview = makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
             renderingOverview = false;
         }
         return {};
@@ -107,7 +107,7 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
     if (IS_SCROLLING)
         g_pOverview = makeShared<CScrollOverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     else
-        makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+        g_pOverview = makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     renderingOverview = false;
     return {};
 }

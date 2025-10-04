@@ -229,6 +229,7 @@ void CScrollOverview::redrawAll(bool forcelowres) {
     if (backgroundFb.m_size != pMonitor->m_pixelSize) {
         backgroundFb.release();
         backgroundFb.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
+        floatingFb.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
     }
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
@@ -237,6 +238,21 @@ void CScrollOverview::redrawAll(bool forcelowres) {
     g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 1.0});
 
     g_pHyprRenderer->renderAllClientsForWorkspace(pMonitor.lock(), nullptr, Time::steadyNow());
+
+    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->endRender();
+
+    // render floating as well. For these, we disable decos to match tiled ones.
+    g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &floatingFb);
+
+    g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 0});
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!validMapped(w) || !w->m_isFloating || w->m_workspace != startedOn)
+            continue;
+
+        g_pHyprRenderer->renderWindow(w, pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL);
+    }
 
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
@@ -364,6 +380,12 @@ void CScrollOverview::fullRender() {
                 g_pHyprOpenGL->renderRect(texbox2, CHyprColor{0.5, 0.0, 0.0, 0.5}, CHyprOpenGLImpl::SRectRenderData{.round = 5});
             }
         }
+        CBox floatbox = CBox{pMonitor->m_position + Vector2D{0.F, yoff / scale->value()}, pMonitor->m_size};
+        floatbox.translate(-VIEWPORT_CENTER).scale(scale->value()).translate(VIEWPORT_CENTER).translate(-viewOffset->value() * scale->value());
+        floatbox.translate({0.F, yoff});
+        floatbox.scale(pMonitor->m_scale).round();
+        g_pHyprOpenGL->renderTextureInternal(floatingFb.getTexture(), floatbox, {.damage = &damage, .a = 1.0});
+
         yoff += pMonitor->m_size.y * scale->value();
     }
 }
@@ -377,11 +399,11 @@ static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc)
 }
 
 void CScrollOverview::setClosing(bool closing_) {
-    // TODO: 
+    // TODO:
 }
 
 void CScrollOverview::resetSwipe() {
-    // TODO: 
+    // TODO:
 }
 
 void CScrollOverview::onSwipeUpdate(double delta) {

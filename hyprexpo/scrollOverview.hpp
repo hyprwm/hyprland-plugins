@@ -56,6 +56,7 @@ class CScrollOverview : public IOverview {
     };
 
     CFramebuffer                     backgroundFb;
+    CFramebuffer                     floatingFb;
 
     Vector2D                         lastMousePosLocal = Vector2D{};
 
