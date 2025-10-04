@@ -9,12 +9,14 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/trackpad/GestureTypes.hpp>
 #include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
 
 #include <hyprutils/string/ConstVarList.hpp>
 using namespace Hyprutils::String;
 
 #include "globals.hpp"
 #include "overview.hpp"
+#include "scrollOverview.hpp"
 #include "ExpoGesture.hpp"
 
 // Methods
@@ -66,6 +68,8 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
 
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
+    IS_SCROLLING = g_pLayoutManager->getCurrentLayout()->getLayoutName() == "scrolling";
+
     if (g_pOverview && g_pOverview->m_isSwiping)
         return {.success = false, .error = "already swiping"};
 
@@ -81,7 +85,10 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
             g_pOverview->close();
         else {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+            if (IS_SCROLLING)
+                g_pOverview = makeShared<CScrollOverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+            else
+                makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
             renderingOverview = false;
         }
         return {};
@@ -97,7 +104,10 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
         return {};
 
     renderingOverview = true;
-    g_pOverview       = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+    if (IS_SCROLLING)
+        g_pOverview = makeShared<CScrollOverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+    else
+        makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     renderingOverview = false;
     return {};
 }
@@ -107,7 +117,7 @@ static void failNotif(const std::string& reason) {
 }
 
 static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
-    Hyprlang::CParseResult    result;
+    Hyprlang::CParseResult result;
 
     if (g_unloading)
         return result;

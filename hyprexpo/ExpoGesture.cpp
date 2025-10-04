@@ -12,7 +12,7 @@ void CExpoGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     m_firstUpdate = true;
 
     if (!g_pOverview)
-        g_pOverview = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+        g_pOverview = makeShared<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
     else {
         g_pOverview->selectHoveredWorkspace();
         g_pOverview->setClosing(true);
