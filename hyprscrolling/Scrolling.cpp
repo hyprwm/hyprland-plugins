@@ -1344,6 +1344,66 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         g_pCompositor->focusWindow(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
+    } else if (ARGS[0] == "togglefit") {
+        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
+        auto&             fitMethod  = *PFITMETHOD.ptr();
+        const int         toggled    = fitMethod ^ 1;
+
+        fitMethod = toggled;
+
+        const auto focusedData = dataFor(g_pCompositor->m_lastWindow.lock());
+        static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
+
+        for (const auto& ws : m_workspaceDatas) {
+            if (!ws || ws->columns.empty())
+                continue;
+
+            const auto monitor = ws->workspace->m_monitor.lock();
+            if (!monitor)
+                continue;
+
+            const auto USABLE = usableAreaFor(monitor);
+
+            const auto focusedColumn = (focusedData && focusedData->column && focusedData->column->workspace.lock() == ws) ? focusedData->column.lock() : nullptr;
+
+            const auto fallbackColumn = ws->atCenter();
+
+            if (toggled == 1) {
+                const auto columnToFit = focusedColumn ? focusedColumn : fallbackColumn;
+                if (!columnToFit)
+                    continue;
+
+                double currentLeft = 0.0;
+                for (const auto& col : ws->columns) {
+                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USABLE.w : USABLE.w * col->columnWidth;
+
+                    if (col == columnToFit) {
+                        const double colLeft   = currentLeft;
+                        const double colRight  = currentLeft + itemWidth;
+                        const double scrollMax = std::max(ws->maxWidth() - USABLE.w, 0.0);
+                        double       desiredOffset;
+
+                        if (col == ws->columns.front())
+                            desiredOffset = 0.0;
+                        else
+                            desiredOffset = std::clamp(colRight - USABLE.w, 0.0, scrollMax);
+
+                        ws->leftOffset = desiredOffset;
+                        break;
+                    }
+
+                    currentLeft += itemWidth;
+                }
+            } else {
+                const auto columnToCenter = focusedColumn ? focusedColumn : fallbackColumn;
+                if (!columnToCenter)
+                    continue;
+
+                ws->centerCol(columnToCenter);
+            }
+
+            ws->recalculate();
+        }
     }
     return {};
 }
