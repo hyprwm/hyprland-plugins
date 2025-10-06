@@ -1344,6 +1344,54 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         g_pCompositor->focusWindow(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
+    } else if (ARGS[0] == "togglefit") {
+        auto const PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method").ptr();
+
+        const int  toggled = *PFITMETHOD ^ 1;
+
+        *PFITMETHOD = toggled;
+
+        static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
+
+        for (const auto& ws : m_workspaceDatas) {
+            if (!ws || ws->columns.empty())
+                continue;
+
+            if (toggled == 1) {
+                const auto centered = ws->atCenter();
+                if (centered)
+                    ws->centerOrFitCol(centered);
+            } else {
+                const auto monitor = ws->workspace->m_monitor.lock();
+                if (!monitor)
+                    continue;
+
+                const auto      USEABLE     = usableAreaFor(monitor);
+                double          currentLeft = 0.0;
+                SP<SColumnData> fullyVisible;
+
+                for (const auto& col : ws->columns) {
+                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USEABLE.w : USEABLE.w * col->columnWidth;
+                    const double colLeft   = currentLeft;
+                    const double colRight  = currentLeft + itemWidth;
+
+                    if (colLeft >= ws->leftOffset && colRight <= ws->leftOffset + USEABLE.w) {
+                        fullyVisible = col;
+                        break;
+                    }
+
+                    currentLeft += itemWidth;
+                }
+
+                if (!fullyVisible)
+                    fullyVisible = ws->atCenter();
+
+                if (fullyVisible)
+                    ws->centerOrFitCol(fullyVisible);
+            }
+
+            ws->recalculate();
+        }
     }
     return {};
 }
