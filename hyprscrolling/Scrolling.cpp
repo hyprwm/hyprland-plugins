@@ -1345,49 +1345,77 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         g_pCompositor->focusWindow(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
     } else if (ARGS[0] == "togglefit") {
-        auto const PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method").ptr();
+        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
+        auto&             fitMethod  = *PFITMETHOD.ptr();
+        const int         toggled    = fitMethod ^ 1;
 
-        const int  toggled = *PFITMETHOD ^ 1;
+        fitMethod = toggled;
 
-        *PFITMETHOD = toggled;
-
+        const auto focusedData = dataFor(g_pCompositor->m_lastWindow.lock());
         static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
         for (const auto& ws : m_workspaceDatas) {
             if (!ws || ws->columns.empty())
                 continue;
 
-            if (toggled == 1) {
-                const auto centered = ws->atCenter();
-                if (centered)
-                    ws->centerOrFitCol(centered);
-            } else {
-                const auto monitor = ws->workspace->m_monitor.lock();
-                if (!monitor)
-                    continue;
+            const auto monitor = ws->workspace->m_monitor.lock();
+            if (!monitor)
+                continue;
 
-                const auto      USEABLE     = usableAreaFor(monitor);
-                double          currentLeft = 0.0;
-                SP<SColumnData> fullyVisible;
+            const auto USABLE = usableAreaFor(monitor);
 
+            const auto focusedColumn = (focusedData && focusedData->column && focusedData->column->workspace.lock() == ws) ? focusedData->column.lock() : nullptr;
+
+            auto fullyVisibleColumn = [&]() -> SP<SColumnData> {
+                double currentLeft = 0.0;
                 for (const auto& col : ws->columns) {
-                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USEABLE.w : USEABLE.w * col->columnWidth;
+                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USABLE.w : USABLE.w * col->columnWidth;
                     const double colLeft   = currentLeft;
                     const double colRight  = currentLeft + itemWidth;
 
-                    if (colLeft >= ws->leftOffset && colRight <= ws->leftOffset + USEABLE.w) {
-                        fullyVisible = col;
+                    if (colLeft >= ws->leftOffset && colRight <= ws->leftOffset + USABLE.w)
+                        return col;
+
+                    currentLeft = colRight;
+                }
+                return nullptr;
+            }();
+
+            if (toggled == 1) {
+                const auto columnToFit = focusedColumn ? focusedColumn : fullyVisibleColumn;
+                if (!columnToFit)
+                    continue;
+
+                double currentLeft = 0.0;
+                for (const auto& col : ws->columns) {
+                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USABLE.w : USABLE.w * col->columnWidth;
+
+                    if (col == columnToFit) {
+                        const double colLeft   = currentLeft;
+                        const double colRight  = currentLeft + itemWidth;
+                        const double scrollMax = std::max(ws->maxWidth() - USABLE.w, 0.0);
+                        const double minOff    = std::max(colRight - USABLE.w, 0.0);
+                        const double maxOff    = std::min(colLeft, scrollMax);
+
+                        double desiredOffset = ws->leftOffset;
+
+                        if (minOff <= maxOff)
+                            desiredOffset = std::clamp(desiredOffset, minOff, maxOff);
+                        else
+                            desiredOffset = std::clamp(colLeft, 0.0, scrollMax);
+
+                        ws->leftOffset = desiredOffset;
                         break;
                     }
 
                     currentLeft += itemWidth;
                 }
+            } else {
+                const auto columnToCenter = focusedColumn ? focusedColumn : fullyVisibleColumn;
+                if (!columnToCenter)
+                    continue;
 
-                if (!fullyVisible)
-                    fullyVisible = ws->atCenter();
-
-                if (fullyVisible)
-                    ws->centerOrFitCol(fullyVisible);
+                ws->centerCol(columnToCenter);
             }
 
             ws->recalculate();
