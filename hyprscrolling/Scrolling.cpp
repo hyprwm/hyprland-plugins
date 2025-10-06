@@ -1394,15 +1394,12 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                         const double colLeft   = currentLeft;
                         const double colRight  = currentLeft + itemWidth;
                         const double scrollMax = std::max(ws->maxWidth() - USABLE.w, 0.0);
-                        const double minOff    = std::max(colRight - USABLE.w, 0.0);
-                        const double maxOff    = std::min(colLeft, scrollMax);
+                        double       desiredOffset;
 
-                        double desiredOffset = ws->leftOffset;
-
-                        if (minOff <= maxOff)
-                            desiredOffset = std::clamp(desiredOffset, minOff, maxOff);
+                        if (col == ws->columns.front())
+                            desiredOffset = 0.0;
                         else
-                            desiredOffset = std::clamp(colLeft, 0.0, scrollMax);
+                            desiredOffset = std::clamp(colRight - USABLE.w, 0.0, scrollMax);
 
                         ws->leftOffset = desiredOffset;
                         break;
