@@ -1366,23 +1366,10 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             const auto focusedColumn = (focusedData && focusedData->column && focusedData->column->workspace.lock() == ws) ? focusedData->column.lock() : nullptr;
 
-            auto fullyVisibleColumn = [&]() -> SP<SColumnData> {
-                double currentLeft = 0.0;
-                for (const auto& col : ws->columns) {
-                    const double itemWidth = *PFSONONE && ws->columns.size() == 1 ? USABLE.w : USABLE.w * col->columnWidth;
-                    const double colLeft   = currentLeft;
-                    const double colRight  = currentLeft + itemWidth;
-
-                    if (colLeft >= ws->leftOffset && colRight <= ws->leftOffset + USABLE.w)
-                        return col;
-
-                    currentLeft = colRight;
-                }
-                return nullptr;
-            }();
+            const auto fallbackColumn = ws->atCenter();
 
             if (toggled == 1) {
-                const auto columnToFit = focusedColumn ? focusedColumn : fullyVisibleColumn;
+                const auto columnToFit = focusedColumn ? focusedColumn : fallbackColumn;
                 if (!columnToFit)
                     continue;
 
@@ -1408,7 +1395,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                     currentLeft += itemWidth;
                 }
             } else {
-                const auto columnToCenter = focusedColumn ? focusedColumn : fullyVisibleColumn;
+                const auto columnToCenter = focusedColumn ? focusedColumn : fallbackColumn;
                 if (!columnToCenter)
                     continue;
 
