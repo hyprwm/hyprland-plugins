@@ -157,6 +157,8 @@ void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
         // Initial setup for dragging a window.
         g_pKeybindManager->m_dispatchers["setfloating"]("activewindow");
         g_pKeybindManager->m_dispatchers["resizewindowpixel"]("exact 50% 50%,activewindow");
+        // pin it so you can change workspaces while dragging a window
+        g_pKeybindManager->m_dispatchers["pin"]("activewindow");
     }
     g_pKeybindManager->m_dispatchers["movewindowpixel"](std::format("exact {} {},activewindow", (int)(COORDS.x - (assignedBoxGlobal().w / 2)), (int)COORDS.y));
     m_bDraggingThis = true;
