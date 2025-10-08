@@ -149,8 +149,17 @@ void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
     if (!m_bDragPending || !m_bTouchEv || !validMapped(m_pWindow))
         return;
 
-    g_pInputManager->mouseMoveUnified(e.timeMs);
-    handleMovement();
+    auto PMONITOR     = m_pWindow->m_monitor.lock();
+    PMONITOR          = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+    const auto COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y);
+
+    if (!m_bDraggingThis) {
+        // Initial setup for dragging a window.
+        g_pKeybindManager->m_dispatchers["setfloating"]("activewindow");
+        g_pKeybindManager->m_dispatchers["resizewindowpixel"]("exact 50% 50%,activewindow");
+    }
+    g_pKeybindManager->m_dispatchers["movewindowpixel"](std::format("exact {} {},activewindow", (int)(COORDS.x - (assignedBoxGlobal().w / 2)), (int)COORDS.y));
+    m_bDraggingThis = true;
 }
 
 void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent) {
@@ -178,11 +187,8 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
     if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, **PHEIGHT - 1)) {
 
         if (m_bDraggingThis) {
-            if (m_bTouchEv) {
-                ITouch::SDownEvent e = touchEvent.value();
-                g_pCompositor->warpCursorTo(Vector2D(e.pos.x, e.pos.y));
-                g_pInputManager->mouseMoveUnified(e.timeMs);
-            }
+            if (m_bTouchEv)
+                g_pKeybindManager->m_dispatchers["settiled"]("activewindow");
             g_pKeybindManager->m_dispatchers["mouse"]("0movewindow");
             Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
         }
@@ -227,6 +233,8 @@ void CHyprBar::handleUpEvent(SCallbackInfo& info) {
     if (m_bDraggingThis) {
         g_pKeybindManager->m_dispatchers["mouse"]("0movewindow");
         m_bDraggingThis = false;
+        if (m_bTouchEv)
+            g_pKeybindManager->m_dispatchers["settiled"]("activewindow");
 
         Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
     }
