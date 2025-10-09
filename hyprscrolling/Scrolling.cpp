@@ -275,7 +275,7 @@ SP<SColumnData> SWorkspaceData::atCenter() {
 void SWorkspaceData::recalculate(bool forceInstant) {
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
-    if (!workspace || !workspace) {
+    if (!workspace) {
         Debug::log(ERR, "[scroller] broken internal state on workspace data");
         return;
     }
