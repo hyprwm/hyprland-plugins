@@ -14,6 +14,8 @@
 #include <hyprutils/string/ConstVarList.hpp>
 using namespace Hyprutils::String;
 
+#include <cctype>
+
 #include "globals.hpp"
 #include "overview.hpp"
 #include "scrollOverview.hpp"
@@ -35,6 +37,11 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 }
 
 static bool renderingOverview = false;
+
+// forward declarations for new dispatchers
+static SDispatchResult onKbFocusDispatcher(std::string arg);
+static SDispatchResult onKbConfirmDispatcher(std::string arg);
+static SDispatchResult onKbSelectNumberDispatcher(std::string arg);
 
 //
 static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -240,10 +247,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", ::onExpoDispatcher);
 
+    // keyboard navigation dispatchers
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_focus", ::onKbFocusDispatcher);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_confirm", ::onKbConfirmDispatcher);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selectn", ::onKbSelectNumberDispatcher);
+
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo-gesture", ::expoGestureKeyword, {});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in", Hyprlang::INT{5});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:bg_col", Hyprlang::INT{0xFF111111});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty", Hyprlang::INT{0});
@@ -251,6 +263,50 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom", Hyprlang::FLOAT{0.5});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
+
+    // keyboard navigation + styling
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_enable", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_style", Hyprlang::STRING{"simple"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_width", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_current", Hyprlang::INT{0xFF66CCFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_focus", Hyprlang::INT{0xFFFFCC66});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_enable", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color", Hyprlang::INT{0xFFFFFFFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size", Hyprlang::INT{16});
+    // defaults: center/middle within the label container
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_position", Hyprlang::STRING{"center"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_x", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_y", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_show", Hyprlang::STRING{"always"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color_default", Hyprlang::INT{0xFFFFFFFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color_hover", Hyprlang::INT{0xFFEEEEEE});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color_focus", Hyprlang::INT{0xFFFFCC66});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color_current", Hyprlang::INT{0xFF66CCFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_scale_hover", Hyprlang::FLOAT{1.0f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_scale_focus", Hyprlang::FLOAT{1.0f});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_bg_enable", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_bg_color", Hyprlang::INT{0x88000000});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_bg_rounding", Hyprlang::INT{8});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_bg_shape", Hyprlang::STRING{"circle"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_padding", Hyprlang::INT{8});
+    // label font styling and pixel snapping
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_family", Hyprlang::STRING{"sans"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_bold", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_italic", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_text_underline", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_text_strikethrough", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_pixel_snap", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_center_adjust_x", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_center_adjust_y", Hyprlang::INT{0});
+    // gaps
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_out", Hyprlang::INT{0});
+    // hyprland-style gradient borders per state (string like: "rgba(33ccffee) rgba(00ff99ee) 45deg")
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_current", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_focus", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_wrap_h", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_wrap_v", Hyprlang::INT{1});
+    // default off: spatial moves by default
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_reading_order", Hyprlang::INT{0});
 
     HyprlandAPI::reloadConfig();
 
@@ -263,4 +319,52 @@ APICALL EXPORT void PLUGIN_EXIT() {
     g_unloading = true;
 
     g_pConfigManager->reload(); // we need to reload now to clear all the gestures
+}
+
+//
+// New dispatchers for keyboard navigation
+//
+
+static SDispatchResult onKbFocusDispatcher(std::string arg) {
+    if (!g_pOverview)
+        return {};
+
+    if (arg == "left" || arg == "right" || arg == "up" || arg == "down") {
+        g_pOverview->onKbMoveFocus(arg);
+        return {};
+    }
+
+    return {.success = false, .error = "invalid arg. expected left|right|up|down"};
+}
+
+static SDispatchResult onKbConfirmDispatcher(std::string arg) {
+    if (!g_pOverview)
+        return {};
+
+    g_pOverview->onKbConfirm();
+    return {};
+}
+
+static SDispatchResult onKbSelectNumberDispatcher(std::string arg) {
+    if (!g_pOverview)
+        return {};
+
+    // trim spaces
+    while (!arg.empty() && std::isspace(arg.front()))
+        arg.erase(arg.begin());
+    while (!arg.empty() && std::isspace(arg.back()))
+        arg.pop_back();
+
+    if (arg.empty())
+        return {.success = false, .error = "missing number"};
+
+    int num = -1;
+    try {
+        num = std::stoi(arg);
+    } catch (...) {
+        return {.success = false, .error = "invalid number"};
+    }
+
+    g_pOverview->onKbSelectNumber(num);
+    return {};
 }

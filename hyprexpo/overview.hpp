@@ -5,6 +5,7 @@
 #include "globals.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Framebuffer.hpp>
+#include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
 #include <vector>
@@ -34,15 +35,28 @@ class COverview : public IOverview {
     virtual void onSwipeEnd();
 
     // close without a selection
-    virtual void  close();
-    virtual void  selectHoveredWorkspace();
+    virtual void  close() override;
+    virtual void  selectHoveredWorkspace() override;
 
-  virtual void fullRender();
+    // keyboard navigation interface
+    virtual void  onKbMoveFocus(const std::string& dir) override;
+    virtual void  onKbConfirm() override;
+    virtual void  onKbSelectNumber(int num) override;
+    virtual void  onKbSelectToken(int visibleIdx) override;
+
+    virtual void  fullRender() override;
 
   private:
     void       redrawID(int id, bool forcelowres = false);
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
+    void       ensureKbFocusInitialized();
+    bool       isTileValid(int id) const;
+    void       moveFocus(int dx, int dy);
+    int        tileForWorkspaceID(int wsid) const;
+    int        tileForVisibleIndex(int vIdx) const;
+    void       enterSubmapIfEnabled();
+    void       resetSubmapIfNeeded();
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
@@ -55,12 +69,23 @@ class COverview : public IOverview {
         int64_t      workspaceID = -1;
         PHLWORKSPACE pWorkspace;
         CBox         box;
+        // Label textures per state for customization
+        SP<CTexture> labelTexDefault;
+        SP<CTexture> labelTexHover;
+        SP<CTexture> labelTexFocus;
+        SP<CTexture> labelTexCurrent;
+        Vector2D     labelSizeDefault = {0, 0};
+        Vector2D     labelSizeHover   = {0, 0};
+        Vector2D     labelSizeFocus   = {0, 0};
+        Vector2D     labelSizeCurrent = {0, 0};
     };
 
     Vector2D                     lastMousePosLocal = Vector2D{};
 
     int                          openedID  = -1;
     int                          closeOnID = -1;
+    int                          kbFocusID = -1;
+    bool                         submapActive = false;
 
     std::vector<SWorkspaceImage> images;
 
