@@ -1091,57 +1091,7 @@ void COverview::fullRender() {
         }
     }
 
-    // draw borders for current and focus
-    auto drawBorderForID = [&](int id, bool isFocus, const CHyprColor& colFallback) {
-        if (id < 0)
-            return;
-        const int ix = id % SIDE_LENGTH;
-        const int iy = id / SIDE_LENGTH;
-        CBox       box{OUTER + ix * tileRenderSize.x + ix * GAPSIZE, OUTER + iy * tileRenderSize.y + iy * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
-        box.scale(pMonitor->m_scale).translate(pos->value());
-        box.round();
-        const int BWIDTH = std::max(1, (int)**PBWIDTH);
-
-        const std::string style{*PBSTYLE};
-        if (style == "hyprland") {
-            const std::string specStr = isFocus ? std::string{*PBGREFOC} : std::string{*PBGRCUR};
-            const auto        spec    = parseGradientSpec(specStr);
-            if (spec.valid)
-                renderGradientBorder(box, BWIDTH, spec);
-            else
-                g_pHyprOpenGL->renderBorder(box, colFallback, {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
-        } else if (style == "hypr") {
-            auto tint = [](const CHyprColor& c, float f) -> CHyprColor {
-                auto clamp01 = [](float v) { return std::clamp(v, 0.0f, 1.0f); };
-                CHyprColor   r;
-                r.r = clamp01(c.r + f);
-                r.g = clamp01(c.g + f);
-                r.b = clamp01(c.b + f);
-                r.a = c.a;
-                return r;
-            };
-            const int l0 = std::max(1, BWIDTH / 3);
-            const int l1 = std::max(1, BWIDTH / 3);
-            const int l2 = std::max(1, BWIDTH - l0 - l1);
-            const int layers[3] = {l0, l1, l2};
-            const CHyprColor cols[3] = {tint(colFallback, 0.12f), colFallback, tint(colFallback, -0.12f)};
-
-            CBox b = box;
-            int  prev = 0;
-            for (int i = 0; i < 3; ++i) {
-                if (i != 0) {
-                    b.x -= prev;
-                    b.y -= prev;
-                    b.width += prev * 2;
-                    b.height += prev * 2;
-                }
-                g_pHyprOpenGL->renderBorder(b, cols[i], {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = layers[i]});
-                prev += layers[i];
-            }
-        } else {
-            g_pHyprOpenGL->renderBorder(box, colFallback, {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
-        }
-    };
+    // draw borders for current and focus (overridden rounding by state below)
 
     // pass rounding based on state
     const int RND_CUR = CURRENT_ROUND_SCALED;
