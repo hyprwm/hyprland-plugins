@@ -823,14 +823,47 @@ void COverview::fullRender() {
 
     g_pHyprOpenGL->clear(BG_COLOR.stripA());
 
+    static auto* const* PTILEROUND = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding")->getDataStaticPtr();
+    static auto* const* PTOUNDPWR  = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_power")->getDataStaticPtr();
+    static auto* const* PTILEROUNDF = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_focus")->getDataStaticPtr();
+    static auto* const* PTILEROUNDC = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_current")->getDataStaticPtr();
+
+    const int BASE_ROUND_SCALED   = std::max(0, (int)std::lround((double)**PTILEROUND * pMonitor->m_scale));
+    const int FOCUS_ROUND_SCALED  = **PTILEROUNDF >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDF * pMonitor->m_scale)) : BASE_ROUND_SCALED;
+    const int CURRENT_ROUND_SCALED= **PTILEROUNDC >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDC * pMonitor->m_scale)) : BASE_ROUND_SCALED;
+    const float ROUND_PWR         = **PTOUNDPWR;
+
+    // shadow config
+    static auto* const* PSHADOWEN = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_enable")->getDataStaticPtr();
+    static auto* const* PSHADOWR  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_range")->getDataStaticPtr();
+    static auto* const* PSHADOWCOL= (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_color")->getDataStaticPtr();
+    static auto* const* PSHADOWA  = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_opacity")->getDataStaticPtr();
+    static auto* const* PSHX      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_x")->getDataStaticPtr();
+    static auto* const* PSHY      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_y")->getDataStaticPtr();
+
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
             const int id = x + y * SIDE_LENGTH;
             CBox      texbox{OUTER + x * tileRenderSize.x + x * GAPSIZE, OUTER + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
             texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
+            // per-tile rounding override for focus/current
+            int tileRound = BASE_ROUND_SCALED;
+            if ((int)id == kbFocusID)
+                tileRound = FOCUS_ROUND_SCALED;
+            else if ((int)id == openedID)
+                tileRound = CURRENT_ROUND_SCALED;
+
+            // shadow
+            if (**PSHADOWEN) {
+                CBox sb = texbox;
+                sb.x += **PSHX; sb.y += **PSHY;
+                const int RANGE_SCALED = std::max(0, (int)std::lround((double)**PSHADOWR * pMonitor->m_scale));
+                g_pHyprOpenGL->renderRoundedShadow(sb, tileRound, ROUND_PWR, RANGE_SCALED, CHyprColor{(uint64_t)**PSHADOWCOL}, **PSHADOWA);
+            }
+
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternal(images[id].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
+            g_pHyprOpenGL->renderTextureInternal(images[id].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0, .round = tileRound, .roundingPower = ROUND_PWR});
         }
     }
 
@@ -1076,7 +1109,7 @@ void COverview::fullRender() {
             if (spec.valid)
                 renderGradientBorder(box, BWIDTH, spec);
             else
-                g_pHyprOpenGL->renderBorder(box, colFallback, {.borderSize = BWIDTH});
+                g_pHyprOpenGL->renderBorder(box, colFallback, {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
         } else if (style == "hypr") {
             auto tint = [](const CHyprColor& c, float f) -> CHyprColor {
                 auto clamp01 = [](float v) { return std::clamp(v, 0.0f, 1.0f); };
@@ -1102,17 +1135,71 @@ void COverview::fullRender() {
                     b.width += prev * 2;
                     b.height += prev * 2;
                 }
-                g_pHyprOpenGL->renderBorder(b, cols[i], {.borderSize = layers[i]});
+                g_pHyprOpenGL->renderBorder(b, cols[i], {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = layers[i]});
                 prev += layers[i];
             }
         } else {
-            g_pHyprOpenGL->renderBorder(box, colFallback, {.borderSize = BWIDTH});
+            g_pHyprOpenGL->renderBorder(box, colFallback, {.round = SCALED_ROUND, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
         }
     };
 
-    drawBorderForID(openedID, false, CHyprColor{(uint64_t)**PBCURCOL});
+    // pass rounding based on state
+    const int RND_CUR = CURRENT_ROUND_SCALED;
+    const int RND_FOC = FOCUS_ROUND_SCALED;
+    auto drawBorderForID = [&](int id, bool isFocus, const CHyprColor& colFallback, int roundScaled) {
+        if (id < 0)
+            return;
+        const int ix = id % SIDE_LENGTH;
+        const int iy = id / SIDE_LENGTH;
+        CBox       box{OUTER + ix * tileRenderSize.x + ix * GAPSIZE, OUTER + iy * tileRenderSize.y + iy * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
+        box.scale(pMonitor->m_scale).translate(pos->value());
+        box.round();
+        const int BWIDTH = std::max(1, (int)**PBWIDTH);
+
+        const std::string style{*PBSTYLE};
+        if (style == "hyprland") {
+            const std::string specStr = isFocus ? std::string{*PBGREFOC} : std::string{*PBGRCUR};
+            const auto        spec    = parseGradientSpec(specStr);
+            if (spec.valid)
+                renderGradientBorder(box, BWIDTH, spec);
+            else
+                g_pHyprOpenGL->renderBorder(box, colFallback, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
+        } else if (style == "hypr") {
+            auto tint = [](const CHyprColor& c, float f) -> CHyprColor {
+                auto clamp01 = [](float v) { return std::clamp(v, 0.0f, 1.0f); };
+                CHyprColor   r;
+                r.r = clamp01(c.r + f);
+                r.g = clamp01(c.g + f);
+                r.b = clamp01(c.b + f);
+                r.a = c.a;
+                return r;
+            };
+            const int l0 = std::max(1, BWIDTH / 3);
+            const int l1 = std::max(1, BWIDTH / 3);
+            const int l2 = std::max(1, BWIDTH - l0 - l1);
+            const int layers[3] = {l0, l1, l2};
+            const CHyprColor cols[3] = {tint(colFallback, 0.12f), colFallback, tint(colFallback, -0.12f)};
+
+            CBox b = box;
+            int  prev = 0;
+            for (int i = 0; i < 3; ++i) {
+                if (i != 0) {
+                    b.x -= prev;
+                    b.y -= prev;
+                    b.width += prev * 2;
+                    b.height += prev * 2;
+                }
+                g_pHyprOpenGL->renderBorder(b, cols[i], {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = layers[i]});
+                prev += layers[i];
+            }
+        } else {
+            g_pHyprOpenGL->renderBorder(box, colFallback, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
+        }
+    };
+
+    drawBorderForID(openedID, false, CHyprColor{(uint64_t)**PBCURCOL}, RND_CUR);
     if (kbFocusID != -1)
-        drawBorderForID(kbFocusID, true, CHyprColor{(uint64_t)**PBFOCCOL});
+        drawBorderForID(kbFocusID, true, CHyprColor{(uint64_t)**PBFOCCOL}, RND_FOC);
 }
 
 static float lerp(const float& from, const float& to, const float perc) {
