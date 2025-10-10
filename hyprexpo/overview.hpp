@@ -40,6 +40,7 @@ class COverview {
     void          onKbMoveFocus(const std::string& dir);
     void          onKbConfirm();
     void          onKbSelectNumber(int num);
+    void          onKbSelectToken(int visibleIdx);
 
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
@@ -56,6 +57,7 @@ class COverview {
     bool       isTileValid(int id) const;
     void       moveFocus(int dx, int dy);
     int        tileForWorkspaceID(int wsid) const;
+    int        tileForVisibleIndex(int vIdx) const;
     void       enterSubmapIfEnabled();
     void       resetSubmapIfNeeded();
 
