@@ -290,13 +290,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_focus", Hyprlang::INT{-1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_current", Hyprlang::INT{-1});
 
-    // tile shadow
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_enable", Hyprlang::INT{0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_range", Hyprlang::INT{18});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_color", Hyprlang::INT{0x66000000});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_opacity", Hyprlang::FLOAT{0.6f});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_x", Hyprlang::INT{0});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_y", Hyprlang::INT{0});
+    // (shadows moved to feature/shadows branch)
     // defaults: center/middle within the label container
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_position", Hyprlang::STRING{"center"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_x", Hyprlang::INT{0});

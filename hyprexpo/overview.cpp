@@ -841,13 +841,7 @@ void COverview::fullRender() {
     const int CURRENT_ROUND_SCALED= **PTILEROUNDC >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDC * pMonitor->m_scale)) : BASE_ROUND_SCALED;
     const float ROUND_PWR         = **PTOUNDPWR;
 
-    // shadow config
-    static auto* const* PSHADOWEN = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_enable")->getDataStaticPtr();
-    static auto* const* PSHADOWR  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_range")->getDataStaticPtr();
-    static auto* const* PSHADOWCOL= (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_color")->getDataStaticPtr();
-    static auto* const* PSHADOWA  = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_opacity")->getDataStaticPtr();
-    static auto* const* PSHX      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_x")->getDataStaticPtr();
-    static auto* const* PSHY      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_shadow_offset_y")->getDataStaticPtr();
+    // (shadows moved to feature/shadows branch)
 
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
@@ -866,13 +860,7 @@ void COverview::fullRender() {
             const int maxCornerPx = std::max(0, (int)std::floor(std::min(texbox.w, texbox.h) / 2.0));
             tileRound = std::min(tileRound, maxCornerPx);
 
-            // shadow
-            if (**PSHADOWEN) {
-                CBox sb = texbox;
-                sb.x += **PSHX; sb.y += **PSHY;
-                const int RANGE_SCALED = std::max(0, (int)std::lround((double)**PSHADOWR * pMonitor->m_scale));
-                g_pHyprOpenGL->renderRoundedShadow(sb, tileRound, ROUND_PWR, RANGE_SCALED, CHyprColor{(uint64_t)**PSHADOWCOL}, **PSHADOWA);
-            }
+            // no shadow in this branch
 
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
             g_pHyprOpenGL->renderTextureInternal(images[id].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0, .round = tileRound, .roundingPower = ROUND_PWR});
