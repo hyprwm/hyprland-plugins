@@ -690,7 +690,7 @@ void COverview::onDamageReported() {
     Vector2D tileSize       = (SIZE / SIDE_LENGTH);
     const auto GAPSIZE      = (closing ? (1.0 - size->getPercent()) : size->getPercent()) * GAP_WIDTH;
     static auto* const* PGAPSO = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gaps_out")->getDataStaticPtr();
-    const float OUTER       = **PGAPSO;
+    const float OUTER       = **PGAPSO * (closing ? (1.0 - size->getPercent()) : size->getPercent());
     Vector2D tileRenderSize = (SIZE - Vector2D{GAPSIZE, GAPSIZE} * (SIDE_LENGTH - 1) - Vector2D{OUTER * 2, OUTER * 2}) / SIDE_LENGTH;
     // const auto& TILE           = images[std::clamp(openedID, 0, SIDE_LENGTH * SIDE_LENGTH)];
     CBox texbox = CBox{OUTER + (openedID % SIDE_LENGTH) * tileRenderSize.x + (openedID % SIDE_LENGTH) * GAPSIZE,
@@ -790,7 +790,7 @@ void COverview::fullRender() {
     Vector2D SIZE = size->value();
 
     static auto* const* PGAPSO = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gaps_out")->getDataStaticPtr();
-    const float OUTER = **PGAPSO;
+    const float OUTER = **PGAPSO * (closing ? (1.0 - size->getPercent()) : size->getPercent());
 
     Vector2D tileSize       = (SIZE / SIDE_LENGTH);
     Vector2D tileRenderSize = (SIZE - Vector2D{GAPSIZE, GAPSIZE} * (SIDE_LENGTH - 1) - Vector2D{OUTER * 2, OUTER * 2}) / SIDE_LENGTH;
