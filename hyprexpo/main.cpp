@@ -44,6 +44,7 @@ static SDispatchResult onKbFocusDispatcher(std::string arg);
 static SDispatchResult onKbConfirmDispatcher(std::string arg);
 static SDispatchResult onKbSelectNumberDispatcher(std::string arg);
 static SDispatchResult onKbSelectTokenDispatcher(std::string arg);
+static SDispatchResult onKbSelectIndexDispatcher(std::string arg);
 
 //
 static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -254,6 +255,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_confirm", ::onKbConfirmDispatcher);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selectn", ::onKbSelectNumberDispatcher);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_select", ::onKbSelectTokenDispatcher);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selecti", ::onKbSelectIndexDispatcher);
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo-gesture", ::expoGestureKeyword, {});
 
@@ -276,7 +278,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_enable", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color", Hyprlang::INT{0xFFFFFFFF});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size", Hyprlang::INT{16});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_text_mode", Hyprlang::STRING{"id"});
+    // label_text_mode: token (default) | id | index
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_text_mode", Hyprlang::STRING{"token"});
+    // Optional override map for up to 50 tokens, comma-separated. Empty entries allowed.
+    // Example: "1,2,3,4,5,6,7,8,9,0,!,@,#,$,%,^,&,*,(,),a,..."
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_token_map", Hyprlang::STRING{""});
     // defaults: center/middle within the label container
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_position", Hyprlang::STRING{"center"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_x", Hyprlang::INT{0});
@@ -397,5 +403,20 @@ static SDispatchResult onKbSelectTokenDispatcher(std::string arg) {
     if (!idx)
         return {.success = false, .error = "invalid token (expected 1..9, 0, a..z)"};
     g_pOverview->onKbSelectToken(*idx);
+    return {};
+}
+
+static SDispatchResult onKbSelectIndexDispatcher(std::string arg) {
+    if (!g_pOverview)
+        return {};
+    // trim
+    while (!arg.empty() && std::isspace(arg.front())) arg.erase(arg.begin());
+    while (!arg.empty() && std::isspace(arg.back())) arg.pop_back();
+    int idx = -1;
+    try { idx = std::stoi(arg); } catch (...) { idx = -1; }
+    if (idx <= 0)
+        return {.success = false, .error = "invalid index (expected >= 1)"};
+    // convert to 0-based visible index
+    g_pOverview->onKbSelectToken(idx - 1);
     return {};
 }

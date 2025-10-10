@@ -840,6 +840,7 @@ void COverview::fullRender() {
     static auto* const* PLABELSIZE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size")->getDataStaticPtr();
     static auto  const* PLABELPOS  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_position")->getDataStaticPtr();
     static auto  const* PLABELMODE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_text_mode")->getDataStaticPtr();
+    static auto  const* PTOKENMAP  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_token_map")->getDataStaticPtr();
     static auto* const* PLABELOX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_x")->getDataStaticPtr();
     static auto* const* PLABELOY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_y")->getDataStaticPtr();
     static auto  const* PLABELSHOW = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_show")->getDataStaticPtr();
@@ -933,11 +934,41 @@ void COverview::fullRender() {
                 tile.round();
 
                 std::string label;
-                if (std::string{*PLABELMODE} == "token") {
-                    int k = tokenCounter;
-                    if (k <= 8) label = std::to_string(k + 1);
-                    else if (k == 9) label = "0";
-                    else label = std::string(1, char('a' + (k - 10)));
+                const std::string mode{*PLABELMODE};
+                if (mode == "token") {
+                    // override map (comma-separated) up to 50
+                    std::vector<std::string> tokens;
+                    if (!std::string{*PTOKENMAP}.empty()) {
+                        const std::string mapStr{*PTOKENMAP};
+                        size_t            start = 0;
+                        for (size_t cur = 0; cur <= mapStr.size(); ++cur) {
+                            if (cur == mapStr.size() || mapStr[cur] == ',') {
+                                std::string t = mapStr.substr(start, cur - start);
+                                while (!t.empty() && std::isspace((unsigned char)t.front())) t.erase(t.begin());
+                                while (!t.empty() && std::isspace((unsigned char)t.back())) t.pop_back();
+                                tokens.push_back(t);
+                                start = cur + 1;
+                            }
+                        }
+                    }
+
+                    const int k = tokenCounter; // 0-based visible index
+                    if (k < (int)tokens.size() && !tokens[k].empty())
+                        label = tokens[k];
+                    else {
+                        if (k <= 8) label = std::to_string(k + 1);       // 1..9
+                        else if (k == 9) label = "0";                   // 10 -> 0
+                        else if (k >= 10 && k <= 19) {                   // 11..20
+                            static const char* SYM[10] = {"!","@","#","$","%","^","&","*","(",")"};
+                            label = SYM[k - 10];
+                        } else if (k >= 20 && k <= 45) {
+                            label = std::string(1, char('a' + (k - 20))); // 21..46 -> a..z
+                        } else {
+                            label = ""; // 47..50 blank by default
+                        }
+                    }
+                } else if (mode == "index") {
+                    label = std::to_string(tokenCounter + 1);
                 } else {
                     label = std::to_string(images[id].workspaceID);
                 }
@@ -955,8 +986,8 @@ void COverview::fullRender() {
                     }
                 };
 
-                // if label isn't shown per mode, still advance token index
-                if (!shouldShow(id)) { tokenCounter++; continue; }
+                // if label isn't shown per mode or label is empty, still advance token index
+                if (!shouldShow(id) || label.empty()) { tokenCounter++; continue; }
 
                 CHyprColor col = CHyprColor{(uint64_t)**PLCOLDEF};
                 float      scl = 1.0f;
