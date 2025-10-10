@@ -489,6 +489,20 @@ int COverview::tileForWorkspaceID(int wsid) const {
     return -1;
 }
 
+int COverview::tileForVisibleIndex(int vIdx) const {
+    if (vIdx < 0)
+        return -1;
+    int seen = 0;
+    for (size_t i = 0; i < images.size(); ++i) {
+        if (images[i].workspaceID == WORKSPACE_INVALID)
+            continue;
+        if (seen == vIdx)
+            return (int)i;
+        ++seen;
+    }
+    return -1;
+}
+
 void COverview::moveFocus(int dx, int dy) {
     ensureKbFocusInitialized();
     if (kbFocusID == -1)
@@ -593,6 +607,18 @@ void COverview::onKbSelectNumber(int num) {
         num = 10;
 
     const int tid = tileForWorkspaceID(num);
+    if (tid != -1) {
+        closeOnID = tid;
+        close();
+    }
+}
+
+void COverview::onKbSelectToken(int visibleIdx) {
+    if (closing)
+        return;
+    if (visibleIdx < 0)
+        return;
+    const int tid = tileForVisibleIndex(visibleIdx);
     if (tid != -1) {
         closeOnID = tid;
         close();
@@ -813,6 +839,7 @@ void COverview::fullRender() {
     static auto* const* PLABELCOL  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_color")->getDataStaticPtr();
     static auto* const* PLABELSIZE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size")->getDataStaticPtr();
     static auto  const* PLABELPOS  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_position")->getDataStaticPtr();
+    static auto  const* PLABELMODE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_text_mode")->getDataStaticPtr();
     static auto* const* PLABELOX   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_x")->getDataStaticPtr();
     static auto* const* PLABELOY   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_offset_y")->getDataStaticPtr();
     static auto  const* PLABELSHOW = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_show")->getDataStaticPtr();
@@ -893,10 +920,11 @@ void COverview::fullRender() {
             return CBox{x, y, (double)size.x, (double)size.y};
         };
 
+        int tokenCounter = 0;
         for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
             for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
                 const int id = x + y * SIDE_LENGTH;
-                if (images[id].workspaceID == WORKSPACE_INVALID || !shouldShow(id))
+                if (images[id].workspaceID == WORKSPACE_INVALID)
                     continue;
 
                 // compute tile box again for label placement
@@ -904,7 +932,15 @@ void COverview::fullRender() {
                 tile.scale(pMonitor->m_scale).translate(pos->value());
                 tile.round();
 
-                const std::string label = std::to_string(images[id].workspaceID);
+                std::string label;
+                if (std::string{*PLABELMODE} == "token") {
+                    int k = tokenCounter;
+                    if (k <= 8) label = std::to_string(k + 1);
+                    else if (k == 9) label = "0";
+                    else label = std::string(1, char('a' + (k - 10)));
+                } else {
+                    label = std::to_string(images[id].workspaceID);
+                }
                 const int         baseF = std::max(8, (int)**PLABELSIZE);
                 const int         st    = resolveState(id);
 
@@ -918,6 +954,9 @@ void COverview::fullRender() {
                         renderNumberTexture(tex, label, col, buf, pMonitor->m_scale, fsz);
                     }
                 };
+
+                // if label isn't shown per mode, still advance token index
+                if (!shouldShow(id)) { tokenCounter++; continue; }
 
                 CHyprColor col = CHyprColor{(uint64_t)**PLCOLDEF};
                 float      scl = 1.0f;
@@ -983,6 +1022,7 @@ void COverview::fullRender() {
                     else
                         drawNoBG(images[id].labelTexDefault, images[id].labelSizeDefault);
                 }
+                tokenCounter++;
             }
         }
     }
