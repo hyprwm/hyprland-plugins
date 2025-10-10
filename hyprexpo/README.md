@@ -40,13 +40,6 @@ plugin {
         # optional state overrides
         tile_rounding_focus = -1      # -1 = inherit
         tile_rounding_current = -1
-        # optional drop shadow
-        tile_shadow_enable = 0
-        tile_shadow_range = 18        # blur range (px)
-        tile_shadow_color = rgba(00000066)
-        tile_shadow_opacity = 0.6
-        tile_shadow_offset_x = 0
-        tile_shadow_offset_y = 0
 
         gaps_out = 0
         # numbers (labels)
