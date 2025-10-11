@@ -80,25 +80,86 @@ plugin {
 }
 ```
 
-### Properties
+### Configuration
 
-| property | type | description | default |
+#### Layout & Display
+
+| key | type | description | default |
 | --- | --- | --- | --- |
-| columns | number | how many desktops are displayed on one line | `3` |
-| gaps_in | number | inner gaps between tiles | `5` |
-| gaps_out | number | outer margin around the grid | `0` |
-| bg_col | color | color in gaps (between desktops) | `rgb(111111)` |
-| workspace_method | [center/first] [workspace] | position of the desktops | `center current` |
-| skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false` |
-| gesture_distance | number | how far is the max for the gesture | `200` |
+| `plugin:hyprexpo:columns` | int | how many desktops per row | `3` |
+| `plugin:hyprexpo:gaps_in` | int | inner gaps between tiles (px) | `5` |
+| `plugin:hyprexpo:gaps_out` | int | outer margin around the grid (px) | `0` |
+| `plugin:hyprexpo:bg_col` | color | grid background color | `rgb(111111)` |
+| `plugin:hyprexpo:workspace_method` | string | placement: `center current` or `first <ws>` | `center current` |
+| `plugin:hyprexpo:skip_empty` | bool (int) | skip empty workspaces (`1`) or not (`0`) | `0` |
+| `plugin:hyprexpo:gesture_distance` | int | swipe distance considered "max" (px) | `200` |
 
-#### Subcategory `scrolling`
+#### Tile Appearance
 
-Applies to the scrolling layout overview
-| property | type | description | default |
+| key | type | description | default |
 | --- | --- | --- | --- |
-| scroll_moves_up_down | bool | if enabled, scrolling will move workspaces up/down instead of zooming | `true` |
-| default_zoom | float | default zoom out value, [0.1 - 0.9] | `0.5` |
+| `plugin:hyprexpo:tile_rounding` | int | corner radius (px) | `0` |
+| `plugin:hyprexpo:tile_rounding_power` | float | rounding power (curve exponent) | `2.0` |
+| `plugin:hyprexpo:tile_rounding_focus` | int | focus tile radius (`-1` = inherit) | `-1` |
+| `plugin:hyprexpo:tile_rounding_current` | int | current tile radius (`-1` = inherit) | `-1` |
+| `plugin:hyprexpo:border_style` | string | `simple` \| `hypr` \| `hyprland` | `simple` |
+| `plugin:hyprexpo:border_width` | int | border thickness (px) | `2` |
+| `plugin:hyprexpo:border_color_current` | color | color for current tile border (fallback) | `rgb(66ccff)` |
+| `plugin:hyprexpo:border_color_focus` | color | color for focus tile border (fallback) | `rgb(ffcc66)` |
+| `plugin:hyprexpo:border_grad_current` | string | hyprland gradient for current, e.g. `rgba(33ccffee) rgba(00ff99ee) 45deg` | empty |
+| `plugin:hyprexpo:border_grad_focus` | string | hyprland gradient for focus | empty |
+
+#### Labels
+
+| key | type | description | default |
+| --- | --- | --- | --- |
+| `plugin:hyprexpo:label_enable` | bool (int) | enable labels | `1` |
+| `plugin:hyprexpo:label_text_mode` | string | `token` | `index` | `id` | `token` |
+| `plugin:hyprexpo:label_token_map` | string | override up to 50 tokens (comma‑sep). Empty entries skip | empty |
+| `plugin:hyprexpo:label_font_size` | int | base font size (px) | `16` |
+| `plugin:hyprexpo:label_position` | string | `top-left` | `top-right` | `bottom-left` | `bottom-right` | `center` | `center` |
+| `plugin:hyprexpo:label_offset_x` | int | offset from position anchor (px) | `0` |
+| `plugin:hyprexpo:label_offset_y` | int | offset from position anchor (px) | `0` |
+| `plugin:hyprexpo:label_show` | string | `always` | `hover` | `focus` | `hover+focus` | `current+focus` | `never` | `always` |
+| `plugin:hyprexpo:label_color_default` | color | default label color | `rgb(ffffff)` |
+| `plugin:hyprexpo:label_color_hover` | color | hover label color | `rgb(eeeeee)` |
+| `plugin:hyprexpo:label_color_focus` | color | focus label color | `rgb(ffcc66)` |
+| `plugin:hyprexpo:label_color_current` | color | current label color | `rgb(66ccff)` |
+| `plugin:hyprexpo:label_scale_hover` | float | scale multiplier on hover | `1.0` |
+| `plugin:hyprexpo:label_scale_focus` | float | scale multiplier on focus | `1.0` |
+| `plugin:hyprexpo:label_bg_enable` | bool (int) | draw background “bubble” | `1` |
+| `plugin:hyprexpo:label_bg_shape` | string | `circle` | `square` | `rounded` | `circle` |
+| `plugin:hyprexpo:label_bg_rounding` | int | radius for `rounded` shape (px) | `8` |
+| `plugin:hyprexpo:label_bg_color` | color | bubble color | `rgba(00000088)` |
+| `plugin:hyprexpo:label_padding` | int | bubble padding (px) | `8` |
+| `plugin:hyprexpo:label_font_family` | string | Pango font family | `Sans` |
+| `plugin:hyprexpo:label_font_bold` | bool (int) | bold | `0` |
+| `plugin:hyprexpo:label_font_italic` | bool (int) | italic | `0` |
+| `plugin:hyprexpo:label_text_underline` | bool (int) | underline | `0` |
+| `plugin:hyprexpo:label_text_strikethrough` | bool (int) | strikethrough | `0` |
+| `plugin:hyprexpo:label_pixel_snap` | bool (int) | snap to integer pixels | `1` |
+| `plugin:hyprexpo:label_center_adjust_x` | int | manual center nudge X (px) | `0` |
+| `plugin:hyprexpo:label_center_adjust_y` | int | manual center nudge Y (px) | `0` |
+
+#### Keyboard Navigation
+
+| key | type | description | default |
+| --- | --- | --- | --- |
+| `plugin:hyprexpo:keynav_enable` | bool (int) | enable keynav + auto submap | `1` |
+| `plugin:hyprexpo:keynav_wrap_h` | bool (int) | wrap horizontally | `1` |
+| `plugin:hyprexpo:keynav_wrap_v` | bool (int) | wrap vertically | `1` |
+| `plugin:hyprexpo:keynav_reading_order` | bool (int) | use row‑major for horizontal moves | `0` |
+
+#### Scrolling Overview (Layout-Specific)
+
+When using Hyprland's scrolling layout, HyprExpo automatically switches to a vertical scrolling overview mode.
+
+| key | type | description | default |
+| --- | --- | --- | --- |
+| `plugin:hyprexpo:scrolling:scroll_moves_up_down` | bool (int) | if enabled, mouse wheel scrolls through workspaces; if disabled, mouse wheel zooms | `1` |
+| `plugin:hyprexpo:scrolling:default_zoom` | float | default zoom level on overview open (0.1 - 0.9) | `0.5` |
+
+**Note:** Scrolling overview mode does not support keyboard navigation. Mouse/trackpad interaction is the primary input method.
 
 ### Keywords
 
@@ -195,8 +256,8 @@ Keyboard navigation dispatchers (when overview is active):
 - Reading order (row-major) for horizontal movement can be enabled with `keynav_reading_order`. At grid ends it will wrap to start/end only if both `keynav_wrap_h` and `keynav_wrap_v` are enabled.
 - `hyprexpo:kb_confirm`: selects the focused tile.
 - `hyprexpo:kb_selectn, <id>`: selects by workspace id (legacy; `0` → `10`).
-- `hyprexpo:kb_selecti, <index>`: selects by 1-based visual index (recommended for single-keystroke mapping).
-- `hyprexpo:kb_select, <token>`: selects by a single token (1..9, 0, a..z), mainly for symbol-based configs.
+- `hyprexpo:kb_selecti, <index>`: selects by 1‑based visual index (recommended for single‑keystroke mapping).
+- `hyprexpo:kb_select, <token>`: selects by a single token (1..9, 0, a..z), mainly for symbol‑based configs.
 
 Border styles:
 - `simple`: single-color border using `border_width`, `border_color_current`, `border_color_focus`.
