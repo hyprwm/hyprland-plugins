@@ -82,6 +82,7 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                      inputIsValid();
     void                      onMouseButton(SCallbackInfo& info, IPointer::SButtonEvent e);
     void                      onTouchDown(SCallbackInfo& info, ITouch::SDownEvent e);
+    void                      onTouchUp(SCallbackInfo& info, ITouch::SUpEvent e);
     void                      onMouseMove(Vector2D coords);
     void                      onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e);
 
@@ -105,6 +106,7 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                 m_bTouchEv       = false;
     bool                 m_bDragPending   = false;
     bool                 m_bCancelledDown = false;
+    int                  m_touchId        = 0;
 
     // store hover state for buttons as a bitfield
     unsigned int m_iButtonHoverState = 0;
