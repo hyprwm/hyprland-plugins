@@ -243,6 +243,40 @@ static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisp
     g_pOverview.reset();
 }
 
+// Get workspace method configuration for a specific monitor
+// Returns pair of {isCenter, startWorkspaceID}
+static std::pair<bool, int> getWorkspaceMethodForMonitor(PHLMONITOR monitor) {
+    static auto const* PMETHOD = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
+
+    // Try to get monitor-specific config from global map first
+    const std::string monitorName = monitor->m_name;
+    std::string methodStr;
+
+    auto it = g_monitorWorkspaceMethods.find(monitorName);
+    if (it != g_monitorWorkspaceMethods.end()) {
+        methodStr = it->second;
+    } else {
+        // Use global config
+        methodStr = std::string{*PMETHOD};
+    }
+
+    // Parse the method string
+    bool methodCenter = true;
+    int methodStartID = monitor->activeWorkspaceID();
+
+    CVarList method{methodStr, 0, 's', true};
+    if (method.size() < 2) {
+        Debug::log(ERR, "[he] invalid workspace_method for monitor {}: {}", monitorName, methodStr);
+    } else {
+        methodCenter = method[0] == "center";
+        methodStartID = getWorkspaceIDNameFromString(method[1]).id;
+        if (methodStartID == WORKSPACE_INVALID)
+            methodStartID = monitor->activeWorkspaceID();
+    }
+
+    return {methodCenter, methodStartID};
+}
+
 COverview::~COverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
@@ -259,24 +293,13 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in")->getDataStaticPtr();
     static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
     static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
-    static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
 
     SIDE_LENGTH = **PCOLUMNS;
     GAP_WIDTH   = **PGAPS;
     BG_COLOR    = **PCOL;
 
-    // process the method
-    bool     methodCenter  = true;
-    int      methodStartID = pMonitor->activeWorkspaceID();
-    CVarList method{*PMETHOD, 0, 's', true};
-    if (method.size() < 2)
-        Debug::log(ERR, "[he] invalid workspace_method");
-    else {
-        methodCenter  = method[0] == "center";
-        methodStartID = getWorkspaceIDNameFromString(method[1]).id;
-        if (methodStartID == WORKSPACE_INVALID)
-            methodStartID = pMonitor->activeWorkspaceID();
-    }
+    // Get workspace method for this specific monitor
+    auto [methodCenter, methodStartID] = getWorkspaceMethodForMonitor(pMonitor.lock());
 
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
