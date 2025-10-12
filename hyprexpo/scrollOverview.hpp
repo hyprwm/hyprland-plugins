@@ -7,6 +7,7 @@
 #include <hyprland/src/render/Framebuffer.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
+#include <hyprland/src/helpers/signal/Signal.hpp>
 #include <vector>
 
 #include "IOverview.hpp"
@@ -46,10 +47,13 @@ class CScrollOverview : public IOverview {
     size_t viewportCurrentWorkspace = 0;
 
     struct SWindowImage {
-        PHLWINDOWREF pWindow;
-        CFramebuffer fb;
-        bool         highlight = false;
+        PHLWINDOWREF            pWindow;
+        CFramebuffer            fb;
+        bool                    highlight = false;
+        UP<CHyprSignalListener> windowCommit;
     };
+
+    void redrawWindowImage(SP<SWindowImage>);
 
     struct SWorkspaceImage {
         PHLWORKSPACE                  pWorkspace;

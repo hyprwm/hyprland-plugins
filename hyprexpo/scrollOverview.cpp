@@ -243,19 +243,38 @@ void CScrollOverview::redrawWorkspace(PHLWORKSPACE workspace, bool forcelowres) 
         auto img     = image->windowImages.emplace_back(makeShared<SWindowImage>());
         img->pWindow = w;
         img->fb.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
+        if (!w->m_isX11 && w->m_wlSurface) {
+            img->windowCommit = makeUnique<CHyprSignalListener>(w->m_wlSurface->resource()->m_events.commit.listen([wk = WP<SWindowImage>{img}] {
+                if (!wk || !wk->pWindow)
+                    return;
 
-        CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-        g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &img->fb);
+                if (wk->pWindow->m_wlSurface->resource()->m_current.accumulateBufferDamage().empty())
+                    return;
 
-        g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 0});
+                reinterpretPointerCast<CScrollOverview>(g_pOverview)->redrawWindowImage(wk.lock());
+                g_pOverview->damage();
+            }));
+        }
 
-        g_pHyprRenderer->renderWindow(w, pMonitor.lock(), Time::steadyNow(), true, RENDER_PASS_ALL, true, true);
-
-        g_pHyprOpenGL->m_renderData.blockScreenShader = true;
-        g_pHyprRenderer->endRender();
+        redrawWindowImage(img);
     }
 
     blockOverviewRendering = false;
+}
+
+void CScrollOverview::redrawWindowImage(SP<SWindowImage> img) {
+    if (!img->pWindow)
+        return;
+
+    CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
+    g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &img->fb);
+
+    g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 0});
+
+    g_pHyprRenderer->renderWindow(img->pWindow.lock(), pMonitor.lock(), Time::steadyNow(), true, RENDER_PASS_ALL, true, true);
+
+    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->endRender();
 }
 
 void CScrollOverview::redrawAll(bool forcelowres) {
