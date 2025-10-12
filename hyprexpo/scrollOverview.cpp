@@ -77,11 +77,16 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : started
 
         info.cancelled = true;
 
-        auto       data = std::any_cast<std::unordered_map<std::string, std::any>>(param);
-        auto       e    = std::any_cast<IPointer::SAxisEvent>(data["event"]);
+        auto                data = std::any_cast<std::unordered_map<std::string, std::any>>(param);
+        auto                e    = std::any_cast<IPointer::SAxisEvent>(data["event"]);
 
-        const auto VAL = std::clamp(sc<float>(scale->value() + e.delta / -500.F), 0.05F, 0.95F);
-        *scale         = VAL;
+        static auto* const* PZOOM = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:scroll_moves_up_down")->getDataStaticPtr();
+
+        if (!**PZOOM) {
+            const auto VAL = std::clamp(sc<float>(scale->value() + e.delta / -500.F), 0.05F, 0.95F);
+            *scale         = VAL;
+        } else
+            moveViewportWorkspace(e.delta > 0);
     };
 
     mouseMoveHook = g_pHookSystem->hookDynamic("mouseMove", onCursorMove);
@@ -94,6 +99,16 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : started
     g_pInputManager->setCursorImageUntilUnset("left_ptr");
 
     redrawAll();
+
+    size_t activeIdx = 0;
+    for (size_t i = 0; i < images.size(); ++i) {
+        if (images[i]->pWorkspace && images[i]->pWorkspace == startedOn) {
+            activeIdx = i;
+            break;
+        }
+    }
+
+    viewportCurrentWorkspace = activeIdx;
 }
 
 void CScrollOverview::selectHoveredWorkspace() {
@@ -132,6 +147,28 @@ void CScrollOverview::selectHoveredWorkspace() {
             break;
         yoff += pMonitor->m_size.y * scale->value();
     }
+}
+
+void CScrollOverview::moveViewportWorkspace(bool up) {
+    size_t activeIdx = 0;
+    for (size_t i = 0; i < images.size(); ++i) {
+        if (images[i]->pWorkspace && images[i]->pWorkspace == startedOn) {
+            activeIdx = i;
+            break;
+        }
+    }
+
+    if (viewportCurrentWorkspace == 0 && !up)
+        return;
+    if (viewportCurrentWorkspace == images.size() - 1 && up)
+        return;
+
+    if (up)
+        viewportCurrentWorkspace++;
+    else
+        viewportCurrentWorkspace--;
+
+    *viewOffset = {viewOffset->value().x, (sc<long>(viewportCurrentWorkspace) - sc<long>(activeIdx)) * pMonitor->m_size.y};
 }
 
 void CScrollOverview::highlightHoverDebug() {

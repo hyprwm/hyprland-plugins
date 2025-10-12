@@ -36,12 +36,14 @@ class CScrollOverview : public IOverview {
     virtual void fullRender();
 
   private:
-    void redrawWorkspace(PHLWORKSPACE w, bool forcelowres = false);
-    void redrawAll(bool forcelowres = false);
-    void onWorkspaceChange();
-    void highlightHoverDebug();
+    void   redrawWorkspace(PHLWORKSPACE w, bool forcelowres = false);
+    void   redrawAll(bool forcelowres = false);
+    void   onWorkspaceChange();
+    void   highlightHoverDebug();
+    void   moveViewportWorkspace(bool up);
 
-    bool damageDirty = false;
+    bool   damageDirty              = false;
+    size_t viewportCurrentWorkspace = 0;
 
     struct SWindowImage {
         PHLWINDOWREF pWindow;
