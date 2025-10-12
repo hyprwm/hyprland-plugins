@@ -85,7 +85,6 @@ class COverview : public IOverview {
     int                          openedID  = -1;
     int                          closeOnID = -1;
     int                          kbFocusID = -1;
-    int                          hoveredID = -1;
     bool                         submapActive = false;
 
     std::vector<SWorkspaceImage> images;
