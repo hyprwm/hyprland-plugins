@@ -35,7 +35,8 @@ plugin {
 Applies to the scrolling layout overview
 | property | type | description | default |
 | --- | --- | --- | --- |
-| scroll_moves_up_down | bool | if enabled, scrolling will move workspaces up/down instead of zooming | false |
+| scroll_moves_up_down | bool | if enabled, scrolling will move workspaces up/down instead of zooming | true |
+| default_zoom | float | default zoom out value, [0.1 - 0.9] | 0.5 |
 
 
 ### Keywords

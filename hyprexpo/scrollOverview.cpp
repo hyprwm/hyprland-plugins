@@ -29,8 +29,10 @@ CScrollOverview::~CScrollOverview() {
 }
 
 CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
-    const auto PMONITOR = g_pCompositor->m_lastMonitor.lock();
-    pMonitor            = PMONITOR;
+    static auto* const* PDEFAULTZOOM = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom")->getDataStaticPtr();
+
+    const auto          PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    pMonitor                     = PMONITOR;
 
     for (const auto& w : g_pCompositor->getWorkspaces()) {
         if (w && w->m_monitor == pMonitor && !w->m_isSpecialWorkspace)
@@ -46,7 +48,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : started
     viewOffset->setUpdateCallback(damageMonitor);
 
     if (!swipe)
-        *scale = 0.5F;
+        *scale = std::clamp(**PDEFAULTZOOM, 0.1F, 0.9F);
 
     lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position;
 
