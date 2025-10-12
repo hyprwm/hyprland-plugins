@@ -132,35 +132,28 @@ static Hyprlang::CParseResult workspaceMethodKeyword(const char* LHS, const char
     if (g_unloading)
         return result;
 
-    // Parse format: either "method workspace" (global) or "MONITOR_NAME method workspace" (per-monitor)
-    // Examples:
-    //   "workspace_method = center current" (global)
-    //   "workspace_method = DP-1 first 19" (per-monitor)
+    // Parse format: "MONITOR_NAME method workspace"
+    // Example: "hyprexpo_workspace_method = DP-1 first 19"
     CConstVarList data(RHS);
 
-    if (data.size() == 2) {
-        // Global config format: method workspace
-        // This is handled by the plugin config value, not here
-        // Just return success and let the normal config system handle it
-        return result;
-    } else if (data.size() >= 3) {
-        // Per-monitor format: MONITOR_NAME method workspace
-        const std::string monitorName = std::string{data[0]};
-        const std::string methodType = std::string{data[1]};
-        const std::string workspace = std::string{data[2]};
-
-        if (methodType != "center" && methodType != "first") {
-            result.setError(std::format("Invalid method type '{}', expected 'center' or 'first'", methodType).c_str());
-            return result;
-        }
-
-        // Store in global map
-        g_monitorWorkspaceMethods[monitorName] = methodType + " " + workspace;
-        return result;
-    } else {
-        result.setError("workspace_method requires format: <center|first> <workspace> OR MONITOR_NAME <center|first> <workspace>");
+    if (data.size() < 3) {
+        result.setError("hyprexpo_workspace_method requires format: MONITOR_NAME <center|first> <workspace>");
         return result;
     }
+
+    const std::string monitorName = std::string{data[0]};
+    const std::string methodType = std::string{data[1]};
+    const std::string workspace = std::string{data[2]};
+
+    if (methodType != "center" && methodType != "first") {
+        result.setError(std::format("Invalid method type '{}', expected 'center' or 'first'", methodType).c_str());
+        return result;
+    }
+
+    // Store in global map
+    g_monitorWorkspaceMethods[monitorName] = methodType + " " + workspace;
+
+    return result;
 }
 
 static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
@@ -295,7 +288,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selecti", ::onKbSelectIndexDispatcher);
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo_gesture", ::expoGestureKeyword, {});
-    HyprlandAPI::addConfigKeyword(PHANDLE, "workspace_method", ::workspaceMethodKeyword, {});
+    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo_workspace_method", ::workspaceMethodKeyword, {});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in", Hyprlang::INT{5});

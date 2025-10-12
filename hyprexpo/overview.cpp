@@ -248,15 +248,16 @@ static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisp
 static std::pair<bool, int> getWorkspaceMethodForMonitor(PHLMONITOR monitor) {
     static auto const* PMETHOD = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
 
-    // Try to get monitor-specific config from global map first
+    // Check for monitor-specific override first (from hyprexpo_workspace_method keyword)
     const std::string monitorName = monitor->m_name;
     std::string methodStr;
 
     auto it = g_monitorWorkspaceMethods.find(monitorName);
     if (it != g_monitorWorkspaceMethods.end()) {
+        // Use monitor-specific config
         methodStr = it->second;
     } else {
-        // Use global config
+        // Fallback to global plugin config
         methodStr = std::string{*PMETHOD};
     }
 
