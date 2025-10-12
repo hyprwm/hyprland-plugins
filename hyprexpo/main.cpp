@@ -133,11 +133,11 @@ static Hyprlang::CParseResult workspaceMethodKeyword(const char* LHS, const char
         return result;
 
     // Parse format: "MONITOR_NAME method workspace"
-    // Example: "hyprexpo_workspace_method = DP-1 first 19"
+    // Example: "workspace_method = DP-1 first 19"
     CConstVarList data(RHS);
 
     if (data.size() < 3) {
-        result.setError("hyprexpo_workspace_method requires format: MONITOR_NAME <center|first> <workspace>");
+        result.setError("workspace_method requires format: MONITOR_NAME <center|first> <workspace>");
         return result;
     }
 
@@ -288,7 +288,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selecti", ::onKbSelectIndexDispatcher);
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo_gesture", ::expoGestureKeyword, {});
-    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo_workspace_method", ::workspaceMethodKeyword, {});
+    HyprlandAPI::addConfigKeyword(PHANDLE, "workspace_method", ::workspaceMethodKeyword, {});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in", Hyprlang::INT{5});

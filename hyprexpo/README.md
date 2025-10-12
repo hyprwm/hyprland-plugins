@@ -282,17 +282,17 @@ Uses the same syntax as Hyprland's `gesture` keyword.
 You can configure different workspace methods for different monitors using the `workspace_method` custom keyword:
 
 ```ini
-# Global default (fallback for monitors without specific config)
+# Global default (inside plugin block)
 plugin {
     hyprexpo {
         workspace_method = center current
     }
 }
 
-# Per-monitor overrides
+# Per-monitor overrides (outside plugin block, at top level)
 workspace_method = DP-1 first 1
 workspace_method = HDMI-A-1 center current
 workspace_method = eDP-1 first 10
 ```
 
-Each `workspace_method` line specifies: `MONITOR_NAME <center|first> <workspace>`
+The global keyword format: `workspace_method = MONITOR_NAME <center|first> <workspace>`
