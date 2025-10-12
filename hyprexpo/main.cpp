@@ -126,36 +126,6 @@ static void failNotif(const std::string& reason) {
     HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason, CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
 }
 
-static Hyprlang::CParseResult workspaceMethodKeyword(const char* LHS, const char* RHS) {
-    Hyprlang::CParseResult result;
-
-    if (g_unloading)
-        return result;
-
-    // Parse format: "workspace_method = MONITOR_NAME method workspace"
-    // Example: "workspace_method = DP-1 first 19"
-    CConstVarList data(RHS);
-
-    if (data.size() < 3) {
-        result.setError("workspace_method requires format: MONITOR_NAME <center|first> <workspace>");
-        return result;
-    }
-
-    const std::string monitorName = std::string{data[0]};
-    const std::string methodType = std::string{data[1]};
-    const std::string workspace = std::string{data[2]};
-
-    if (methodType != "center" && methodType != "first") {
-        result.setError(std::format("Invalid method type '{}', expected 'center' or 'first'", methodType).c_str());
-        return result;
-    }
-
-    // Store in global map
-    g_monitorWorkspaceMethods[monitorName] = methodType + " " + workspace;
-
-    return result;
-}
-
 static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
     Hyprlang::CParseResult result;
 
@@ -287,8 +257,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_select", ::onKbSelectTokenDispatcher);
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:kb_selecti", ::onKbSelectIndexDispatcher);
 
-    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo_gesture", ::expoGestureKeyword, {});
-    HyprlandAPI::addConfigKeyword(PHANDLE, "workspace_method", ::workspaceMethodKeyword, {});
+    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo-gesture", ::expoGestureKeyword, {});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in", Hyprlang::INT{5});
@@ -302,10 +271,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     // keyboard navigation + styling
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_enable", Hyprlang::INT{1});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_style", Hyprlang::STRING{"simple"});
+    // Border configuration - supports both solid colors and gradients
+    // Solid: rgb(rrggbb) or 0xAARRGGBB
+    // Gradient: rgba(rrggbbaa) rgba(rrggbbaa) 45deg
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_width", Hyprlang::INT{2});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_current", Hyprlang::INT{0xFF66CCFF});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_focus", Hyprlang::INT{0xFFFFCC66});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color", Hyprlang::STRING{""});           // default border (unused tiles)
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_current", Hyprlang::STRING{"rgb(66ccff)"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_focus", Hyprlang::STRING{"rgb(ffcc66)"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_color_hover", Hyprlang::STRING{"rgb(aabbcc)"});
+    // Deprecated but supported for backwards compatibility
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_style", Hyprlang::STRING{"simple"});     // ignored, auto-detected from format
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_enable", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_color", Hyprlang::INT{0xFFFFFFFF});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size", Hyprlang::INT{16});
@@ -320,6 +295,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_power", Hyprlang::FLOAT{2.0f});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_focus", Hyprlang::INT{-1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_current", Hyprlang::INT{-1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_hover", Hyprlang::INT{-1});
 
     // (shadows moved to feature/shadows branch)
     // defaults: center/middle within the label container
@@ -349,9 +325,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_center_adjust_y", Hyprlang::INT{0});
     // gaps
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gaps_out", Hyprlang::INT{0});
-    // hyprland-style gradient borders per state (string like: "rgba(33ccffee) rgba(00ff99ee) 45deg")
+    // Deprecated: use border_color_* instead (supports both solid and gradient)
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_current", Hyprlang::STRING{""});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_focus", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_hover", Hyprlang::STRING{""});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_wrap_h", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:keynav_wrap_v", Hyprlang::INT{1});
     // default off: spatial moves by default

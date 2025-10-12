@@ -32,16 +32,20 @@ plugin {
         keynav_wrap_v = 1           # wrap vertically at column edges
         # set to 1 to enable row-major horizontal moves
         keynav_reading_order = 0
-        border_style = simple         # or hypr (multi-layer) or hyprland (2-color + angle)
         border_width = 2
+        # Border colors support both solid (rgb/hex) and gradient formats
+        # Solid: rgb(66ccff) or 0xFF66CCFF
+        # Gradient: rgba(33ccffee) rgba(00ff99ee) 45deg
         border_color_current = rgb(66ccff)
         border_color_focus = rgb(ffcc66)
+        border_color_hover = rgb(aabbcc)
         # rounded corners for workspace tiles
         tile_rounding = 0            # px
         tile_rounding_power = 2.0
         # optional state overrides
         tile_rounding_focus = -1      # -1 = inherit
         tile_rounding_current = -1
+        tile_rounding_hover = -1
 
         gaps_out = 0
         # numbers (labels)
@@ -104,12 +108,15 @@ plugin {
 | `plugin:hyprexpo:tile_rounding_power` | float | rounding power (curve exponent) | `2.0` |
 | `plugin:hyprexpo:tile_rounding_focus` | int | focus tile radius (`-1` = inherit) | `-1` |
 | `plugin:hyprexpo:tile_rounding_current` | int | current tile radius (`-1` = inherit) | `-1` |
-| `plugin:hyprexpo:border_style` | string | border rendering: `simple` (solid), `hypr` (3-layer), `hyprland` (2-color gradient) | `simple` |
+| `plugin:hyprexpo:tile_rounding_hover` | int | hover tile radius (`-1` = inherit) | `-1` |
 | `plugin:hyprexpo:border_width` | int | border thickness (px) | `2` |
-| `plugin:hyprexpo:border_color_current` | color | current tile border color | `rgb(66ccff)` |
-| `plugin:hyprexpo:border_color_focus` | color | focused tile border color | `rgb(ffcc66)` |
-| `plugin:hyprexpo:border_grad_current` | string | gradient for current tile (hyprland style only), e.g. `rgba(33ccffee) rgba(00ff99ee) 45deg` | empty |
-| `plugin:hyprexpo:border_grad_focus` | string | gradient for focused tile (hyprland style only) | empty |
+| `plugin:hyprexpo:border_color_current` | string | current tile border - solid: `rgb(66ccff)` or `0xFF66CCFF`, gradient: `rgba(33ccffee) rgba(00ff99ee) 45deg` | `rgb(66ccff)` |
+| `plugin:hyprexpo:border_color_focus` | string | focused tile border - supports solid or gradient (see above) | `rgb(ffcc66)` |
+| `plugin:hyprexpo:border_color_hover` | string | hovered tile border - supports solid or gradient (see above) | `rgb(aabbcc)` |
+| `plugin:hyprexpo:border_grad_current` | string | **DEPRECATED** - use `border_color_current` with gradient format instead | empty |
+| `plugin:hyprexpo:border_grad_focus` | string | **DEPRECATED** - use `border_color_focus` with gradient format instead | empty |
+| `plugin:hyprexpo:border_grad_hover` | string | **DEPRECATED** - use `border_color_hover` with gradient format instead | empty |
+| `plugin:hyprexpo:border_style` | string | **DEPRECATED** - border style is now auto-detected from color format | `simple` |
 
 ### Workspace Labels
 
@@ -265,7 +272,27 @@ Custom gesture keyword for HyprExpo-specific gestures:
 
 ```ini
 # Swipe up with 4 fingers to toggle overview
-hyprexpo-gesture = swipe:4:up, hyprexpo:expo, toggle
+hyprexpo_gesture = swipe:4:up, hyprexpo:expo, toggle
 ```
 
 Uses the same syntax as Hyprland's `gesture` keyword.
+
+### Per-Monitor Workspace Method
+
+You can configure different workspace methods for different monitors using the `workspace_method` custom keyword:
+
+```ini
+# Global default (fallback for monitors without specific config)
+plugin {
+    hyprexpo {
+        workspace_method = center current
+    }
+}
+
+# Per-monitor overrides
+workspace_method = DP-1 first 1
+workspace_method = HDMI-A-1 center current
+workspace_method = eDP-1 first 10
+```
+
+Each `workspace_method` line specifies: `MONITOR_NAME <center|first> <workspace>`

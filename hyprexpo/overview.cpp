@@ -89,6 +89,15 @@ static SHyprGradientSpec parseGradientSpec(const std::string& inRaw) {
     return spec;
 }
 
+// Helper to detect if a border config string is a gradient or solid color
+static bool isGradientBorderSpec(const std::string& borderSpec) {
+    if (borderSpec.empty())
+        return false;
+    // Check if it contains gradient pattern: rgba(...) rgba(...) deg
+    return borderSpec.find("rgba(") != std::string::npos &&
+           borderSpec.rfind("rgba(") != borderSpec.find("rgba(");
+}
+
 static void renderGradientBorder(const CBox& box, int borderSize, const SHyprGradientSpec& grad, int round = 0) {
     if (!grad.valid || borderSize <= 0)
         return;
@@ -234,40 +243,6 @@ static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisp
     g_pOverview.reset();
 }
 
-// Get workspace method configuration for a specific monitor
-// Returns pair of {isCenter, startWorkspaceID}
-static std::pair<bool, int> getWorkspaceMethodForMonitor(PHLMONITOR monitor) {
-    static auto const* PMETHOD = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
-
-    // Try to get monitor-specific config from global map first
-    const std::string monitorName = monitor->m_name;
-    std::string methodStr;
-
-    auto it = g_monitorWorkspaceMethods.find(monitorName);
-    if (it != g_monitorWorkspaceMethods.end()) {
-        methodStr = it->second;
-    } else {
-        // Use global config
-        methodStr = std::string{*PMETHOD};
-    }
-
-    // Parse the method string
-    bool methodCenter = true;
-    int methodStartID = monitor->activeWorkspaceID();
-
-    CVarList method{methodStr, 0, 's', true};
-    if (method.size() < 2) {
-        Debug::log(ERR, "[he] invalid workspace_method for monitor {}: {}", monitorName, methodStr);
-    } else {
-        methodCenter = method[0] == "center";
-        methodStartID = getWorkspaceIDNameFromString(method[1]).id;
-        if (methodStartID == WORKSPACE_INVALID)
-            methodStartID = monitor->activeWorkspaceID();
-    }
-
-    return {methodCenter, methodStartID};
-}
-
 COverview::~COverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
@@ -284,13 +259,24 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gaps_in")->getDataStaticPtr();
     static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
     static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
+    static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
 
     SIDE_LENGTH = **PCOLUMNS;
     GAP_WIDTH   = **PGAPS;
     BG_COLOR    = **PCOL;
 
-    // Get workspace method for this specific monitor
-    auto [methodCenter, methodStartID] = getWorkspaceMethodForMonitor(pMonitor.lock());
+    // process the method
+    bool     methodCenter  = true;
+    int      methodStartID = pMonitor->activeWorkspaceID();
+    CVarList method{*PMETHOD, 0, 's', true};
+    if (method.size() < 2)
+        Debug::log(ERR, "[he] invalid workspace_method");
+    else {
+        methodCenter  = method[0] == "center";
+        methodStartID = getWorkspaceIDNameFromString(method[1]).id;
+        if (methodStartID == WORKSPACE_INVALID)
+            methodStartID = pMonitor->activeWorkspaceID();
+    }
 
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
@@ -449,12 +435,27 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position;
 
+    // Initialize hoveredID based on current mouse position
+    int hx = std::clamp((int)(lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    int hy = std::clamp((int)(lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    hoveredID = hx + hy * SIDE_LENGTH;
+
     auto onCursorMove = [this](void* self, SCallbackInfo& info, std::any param) {
         if (closing)
             return;
 
         info.cancelled    = true;
         lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position;
+
+        // Update hovered tile
+        int hx = std::clamp((int)(lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+        int hy = std::clamp((int)(lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+        int newHoveredID = hx + hy * SIDE_LENGTH;
+
+        if (newHoveredID != hoveredID) {
+            hoveredID = newHoveredID;
+            damage();
+        }
     };
 
     auto onCursorSelect = [this](void* self, SCallbackInfo& info, std::any param) {
@@ -858,10 +859,12 @@ void COverview::fullRender() {
     static auto* const* PTOUNDPWR  = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_power")->getDataStaticPtr();
     static auto* const* PTILEROUNDF = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_focus")->getDataStaticPtr();
     static auto* const* PTILEROUNDC = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_current")->getDataStaticPtr();
+    static auto* const* PTILEROUNDH = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:tile_rounding_hover")->getDataStaticPtr();
 
     const int BASE_ROUND_SCALED   = std::max(0, (int)std::lround((double)**PTILEROUND * pMonitor->m_scale));
     const int FOCUS_ROUND_SCALED  = **PTILEROUNDF >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDF * pMonitor->m_scale)) : BASE_ROUND_SCALED;
     const int CURRENT_ROUND_SCALED= **PTILEROUNDC >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDC * pMonitor->m_scale)) : BASE_ROUND_SCALED;
+    const int HOVER_ROUND_SCALED  = **PTILEROUNDH >= 0 ? std::max(0, (int)std::lround((double)**PTILEROUNDH * pMonitor->m_scale)) : BASE_ROUND_SCALED;
     const float ROUND_PWR         = **PTOUNDPWR;
 
     // (shadows moved to feature/shadows branch)
@@ -872,12 +875,14 @@ void COverview::fullRender() {
             CBox      texbox{OUTER + x * tileRenderSize.x + x * GAPSIZE, OUTER + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
             texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
-            // per-tile rounding override for focus/current
+            // per-tile rounding override for focus/current/hover (priority: focus > current > hover)
             int tileRound = BASE_ROUND_SCALED;
             if ((int)id == kbFocusID)
                 tileRound = FOCUS_ROUND_SCALED;
             else if ((int)id == openedID)
                 tileRound = CURRENT_ROUND_SCALED;
+            else if ((int)id == hoveredID)
+                tileRound = HOVER_ROUND_SCALED;
 
             // clamp rounding to tile size
             const int maxCornerPx = std::max(0, (int)std::floor(std::min(texbox.w, texbox.h) / 2.0));
@@ -912,29 +917,26 @@ void COverview::fullRender() {
     static auto  const* PLBGSHAPE  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_bg_shape")->getDataStaticPtr();
     static auto* const* PLBGPAD    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_padding")->getDataStaticPtr();
 
-    static auto* const* PBWIDTH   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_width")->getDataStaticPtr();
-    static auto* const* PBCURCOL  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_color_current")->getDataStaticPtr();
-    static auto* const* PBFOCCOL  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_color_focus")->getDataStaticPtr();
-    static auto  const* PBSTYLE   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_style")->getDataStaticPtr();
-    static auto  const* PBGRCUR   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_current")->getDataStaticPtr();
-    static auto  const* PBGREFOC  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_focus")->getDataStaticPtr();
+    static auto* const* PBWIDTH      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_width")->getDataStaticPtr();
+    static auto  const* PBCOLCUR     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_color_current")->getDataStaticPtr();
+    static auto  const* PBCOLFOC     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_color_focus")->getDataStaticPtr();
+    static auto  const* PBCOLHOV     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_color_hover")->getDataStaticPtr();
+    // Deprecated configs for backwards compatibility
+    static auto  const* PBGRCUR      = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_current")->getDataStaticPtr();
+    static auto  const* PBGREFOC     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_focus")->getDataStaticPtr();
+    static auto  const* PBGREHOV     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:border_grad_hover")->getDataStaticPtr();
 
     // draw labels
     if (**PLABELEN) {
-        // hovered tile (approximate like selectHoveredWorkspace)
-        int hoveredID = -1;
-        if (!closing) {
-            int hx = std::clamp((int)(lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
-            int hy = std::clamp((int)(lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
-            hoveredID = hx + hy * SIDE_LENGTH;
-        }
+        // use the tracked hoveredID (cleared during closing)
+        const int labelHoveredID = closing ? -1 : hoveredID;
 
         auto shouldShow = [&](int id) -> bool {
             if (std::string{*PLABELSHOW} == "never")
                 return false;
             if (std::string{*PLABELSHOW} == "always")
                 return true;
-            const bool isHover  = id == hoveredID;
+            const bool isHover  = id == labelHoveredID;
             const bool isFocus  = id == kbFocusID;
             const bool isCurr   = id == openedID;
             const std::string mode{*PLABELSHOW};
@@ -955,7 +957,7 @@ void COverview::fullRender() {
                 return 2; // focus
             if (id == openedID)
                 return 3; // current
-            if (id == hoveredID)
+            if (id == labelHoveredID)
                 return 1; // hover
             return 0;     // default
         };
@@ -1114,12 +1116,15 @@ void COverview::fullRender() {
         }
     }
 
-    // draw borders for current and focus (overridden rounding by state below)
+    // draw borders for hover, current and focus (priority order: focus > current > hover)
 
     // pass rounding based on state
     const int RND_CUR = CURRENT_ROUND_SCALED;
     const int RND_FOC = FOCUS_ROUND_SCALED;
-    auto drawBorderForID = [&](int id, bool isFocus, const CHyprColor& colFallback, int roundScaled) {
+    const int RND_HOV = HOVER_ROUND_SCALED;
+
+    // Helper to parse border config (supports rgb/hex/gradient, with deprecated fallback)
+    auto drawBorderForID = [&](int id, const std::string& borderSpec, const std::string& deprecatedGradSpec, int roundScaled) {
         if (id < 0)
             return;
         const int ix = id % SIDE_LENGTH;
@@ -1129,10 +1134,13 @@ void COverview::fullRender() {
         box.round();
         const int BWIDTH = std::max(1, (int)**PBWIDTH);
 
-        const std::string style{*PBSTYLE};
-        if (style == "hyprland") {
-            const std::string specStr = isFocus ? std::string{*PBGREFOC} : std::string{*PBGRCUR};
-            const auto        spec    = parseGradientSpec(specStr);
+        // Determine which spec to use (prefer new format, fallback to deprecated)
+        std::string effectiveSpec = borderSpec.empty() ? deprecatedGradSpec : borderSpec;
+
+        // Auto-detect format: gradient vs solid color
+        if (isGradientBorderSpec(effectiveSpec)) {
+            // Render as gradient border (hyprland style)
+            const auto spec = parseGradientSpec(effectiveSpec);
             if (spec.valid) {
                 CGradientValueData grad;
                 grad.m_colors.clear();
@@ -1141,45 +1149,37 @@ void COverview::fullRender() {
                 grad.m_angle = spec.angleDeg * (float)M_PI / 180.f;
                 grad.updateColorsOk();
                 g_pHyprOpenGL->renderBorder(box, grad, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
-            } else {
-                g_pHyprOpenGL->renderBorder(box, colFallback, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
             }
-        } else if (style == "hypr") {
-            auto tint = [](const CHyprColor& c, float f) -> CHyprColor {
-                auto clamp01 = [](float v) { return std::clamp(v, 0.0f, 1.0f); };
-                CHyprColor   r;
-                r.r = clamp01(c.r + f);
-                r.g = clamp01(c.g + f);
-                r.b = clamp01(c.b + f);
-                r.a = c.a;
-                return r;
-            };
-            const int l0 = std::max(1, BWIDTH / 3);
-            const int l1 = std::max(1, BWIDTH / 3);
-            const int l2 = std::max(1, BWIDTH - l0 - l1);
-            const int layers[3] = {l0, l1, l2};
-            const CHyprColor cols[3] = {tint(colFallback, 0.12f), colFallback, tint(colFallback, -0.12f)};
+        } else if (!effectiveSpec.empty()) {
+            // Parse as solid color (rgb/hex format)
+            CHyprColor color;
 
-            CBox b = box;
-            int  prev = 0;
-            for (int i = 0; i < 3; ++i) {
-                if (i != 0) {
-                    b.x -= prev;
-                    b.y -= prev;
-                    b.width += prev * 2;
-                    b.height += prev * 2;
+            // Handle rgb() format
+            if (effectiveSpec.find("rgb(") == 0) {
+                // Extract hex from rgb(rrggbb)
+                size_t start = effectiveSpec.find('(');
+                size_t end = effectiveSpec.find(')');
+                if (start != std::string::npos && end != std::string::npos) {
+                    std::string hexStr = effectiveSpec.substr(start + 1, end - start - 1);
+                    // Parse as hex, prepend FF for alpha
+                    color = CHyprColor{(uint64_t)std::stoull("FF" + hexStr, nullptr, 16)};
                 }
-                g_pHyprOpenGL->renderBorder(b, cols[i], {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = layers[i]});
-                prev += layers[i];
+            } else {
+                // Handle 0xAARRGGBB format directly
+                color = CHyprColor{(uint64_t)std::stoull(effectiveSpec, nullptr, 16)};
             }
-        } else {
-            g_pHyprOpenGL->renderBorder(box, colFallback, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
+
+            // Render as simple border
+            g_pHyprOpenGL->renderBorder(box, color, {.round = roundScaled, .roundingPower = ROUND_PWR, .borderSize = BWIDTH});
         }
     };
 
-    drawBorderForID(openedID, false, CHyprColor{(uint64_t)**PBCURCOL}, RND_CUR);
+    // Draw borders in order: hover (lowest), then current, then focus (highest priority)
+    if (hoveredID != -1 && hoveredID != openedID && hoveredID != kbFocusID)
+        drawBorderForID(hoveredID, std::string{*PBCOLHOV}, std::string{*PBGREHOV}, RND_HOV);
+    drawBorderForID(openedID, std::string{*PBCOLCUR}, std::string{*PBGRCUR}, RND_CUR);
     if (kbFocusID != -1)
-        drawBorderForID(kbFocusID, true, CHyprColor{(uint64_t)**PBFOCCOL}, RND_FOC);
+        drawBorderForID(kbFocusID, std::string{*PBCOLFOC}, std::string{*PBGREFOC}, RND_FOC);
 }
 
 static float lerp(const float& from, const float& to, const float perc) {
