@@ -22,6 +22,12 @@ class IOverview {
 
     virtual void  fullRender() = 0;
 
+    // Keyboard navigation interface (grid-specific, may be no-op in scroll)
+    virtual void  onKbMoveFocus(const std::string& dir) = 0;
+    virtual void  onKbConfirm()                         = 0;
+    virtual void  onKbSelectNumber(int num)             = 0;
+    virtual void  onKbSelectToken(int visibleIdx)       = 0;
+
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
 

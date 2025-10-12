@@ -31,10 +31,16 @@ class CScrollOverview : public IOverview {
     virtual void onSwipeEnd();
 
     // close without a selection
-    virtual void close();
-    virtual void selectHoveredWorkspace();
+    virtual void close() override;
+    virtual void selectHoveredWorkspace() override;
 
-    virtual void fullRender();
+    virtual void fullRender() override;
+
+    // Keyboard navigation interface (no-op for scroll overview)
+    virtual void onKbMoveFocus(const std::string& dir) override;
+    virtual void onKbConfirm() override;
+    virtual void onKbSelectNumber(int num) override;
+    virtual void onKbSelectToken(int visibleIdx) override;
 
   private:
     void   redrawWorkspace(PHLWORKSPACE w, bool forcelowres = false);

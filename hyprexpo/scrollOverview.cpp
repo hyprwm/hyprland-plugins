@@ -471,3 +471,20 @@ void CScrollOverview::onSwipeUpdate(double delta) {
 void CScrollOverview::onSwipeEnd() {
     // TODO:
 }
+
+// Keyboard navigation stub implementations (scroll overview doesn't use keyboard navigation)
+void CScrollOverview::onKbMoveFocus(const std::string& dir) {
+    // No-op: scroll overview doesn't support keyboard navigation
+}
+
+void CScrollOverview::onKbConfirm() {
+    // No-op: scroll overview doesn't support keyboard navigation
+}
+
+void CScrollOverview::onKbSelectNumber(int num) {
+    // No-op: scroll overview doesn't support keyboard navigation
+}
+
+void CScrollOverview::onKbSelectToken(int visibleIdx) {
+    // No-op: scroll overview doesn't support keyboard navigation
+}
