@@ -91,7 +91,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
                 currentID = getWorkspaceIDNameFromString(selector + std::to_string((int64_t)i - backtracked)).id;
             } else {
                 currentID = getWorkspaceIDNameFromString(selector + "+" + std::to_string((int64_t)i - backtracked)).id;
-                if (i > 0 && currentID <= firstID)
+                if (i > 0 && currentID == firstID)
                     break;
             }
             image.workspaceID = currentID;
