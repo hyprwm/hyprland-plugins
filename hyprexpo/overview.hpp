@@ -5,9 +5,12 @@
 #include "globals.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Framebuffer.hpp>
+#include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
 #include <vector>
+
+#include "IOverview.hpp"
 
 // saves on resources, but is a bit broken rn with blur.
 // hyprland's fault, but cba to fix.
@@ -15,37 +18,45 @@ constexpr bool ENABLE_LOWRES = false;
 
 class CMonitor;
 
-class COverview {
+class COverview : public IOverview {
   public:
     COverview(PHLWORKSPACE startedOn_, bool swipe = false);
-    ~COverview();
+    virtual ~COverview();
 
-    void render();
-    void damage();
-    void onDamageReported();
-    void onPreRender();
+    virtual void render();
+    virtual void damage();
+    virtual void onDamageReported();
+    virtual void onPreRender();
 
-    void setClosing(bool closing);
+    virtual void setClosing(bool closing);
 
-    void resetSwipe();
-    void onSwipeUpdate(double delta);
-    void onSwipeEnd();
+    virtual void resetSwipe();
+    virtual void onSwipeUpdate(double delta);
+    virtual void onSwipeEnd();
 
     // close without a selection
-    void          close();
-    void          selectHoveredWorkspace();
+    virtual void  close() override;
+    virtual void  selectHoveredWorkspace() override;
 
-    bool          blockOverviewRendering = false;
-    bool          blockDamageReporting   = false;
+    // keyboard navigation interface
+    virtual void  onKbMoveFocus(const std::string& dir) override;
+    virtual void  onKbConfirm() override;
+    virtual void  onKbSelectNumber(int num) override;
+    virtual void  onKbSelectToken(int visibleIdx) override;
 
-    PHLMONITORREF pMonitor;
-    bool          m_isSwiping = false;
+    virtual void  fullRender() override;
 
   private:
     void       redrawID(int id, bool forcelowres = false);
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
-    void       fullRender();
+    void       ensureKbFocusInitialized();
+    bool       isTileValid(int id) const;
+    void       moveFocus(int dx, int dy);
+    int        tileForWorkspaceID(int wsid) const;
+    int        tileForVisibleIndex(int vIdx) const;
+    void       enterSubmapIfEnabled();
+    void       resetSubmapIfNeeded();
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
@@ -58,12 +69,24 @@ class COverview {
         int64_t      workspaceID = -1;
         PHLWORKSPACE pWorkspace;
         CBox         box;
+        // Label textures per state for customization
+        SP<CTexture> labelTexDefault;
+        SP<CTexture> labelTexHover;
+        SP<CTexture> labelTexFocus;
+        SP<CTexture> labelTexCurrent;
+        Vector2D     labelSizeDefault = {0, 0};
+        Vector2D     labelSizeHover   = {0, 0};
+        Vector2D     labelSizeFocus   = {0, 0};
+        Vector2D     labelSizeCurrent = {0, 0};
     };
 
     Vector2D                     lastMousePosLocal = Vector2D{};
 
     int                          openedID  = -1;
     int                          closeOnID = -1;
+    int                          kbFocusID = -1;
+    int                          hoveredID = -1;
+    bool                         submapActive = false;
 
     std::vector<SWorkspaceImage> images;
 
@@ -84,5 +107,3 @@ class COverview {
 
     friend class COverviewPassElement;
 };
-
-inline std::unique_ptr<COverview> g_pOverview;
