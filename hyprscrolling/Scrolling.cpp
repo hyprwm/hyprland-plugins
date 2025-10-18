@@ -1351,8 +1351,8 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         fitMethod = toggled;
 
-        const auto focusedData = dataFor(g_pCompositor->m_lastWindow.lock());
-        static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
+        const auto        focusedData = dataFor(g_pCompositor->m_lastWindow.lock());
+        static const auto PFSONONE    = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
         for (const auto& ws : m_workspaceDatas) {
             if (!ws || ws->columns.empty())
@@ -1413,7 +1413,20 @@ SWindowRenderLayoutHints CScrollingLayout::requestRenderHints(PHLWINDOW a) {
 }
 
 void CScrollingLayout::switchWindows(PHLWINDOW a, PHLWINDOW b) {
-    ;
+    const auto DATA1 = dataFor(a);
+    const auto DATA2 = dataFor(b);
+
+    std::swap(DATA1->window, DATA2->window);
+
+    const auto WS1 = DATA1->column->workspace.lock();
+    const auto WS2 = DATA2->column->workspace.lock();
+
+    WS1->recalculate();
+
+    if (WS1 == WS2)
+        return;
+
+    WS2->recalculate();
 }
 
 void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool silent) {
