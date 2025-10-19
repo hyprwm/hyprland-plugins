@@ -50,6 +50,8 @@ class COverview {
     void       fullRender();
     void       renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
     double     calculateTextWidth(const std::string& text, const float scale, const int fontSize);
+    LabelAnchor parseLabelAnchor(const std::string& anchorStr);
+    Vector2D   calculateTextPosition(const CBox& texbox, const Vector2D& textBufferSize, const double padding, LabelAnchor anchor);
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
@@ -61,7 +63,12 @@ class COverview {
         TOP_LEFT,
         TOP_RIGHT,
         BOTTOM_LEFT,
-        BOTTOM_RIGHT
+        BOTTOM_RIGHT,
+        TOP_CENTER,
+        BOTTOM_CENTER,
+        CENTER_LEFT,
+        CENTER_RIGHT,
+        CENTER
     };
     LabelAnchor labelAnchor = LabelAnchor::TOP_LEFT;
 

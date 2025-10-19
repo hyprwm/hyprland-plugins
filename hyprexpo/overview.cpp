@@ -47,19 +47,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     show_label  = **PSHOWLABEL;
     fontSize    = std::max(8, (int)**PFONTSIZE);
 
-    // Parse label anchor
-    std::string anchorStr = *PANCHOR;
-    if (anchorStr == "tl") {
-        labelAnchor = LabelAnchor::TOP_LEFT;
-    } else if (anchorStr == "tr") {
-        labelAnchor = LabelAnchor::TOP_RIGHT;
-    } else if (anchorStr == "bl") {
-        labelAnchor = LabelAnchor::BOTTOM_LEFT;
-    } else if (anchorStr == "br") {
-        labelAnchor = LabelAnchor::BOTTOM_RIGHT;
-    } else {
-        labelAnchor = LabelAnchor::TOP_LEFT;
-    }
+    labelAnchor = parseLabelAnchor(*PANCHOR);
 
     // process the method
     bool     methodCenter  = true;
@@ -443,6 +431,55 @@ void COverview::render() {
     g_pHyprRenderer->m_renderPass.add(makeUnique<COverviewPassElement>());
 }
 
+LabelAnchor COverview::parseLabelAnchor(const std::string& anchorStr) {
+    if (anchorStr == "tl") {
+        return LabelAnchor::TOP_LEFT;
+    } else if (anchorStr == "tr") {
+        return LabelAnchor::TOP_RIGHT;
+    } else if (anchorStr == "bl") {
+        return LabelAnchor::BOTTOM_LEFT;
+    } else if (anchorStr == "br") {
+        return LabelAnchor::BOTTOM_RIGHT;
+    } else if (anchorStr == "tc") {
+        return LabelAnchor::TOP_CENTER;
+    } else if (anchorStr == "bc") {
+        return LabelAnchor::BOTTOM_CENTER;
+    } else if (anchorStr == "cl") {
+        return LabelAnchor::CENTER_LEFT;
+    } else if (anchorStr == "cr") {
+        return LabelAnchor::CENTER_RIGHT;
+    } else if (anchorStr == "cc") {
+        return LabelAnchor::CENTER;
+    } else {
+        return LabelAnchor::TOP_LEFT; // default fallback
+    }
+}
+
+Vector2D COverview::calculateTextPosition(const CBox& texbox, const Vector2D& textBufferSize, const double padding, LabelAnchor anchor) {
+    switch (anchor) {
+        case LabelAnchor::TOP_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + padding};
+        case LabelAnchor::TOP_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + padding};
+        case LabelAnchor::BOTTOM_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::BOTTOM_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::TOP_CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + padding};
+        case LabelAnchor::BOTTOM_CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::CENTER_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        case LabelAnchor::CENTER_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        case LabelAnchor::CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        default:
+            return Vector2D{texbox.x + padding, texbox.y + padding}; // fallback to TOP_LEFT
+    }
+}
+
 double COverview::calculateTextWidth(const std::string& text, const float scale, const int fontSize) {
     // Create a temporary surface for measurement and Pango layout
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
@@ -579,16 +616,7 @@ void COverview::fullRender() {
 
                 // Calculate text position based on anchor
                 const double padding = 10.0;
-                Vector2D     textPos;
-
-                switch (labelAnchor) {
-                    case LabelAnchor::TOP_LEFT: textPos = Vector2D{texbox.x + padding, texbox.y + padding}; break;
-                    case LabelAnchor::TOP_RIGHT: textPos = Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + padding}; break;
-                    case LabelAnchor::BOTTOM_LEFT: textPos = Vector2D{texbox.x + padding, texbox.y + texbox.height - textBufferSize.y - padding}; break;
-                    case LabelAnchor::BOTTOM_RIGHT:
-                        textPos = Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + texbox.height - textBufferSize.y - padding};
-                        break;
-                }
+                Vector2D     textPos = calculateTextPosition(texbox, textBufferSize, padding, labelAnchor);
 
                 if (image.textTex->m_texID == 0) {
                     renderText(image.textTex, workspaceName, textColor, textBufferSize, pMonitor->m_scale, fontSize);

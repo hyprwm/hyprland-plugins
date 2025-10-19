@@ -31,7 +31,7 @@ workspace_method | [center/first] [workspace] | position of the desktops | `cent
 skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false`
 show_label | boolean | whether to show workspace name labels | `false`
 label_font_size | number | font size for workspace labels (minimum 8) | `24`
-label_anchor | string | label position: `tl`, `tr`, `bl`, `br` (top-left, top-right, bottom-left, bottom-right) | `tl`
+label_anchor | string | label position: `tl`, `tr`, `bl`, `br`, `tc`, `bc`, `cl`, `cr`, `cc` (top-left, top-right, bottom-left, bottom-right, top-center, bottom-center, center-left, center-right, center) | `tl`
 gesture_distance | number | how far is the max for the gesture | `300`
 
 ### Keywords
