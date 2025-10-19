@@ -431,7 +431,7 @@ void COverview::render() {
     g_pHyprRenderer->m_renderPass.add(makeUnique<COverviewPassElement>());
 }
 
-LabelAnchor COverview::parseLabelAnchor(const std::string& anchorStr) {
+COverview::LabelAnchor COverview::parseLabelAnchor(const std::string& anchorStr) {
     if (anchorStr == "tl") {
         return LabelAnchor::TOP_LEFT;
     } else if (anchorStr == "tr") {

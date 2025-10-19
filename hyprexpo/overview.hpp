@@ -19,6 +19,18 @@ class CMonitor;
 
 class COverview {
   public:
+    enum class LabelAnchor {
+        TOP_LEFT,
+        TOP_RIGHT,
+        BOTTOM_LEFT,
+        BOTTOM_RIGHT,
+        TOP_CENTER,
+        BOTTOM_CENTER,
+        CENTER_LEFT,
+        CENTER_RIGHT,
+        CENTER
+    };
+
     COverview(PHLWORKSPACE startedOn_, bool swipe = false);
     ~COverview();
 
@@ -59,17 +71,6 @@ class COverview {
     bool       show_label  = false;
     int        fontSize    = 24;
 
-    enum class LabelAnchor {
-        TOP_LEFT,
-        TOP_RIGHT,
-        BOTTOM_LEFT,
-        BOTTOM_RIGHT,
-        TOP_CENTER,
-        BOTTOM_CENTER,
-        CENTER_LEFT,
-        CENTER_RIGHT,
-        CENTER
-    };
     LabelAnchor labelAnchor = LabelAnchor::TOP_LEFT;
 
     bool       damageDirty = false;
