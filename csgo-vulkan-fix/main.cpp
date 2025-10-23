@@ -106,9 +106,10 @@ CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    const std::string HASH = __hyprland_api_get_hash();
+    const std::string HASH        = __hyprland_api_get_hash();
+    const std::string CLIENT_HASH = __hyprland_api_get_client_hash();
 
-    if (HASH != GIT_COMMIT_HASH) {
+    if (HASH != CLIENT_HASH) {
         HyprlandAPI::addNotification(PHANDLE, "[csgo-vulkan-fix] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
                                      CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[vkfix] Version mismatch");
@@ -129,29 +130,32 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         g_appConfigs.emplace_back(SAppConfig{.szClass = *PCLASS, .res = Vector2D{(int)**RESX, (int)**RESY}});
     });
 
-    HyprlandAPI::addConfigKeyword(PHANDLE, "vkfix-app", [](const char* l, const char* r) -> Hyprlang::CParseResult {
-        const std::string      str = r;
-        CConstVarList          data(str, 0, ',', true);
+    HyprlandAPI::addConfigKeyword(
+        PHANDLE, "vkfix-app",
+        [](const char* l, const char* r) -> Hyprlang::CParseResult {
+            const std::string      str = r;
+            CConstVarList          data(str, 0, ',', true);
 
-        Hyprlang::CParseResult result;
+            Hyprlang::CParseResult result;
 
-        if (data.size() != 3) {
-            result.setError("vkfix-app requires 3 params");
+            if (data.size() != 3) {
+                result.setError("vkfix-app requires 3 params");
+                return result;
+            }
+
+            try {
+                SAppConfig config;
+                config.szClass = data[0];
+                config.res     = Vector2D{std::stoi(std::string{data[1]}), std::stoi(std::string{data[2]})};
+                g_appConfigs.emplace_back(std::move(config));
+            } catch (std::exception& e) {
+                result.setError("failed to parse line");
+                return result;
+            }
+
             return result;
-        }
-
-        try {
-            SAppConfig config;
-            config.szClass = data[0];
-            config.res     = Vector2D{std::stoi(std::string{data[1]}), std::stoi(std::string{data[2]})};
-            g_appConfigs.emplace_back(std::move(config));
-        } catch (std::exception& e) {
-            result.setError("failed to parse line");
-            return result;
-        }
-
-        return result;
-    }, Hyprlang::SHandlerOptions{});
+        },
+        Hyprlang::SHandlerOptions{});
 
     auto FNS = HyprlandAPI::findFunctionsByName(PHANDLE, "sendPointerMotion");
     for (auto& fn : FNS) {
