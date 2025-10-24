@@ -1,7 +1,7 @@
 # Info about this fork
 
 I forked hyprbars to add a custom rule
-`use_workspace_opacity = true/false` <br>
+`use_workspace_opacity = true/false` (set to true by default) <br>
 All it does is force the bar to use the workspace opacity instead of the window, so it could look like this:
 <img width="1010" height="664" alt="image" src="https://github.com/user-attachments/assets/214b7b4e-0a2d-4c61-be2f-9ce75e340479" />
 Instead of this:
