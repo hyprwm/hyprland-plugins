@@ -561,22 +561,33 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
 }
 
 void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
-    static auto* const PENABLED = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:enabled")->getDataStaticPtr();
-
-    if (m_bLastEnabledState != **PENABLED) {
-        m_bLastEnabledState = **PENABLED;
-        g_pDecorationPositioner->repositionDeco(this);
+    static Hyprlang::INT* const* PENABLED = nullptr;
+    if (!PENABLED && PHANDLE) {
+        if (auto val = HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:enabled"))
+            PENABLED = (Hyprlang::INT* const*)val->getDataStaticPtr();
     }
-
-    if (m_hidden || !validMapped(m_pWindow) || !**PENABLED)
+    if (!PENABLED || !*PENABLED || !**PENABLED)
         return;
-
+    if (m_hidden || !validMapped(m_pWindow))
+        return;
     const auto PWINDOW = m_pWindow.lock();
-
-    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
+    if (!PWINDOW || !PWINDOW->m_windowData.decorate.valueOrDefault())
         return;
 
-    auto data = CBarPassElement::SBarData{this, a};
+    static auto* const PUSEWORKSPACEOPACITY =
+        (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:use_workspace_opacity")
+            ->getDataStaticPtr();
+
+    bool useWorkspaceOpacity = (PUSEWORKSPACEOPACITY && *PUSEWORKSPACEOPACITY && **PUSEWORKSPACEOPACITY == 1);
+    
+    float currentWorkspaceOpacity = PWINDOW->m_workspace->m_alpha->value();
+    
+    float renderAlpha = a;
+    if (useWorkspaceOpacity) {
+        renderAlpha = currentWorkspaceOpacity;
+    }
+    
+    CBarPassElement::SBarData data{this, renderAlpha};
     g_pHyprRenderer->m_renderPass.add(makeUnique<CBarPassElement>(data));
 }
 
