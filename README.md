@@ -1,3 +1,14 @@
+# Info about this fork
+
+I forked hyprbars to add a custom rule
+`use_workspace_opacity = true/false` <br>
+All it does is force the bar to use the workspace opacity instead of the window, so it could look like this:
+<img width="1010" height="664" alt="image" src="https://github.com/user-attachments/assets/214b7b4e-0a2d-4c61-be2f-9ce75e340479" />
+Instead of this:
+<img width="1030" height="653" alt="image" src="https://github.com/user-attachments/assets/6d24aaba-0aa3-4845-952f-0963859f5155" />
+
+In my opinion, it looks a lot nicer opaque, it gives a lot more uniformity to the design of your rice :)
+
 # hyprland-plugins
 
 This repo houses official plugins for Hyprland.
