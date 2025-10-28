@@ -47,7 +47,7 @@ static SDispatchResult moveOrExec(std::string in) {
 }
 
 static SDispatchResult throwUnfocused(std::string in) {
-    const auto [id, name] = getWorkspaceIDNameFromString(in);
+    const auto [id, name, isAutoID] = getWorkspaceIDNameFromString(in);
 
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
@@ -70,7 +70,7 @@ static SDispatchResult throwUnfocused(std::string in) {
 }
 
 static SDispatchResult bringAllFrom(std::string in) {
-    const auto [id, name] = getWorkspaceIDNameFromString(in);
+    const auto [id, name, isAutoID] = getWorkspaceIDNameFromString(in);
 
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
