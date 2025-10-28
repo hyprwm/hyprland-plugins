@@ -38,6 +38,10 @@ static void onFocusChange(PHLWINDOW window) {
     if (lastWindow == window)
         return;
 
+    static const auto PONLY_ON_MONITOR_CHANGE = CConfigValue<Hyprlang::INT>("plugin:hyprfocus:only_on_monitor_change");
+    if (*PONLY_ON_MONITOR_CHANGE && lastWindow && lastWindow->m_monitor == window->m_monitor)
+        return;
+
     lastWindow = window;
 
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
@@ -124,6 +128,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     // clang-format on
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mode", Hyprlang::STRING{"flash"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:only_on_monitor_change", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:fade_opacity", Hyprlang::FLOAT{0.8F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:slide_height", Hyprlang::FLOAT{20.F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:bounce_strength", Hyprlang::FLOAT{0.95F});
