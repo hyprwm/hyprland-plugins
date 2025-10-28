@@ -77,7 +77,7 @@ static void onFocusChange(PHLWINDOW window) {
             w->m_realSize->setConfig(POUT);
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating) {
+            if (w->m_isFloating || w->isFullscreen()) {
                 *w->m_realPosition = ORIGINAL.pos();
                 *w->m_realSize     = ORIGINAL.size();
             } else
@@ -97,7 +97,7 @@ static void onFocusChange(PHLWINDOW window) {
                 return;
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating)
+            if (w->m_isFloating || w->isFullscreen())
                 *w->m_realPosition = ORIGINAL;
             else
                 g_pLayoutManager->getCurrentLayout()->recalculateWindow(w.lock());
