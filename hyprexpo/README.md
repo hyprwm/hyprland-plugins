@@ -13,6 +13,7 @@ plugin {
         gap_size = 5
         bg_col = rgb(111111)
         workspace_method = center current # [center/first] [workspace] e.g. first 1 or center m+1
+        show_label = true
 
         gesture_distance = 300 # how far is the "max" for the gesture
     }
@@ -28,6 +29,9 @@ gap_size | number | gap between desktops | `5`
 bg_col | color | color in gaps (between desktops) | `rgb(000000)`
 workspace_method | [center/first] [workspace] | position of the desktops | `center current`
 skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false`
+show_label | boolean | whether to show workspace name labels | `false`
+label_font_size | number | font size for workspace labels (minimum 8) | `24`
+label_anchor | string | label position: `tl`, `tr`, `bl`, `br`, `tc`, `bc`, `cl`, `cr`, `cc` (top-left, top-right, bottom-left, bottom-right, top-center, bottom-center, center-left, center-right, center) | `tl`
 gesture_distance | number | how far is the max for the gesture | `300`
 
 ### Keywords
