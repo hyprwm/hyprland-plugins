@@ -23,12 +23,21 @@ plugin {
 
 | property | type | description | default |
 | --- | --- | --- | --- |
-columns | number | how many desktops are displayed on one line | `3`
-gap_size | number | gap between desktops | `5`
-bg_col | color | color in gaps (between desktops) | `rgb(000000)`
-workspace_method | [center/first] [workspace] | position of the desktops | `center current`
-skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false`
-gesture_distance | number | how far is the max for the gesture | `300`
+|columns | number | how many desktops are displayed on one line | `3`|
+|gap_size | number | gap between desktops | `5`|
+|bg_col | color | color in gaps (between desktops) | `rgb(000000)`|
+|workspace_method | [center/first] [workspace] | position of the desktops | `center current`|
+|skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false`|
+|gesture_distance | number | how far is the max for the gesture | `300`|
+
+#### Subcategory `scrolling`
+
+Applies to the scrolling layout overview
+| property | type | description | default |
+| --- | --- | --- | --- |
+| scroll_moves_up_down | bool | if enabled, scrolling will move workspaces up/down instead of zooming | true |
+| default_zoom | float | default zoom out value, [0.1 - 0.9] | 0.5 |
+
 
 ### Keywords
 
