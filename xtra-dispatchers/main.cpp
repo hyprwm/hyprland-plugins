@@ -47,7 +47,7 @@ static SDispatchResult moveOrExec(std::string in) {
 }
 
 static SDispatchResult throwUnfocused(std::string in) {
-    const auto [id, name] = getWorkspaceIDNameFromString(in);
+    const auto [id, name, isAutoID] = getWorkspaceIDNameFromString(in);
 
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
@@ -70,7 +70,7 @@ static SDispatchResult throwUnfocused(std::string in) {
 }
 
 static SDispatchResult bringAllFrom(std::string in) {
-    const auto [id, name] = getWorkspaceIDNameFromString(in);
+    const auto [id, name, isAutoID] = getWorkspaceIDNameFromString(in);
 
     if (id == WORKSPACE_INVALID)
         return SDispatchResult{.success = false, .error = "Failed to find workspace"};
@@ -116,9 +116,10 @@ static SDispatchResult closeUnfocused(std::string in) {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    const std::string HASH = __hyprland_api_get_hash();
+    const std::string HASH        = __hyprland_api_get_hash();
+    const std::string CLIENT_HASH = __hyprland_api_get_client_hash();
 
-    if (HASH != GIT_COMMIT_HASH) {
+    if (HASH != CLIENT_HASH) {
         HyprlandAPI::addNotification(PHANDLE, "[xtra-dispatchers] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
                                      CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
         throw std::runtime_error("[xtd] Version mismatch");
