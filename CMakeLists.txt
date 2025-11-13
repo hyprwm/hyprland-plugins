@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.27)
 project(hyprland-plugins
-    VERSION 0.51.0
     DESCRIPTION "Official plugins for Hyprland"
     LANGUAGES CXX
 )
