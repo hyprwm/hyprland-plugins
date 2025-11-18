@@ -87,7 +87,7 @@ void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
+    if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return;
 
     auto data = CTrailPassElement::STrailData{this, a};
