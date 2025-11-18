@@ -59,8 +59,8 @@ static void onFocusChange(PHLWINDOW window) {
             if (!w)
                 return;
             w->m_activeInactiveAlpha->setConfig(POUT);
-            g_pCompositor->updateWindowAnimatedDecorationValues(w.lock());
-            w->updateDynamicRules();
+            w->updateDecorationValues();
+            w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 
             w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
         });
