@@ -573,7 +573,7 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
+    if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return;
 
     auto data = CBarPassElement::SBarData{this, a};
@@ -754,7 +754,6 @@ PHLWINDOW CHyprBar::getOwner() {
 
 void CHyprBar::updateRules() {
     const auto PWINDOW              = m_pWindow.lock();
-    auto       rules                = PWINDOW->m_matchedRules;
     auto       prevHidden           = m_hidden;
     auto       prevForcedTitleColor = m_bForcedTitleColor;
 
@@ -762,25 +761,17 @@ void CHyprBar::updateRules() {
     m_bForcedTitleColor = std::nullopt;
     m_hidden            = false;
 
-    for (auto& r : rules) {
-        applyRule(r);
-    }
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
+        m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))
+        m_bForcedBarColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect).value_or(0));
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
+        m_bForcedTitleColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect).value_or(0));
 
     if (prevHidden != m_hidden)
         g_pDecorationPositioner->repositionDeco(this);
     if (prevForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
-}
-
-void CHyprBar::applyRule(const SP<CWindowRule>& r) {
-    auto arg = r->m_rule.substr(r->m_rule.find_first_of(' ') + 1);
-
-    if (r->m_rule == "plugin:hyprbars:nobar")
-        m_hidden = true;
-    else if (r->m_rule.starts_with("plugin:hyprbars:bar_color"))
-        m_bForcedBarColor = CHyprColor(configStringToInt(arg).value_or(0));
-    else if (r->m_rule.starts_with("plugin:hyprbars:title_color"))
-        m_bForcedTitleColor = CHyprColor(configStringToInt(arg).value_or(0));
 }
 
 void CHyprBar::damageOnButtonHover() {
