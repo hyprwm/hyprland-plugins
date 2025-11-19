@@ -52,15 +52,15 @@ static void onFocusChange(PHLWINDOW window) {
     const auto        POUT     = g_pConfigManager->getAnimationPropertyConfig("hyprfocusOut");
 
     if (*PMODE == "flash") {
+        const auto ORIGINAL = window->m_activeInactiveAlpha->goal();
         window->m_activeInactiveAlpha->setConfig(PIN);
         *window->m_activeInactiveAlpha = std::clamp(*POPACITY, 0.F, 1.F);
 
-        window->m_activeInactiveAlpha->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT](WP<CBaseAnimatedVariable> pav) {
+        window->m_activeInactiveAlpha->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
             w->m_activeInactiveAlpha->setConfig(POUT);
-            w->updateDecorationValues();
-            w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            *w->m_activeInactiveAlpha = ORIGINAL;
 
             w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
         });
