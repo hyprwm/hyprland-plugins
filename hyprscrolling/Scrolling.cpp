@@ -385,7 +385,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     if (PWINDOW->isFullscreen() && !data->ignoreFullscreenChecks)
         return;
 
-    PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
+    PWINDOW->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
 
     static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
@@ -641,7 +641,7 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
     if (!DATA) {
         *PWINDOW->m_realSize =
             (PWINDOW->m_realSize->goal() + delta)
-                .clamp(PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
+                .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}));
         PWINDOW->updateWindowDecos();
         return;
     }
@@ -753,7 +753,7 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
             *pWindow->m_realPosition = pWindow->m_lastFloatingPosition;
             *pWindow->m_realSize     = pWindow->m_lastFloatingSize;
 
-            pWindow->unsetWindowData(PRIORITY_LAYOUT);
+            pWindow->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
             pWindow->updateWindowData();
         }
     } else {
