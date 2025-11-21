@@ -68,7 +68,7 @@ size_t SColumnData::idxForHeight(float y) {
     for (size_t i = 0; i < windowDatas.size(); ++i) {
         if (windowDatas[i]->window->m_position.y < y)
             continue;
-        return i - 1;
+        return i;
     }
     return windowDatas.size() - 1;
 }
