@@ -68,7 +68,7 @@ size_t SColumnData::idxForHeight(float y) {
     for (size_t i = 0; i < windowDatas.size(); ++i) {
         if (windowDatas[i]->window->m_position.y < y)
             continue;
-        return i;
+        return i - 1;
     }
     return windowDatas.size() - 1;
 }
@@ -1446,7 +1446,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             WS->centerOrFitCol(NEWCOL);
         } else {
             if (COL->windowDatas.size() > 0)
-                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
+                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
             else
                 COL->add(DATA);
             WS->centerOrFitCol(COL);
@@ -1463,7 +1463,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             WS->centerOrFitCol(NEWCOL);
         } else {
             if (COL->windowDatas.size() > 0)
-                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
+                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
             else
                 COL->add(DATA);
             WS->centerOrFitCol(COL);
