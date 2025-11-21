@@ -1445,7 +1445,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             NEWCOL->add(DATA);
             WS->centerOrFitCol(NEWCOL);
         } else {
-            if (COL->windowDatas.size() > 1 || DATA->column)
+            if (COL->windowDatas.size() > 0)
                 COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
             else
                 COL->add(DATA);
@@ -1462,7 +1462,7 @@ void CScrollingLayout::moveWindowTo(PHLWINDOW w, const std::string& dir, bool si
             NEWCOL->add(DATA);
             WS->centerOrFitCol(NEWCOL);
         } else {
-            if (COL->windowDatas.size() > 1 || DATA->column)
+            if (COL->windowDatas.size() > 0)
                 COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y) - 1);
             else
                 COL->add(DATA);
