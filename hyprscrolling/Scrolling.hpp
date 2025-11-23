@@ -35,6 +35,8 @@ struct SColumnData {
     void                                  remove(PHLWINDOW w);
     bool                                  has(PHLWINDOW w);
     size_t                                idx(PHLWINDOW w);
+
+    // index of lowest window that is above y.
     size_t                                idxForHeight(float y);
 
     void                                  up(SP<SScrollingWindowData> w);
