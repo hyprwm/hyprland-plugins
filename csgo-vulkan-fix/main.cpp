@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
@@ -46,14 +47,17 @@ static const SAppConfig* getAppConfig(const std::string& appClass) {
 void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& local) {
     static auto* const PFIX = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:csgo-vulkan-fix:fix_mouse")->getDataStaticPtr();
 
-    Vector2D           newCoords = local;
+    Vector2D newCoords = local;
+    auto focusState = Desktop::focusState();
+    auto window = focusState->window();
+    auto monitor = focusState->monitor();
 
-    const auto         CONFIG = g_pCompositor->m_lastWindow && g_pCompositor->m_lastMonitor ? getAppConfig(g_pCompositor->m_lastWindow->m_initialClass) : nullptr;
+    const auto CONFIG = window && monitor ? getAppConfig(window->m_initialClass) : nullptr;
 
     if (**PFIX && CONFIG) {
         // fix the coords
-        newCoords.x *= (CONFIG->res.x / g_pCompositor->m_lastMonitor->m_size.x) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
-        newCoords.y *= (CONFIG->res.y / g_pCompositor->m_lastMonitor->m_size.y) / g_pCompositor->m_lastWindow->m_X11SurfaceScaledBy;
+        newCoords.x *= (CONFIG->res.x / monitor->m_size.x) / window->m_X11SurfaceScaledBy;
+        newCoords.y *= (CONFIG->res.y / monitor->m_size.y) / window->m_X11SurfaceScaledBy;
     }
 
     (*(origMotion)g_pMouseMotionHook->m_original)(thisptr, time_msec, newCoords);
