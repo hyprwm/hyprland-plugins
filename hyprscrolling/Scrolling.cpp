@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
@@ -534,7 +535,7 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
         workspaceData->self = workspaceData;
     }
 
-    auto droppingOn = g_pCompositor->m_lastWindow.lock();
+    auto droppingOn = Desktop::focusState()->window();
 
     if (droppingOn == window)
         droppingOn = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
@@ -630,7 +631,7 @@ void CScrollingLayout::onBeginDragWindow() {
 }
 
 void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner corner, PHLWINDOW pWindow) {
-    const auto PWINDOW  = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW  = pWindow ? pWindow : Desktop::focusState()->window();
     Vector2D   modDelta = delta;
 
     if (!validMapped(PWINDOW))
@@ -782,10 +783,10 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
 
 void CScrollingLayout::focusWindowUpdate(PHLWINDOW pWindow) {
     if (!validMapped(pWindow)) {
-        g_pCompositor->focusWindow(nullptr);
+        Desktop::focusState()->fullWindowFocus(nullptr);
         return;
     }
-    g_pCompositor->focusWindow(pWindow);
+    Desktop::focusState()->fullWindowFocus(pWindow);
     const auto WINDOWDATA = dataFor(pWindow);
     if (WINDOWDATA) {
         if (auto col = WINDOWDATA->column.lock())
@@ -841,7 +842,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             return {};
 
         if (ARGS[1] == "+col" || ARGS[1] == "col") {
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+            const auto WDATA = dataFor(Desktop::focusState()->window());
             if (!WDATA)
                 return {};
 
@@ -862,7 +863,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             return {};
         } else if (ARGS[1] == "-col") {
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+            const auto WDATA = dataFor(Desktop::focusState()->window());
             if (!WDATA) {
                 if (DATA->leftOffset <= DATA->maxWidth() && DATA->columns.size() > 0) {
                     DATA->centerCol(DATA->columns.back());
@@ -899,7 +900,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         focusWindowUpdate(ATCENTER ? (*ATCENTER->windowDatas.begin())->window.lock() : nullptr);
     } else if (ARGS[0] == "colresize") {
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto WDATA = dataFor(Desktop::focusState()->window());
 
         if (!WDATA)
             return {};
@@ -968,13 +969,13 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->column->columnWidth = abs;
         }
     } else if (ARGS[0] == "movewindowto") {
-        moveWindowTo(g_pCompositor->m_lastWindow.lock(), ARGS[1], false);
+        moveWindowTo(Desktop::focusState()->window(), ARGS[1], false);
     } else if (ARGS[0] == "fit") {
 
         if (ARGS[1] == "active") {
             // fit the current column to 1.F
-            const auto WDATA    = dataFor(g_pCompositor->m_lastWindow.lock());
-            const auto WORKDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+            const auto WDATA    = dataFor(Desktop::focusState()->window());
+            const auto WORKDATA = dataFor(Desktop::focusState()->window()->m_workspace);
 
             if (!WDATA || !WORKDATA || WORKDATA->columns.size() == 0)
                 return {};
@@ -985,7 +986,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
             WORKDATA->leftOffset = 0;
             for (size_t i = 0; i < WORKDATA->columns.size(); ++i) {
-                if (WORKDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                if (WORKDATA->columns[i]->has(Desktop::focusState()->window()))
                     break;
 
                 WORKDATA->leftOffset += USABLE.w * WORKDATA->columns[i]->columnWidth;
@@ -994,7 +995,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->column->workspace->recalculate();
         } else if (ARGS[1] == "all") {
             // fit all columns on screen
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+            const auto WDATA = dataFor(Desktop::focusState()->window()->m_workspace);
 
             if (!WDATA || WDATA->columns.size() == 0)
                 return {};
@@ -1007,7 +1008,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->recalculate();
         } else if (ARGS[1] == "toend") {
             // fit all columns on screen that start from the current and end on the last
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+            const auto WDATA = dataFor(Desktop::focusState()->window()->m_workspace);
 
             if (!WDATA || WDATA->columns.size() == 0)
                 return {};
@@ -1015,7 +1016,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             bool   begun   = false;
             size_t foundAt = 0;
             for (size_t i = 0; i < WDATA->columns.size(); ++i) {
-                if (!begun && !WDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                if (!begun && !WDATA->columns[i]->has(Desktop::focusState()->window()))
                     continue;
 
                 if (!begun) {
@@ -1039,7 +1040,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->recalculate();
         } else if (ARGS[1] == "tobeg") {
             // fit all columns on screen that start from the current and end on the last
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+            const auto WDATA = dataFor(Desktop::focusState()->window()->m_workspace);
 
             if (!WDATA || WDATA->columns.size() == 0)
                 return {};
@@ -1047,7 +1048,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             bool   begun   = false;
             size_t foundAt = 0;
             for (int64_t i = (int64_t)WDATA->columns.size() - 1; i >= 0; --i) {
-                if (!begun && !WDATA->columns[i]->has(g_pCompositor->m_lastWindow.lock()))
+                if (!begun && !WDATA->columns[i]->has(Desktop::focusState()->window()))
                     continue;
 
                 if (!begun) {
@@ -1066,7 +1067,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->recalculate();
         } else if (ARGS[1] == "visible") {
             // fit all columns on screen that start from the current and end on the last
-            const auto WDATA = dataFor(g_pCompositor->m_lastWindow->m_workspace);
+            const auto WDATA = dataFor(Desktop::focusState()->window()->m_workspace);
 
             if (!WDATA || WDATA->columns.size() == 0)
                 return {};
@@ -1109,7 +1110,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             WDATA->recalculate();
         }
     } else if (ARGS[0] == "focus") {
-        const auto        WDATA       = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto        WDATA       = dataFor(Desktop::focusState()->window());
         static const auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
 
         if (!WDATA || ARGS[1].empty())
@@ -1193,7 +1194,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             default: return {};
         }
     } else if (ARGS[0] == "promote") {
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto WDATA = dataFor(Desktop::focusState()->window());
 
         if (!WDATA)
             return {};
@@ -1210,7 +1211,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         if (ARGS.size() < 2)
             return {};
 
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto WDATA = dataFor(Desktop::focusState()->window());
         if (!WDATA)
             return {};
 
@@ -1245,7 +1246,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         if (ARGS.size() < 2)
             return {};
 
-        const auto WDATA = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto WDATA = dataFor(Desktop::focusState()->window());
         if (!WDATA)
             return {};
 
@@ -1257,7 +1258,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         if (!SOURCE_WS_DATA)
             return {};
 
-        const auto PMONITOR = g_pCompositor->m_lastWindow->m_monitor.lock();
+        const auto PMONITOR = Desktop::focusState()->monitor();
         if (!PMONITOR)
             return {};
 
@@ -1340,7 +1341,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
             g_pCompositor->moveWindowToWorkspaceSafe(win, PWORKSPACE);
         }
 
-        g_pCompositor->focusWindow(windowsToMove.front());
+        Desktop::focusState()->fullWindowFocus(windowsToMove.front());
         g_pCompositor->warpCursorTo(windowsToMove.front()->middle());
     } else if (ARGS[0] == "togglefit") {
         static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
@@ -1349,7 +1350,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
         fitMethod = toggled;
 
-        const auto        focusedData = dataFor(g_pCompositor->m_lastWindow.lock());
+        const auto        focusedData = dataFor(Desktop::focusState()->window());
         static const auto PFSONONE    = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
         for (const auto& ws : m_workspaceDatas) {
@@ -1528,12 +1529,12 @@ SP<SScrollingWindowData> CScrollingLayout::dataFor(PHLWINDOW w) {
 }
 
 SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
-    if (!g_pCompositor->m_lastMonitor || !g_pCompositor->m_lastMonitor->m_activeWorkspace)
+    if (!Desktop::focusState()->monitor() || !Desktop::focusState()->monitor()->m_activeWorkspace)
         return nullptr;
 
     // FIXME: special
 
-    return dataFor(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+    return dataFor(Desktop::focusState()->monitor()->m_activeWorkspace);
 }
 
 CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
