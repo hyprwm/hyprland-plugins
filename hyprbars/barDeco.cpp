@@ -1,6 +1,7 @@
 #include "barDeco.hpp"
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/Window.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
@@ -90,11 +91,15 @@ bool CHyprBar::inputIsValid() {
 
     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-    if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_lastWindow)
+    auto focusState = Desktop::focusState();
+    auto window = focusState->window();
+    auto monitor = focusState->monitor();
+    
+    if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
         return false;
 
     // check if input is on top or overlay shell layers
-    auto     PMONITOR     = g_pCompositor->m_lastMonitor.lock();
+    auto     PMONITOR     = monitor;
     PHLLS    foundSurface = nullptr;
     Vector2D surfaceCoords;
 
@@ -158,7 +163,7 @@ void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
         return;
 
     auto PMONITOR     = m_pWindow->m_monitor.lock();
-    PMONITOR          = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+    PMONITOR          = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
     const auto COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y);
 
     if (!m_bDraggingThis) {
@@ -183,7 +188,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
     if (m_bTouchEv) {
         ITouch::SDownEvent e        = touchEvent.value();
         auto               PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
-        PMONITOR                    = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+        PMONITOR                    = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
         COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
     }
 
@@ -211,8 +216,8 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
         return;
     }
 
-    if (g_pCompositor->m_lastWindow.lock() != PWINDOW)
-        g_pCompositor->focusWindow(PWINDOW);
+    if (Desktop::focusState()->window() != PWINDOW)
+        Desktop::focusState()->fullWindowFocus(PWINDOW);
 
     if (PWINDOW->m_isFloating)
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
@@ -234,7 +239,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
 }
 
 void CHyprBar::handleUpEvent(SCallbackInfo& info) {
-    if (m_pWindow.lock() != g_pCompositor->m_lastWindow.lock())
+    if (m_pWindow.lock() != Desktop::focusState()->window())
         return;
 
     if (m_bCancelledDown)
@@ -593,7 +598,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
 
     if (**PINACTIVECOLOR > 0) {
-        bool currentWindowFocus = PWINDOW == g_pCompositor->m_lastWindow.lock();
+        bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
         if (currentWindowFocus != m_bWindowHasFocus) {
             m_bWindowHasFocus = currentWindowFocus;
             m_bButtonsDirty   = true;
