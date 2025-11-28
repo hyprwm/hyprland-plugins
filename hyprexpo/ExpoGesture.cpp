@@ -3,6 +3,7 @@
 #include "overview.hpp"
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/helpers/Monitor.hpp>
 
 void CExpoGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
@@ -12,7 +13,7 @@ void CExpoGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     m_firstUpdate = true;
 
     if (!g_pOverview)
-        g_pOverview = std::make_unique<COverview>(g_pCompositor->m_lastMonitor->m_activeWorkspace);
+        g_pOverview = std::make_unique<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
     else {
         g_pOverview->selectHoveredWorkspace();
         g_pOverview->setClosing(true);

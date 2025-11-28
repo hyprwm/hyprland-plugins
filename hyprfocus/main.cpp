@@ -38,6 +38,10 @@ static void onFocusChange(PHLWINDOW window) {
     if (lastWindow == window)
         return;
 
+    static const auto PONLY_ON_MONITOR_CHANGE = CConfigValue<Hyprlang::INT>("plugin:hyprfocus:only_on_monitor_change");
+    if (*PONLY_ON_MONITOR_CHANGE && lastWindow && lastWindow->m_monitor == window->m_monitor)
+        return;
+
     lastWindow = window;
 
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
@@ -48,15 +52,15 @@ static void onFocusChange(PHLWINDOW window) {
     const auto        POUT     = g_pConfigManager->getAnimationPropertyConfig("hyprfocusOut");
 
     if (*PMODE == "flash") {
+        const auto ORIGINAL = window->m_activeInactiveAlpha->goal();
         window->m_activeInactiveAlpha->setConfig(PIN);
         *window->m_activeInactiveAlpha = std::clamp(*POPACITY, 0.F, 1.F);
 
-        window->m_activeInactiveAlpha->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT](WP<CBaseAnimatedVariable> pav) {
+        window->m_activeInactiveAlpha->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
             w->m_activeInactiveAlpha->setConfig(POUT);
-            g_pCompositor->updateWindowAnimatedDecorationValues(w.lock());
-            w->updateDynamicRules();
+            *w->m_activeInactiveAlpha = ORIGINAL;
 
             w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
         });
@@ -77,7 +81,7 @@ static void onFocusChange(PHLWINDOW window) {
             w->m_realSize->setConfig(POUT);
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating) {
+            if (w->m_isFloating || w->isFullscreen()) {
                 *w->m_realPosition = ORIGINAL.pos();
                 *w->m_realSize     = ORIGINAL.size();
             } else
@@ -97,7 +101,7 @@ static void onFocusChange(PHLWINDOW window) {
                 return;
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating)
+            if (w->m_isFloating || w->isFullscreen())
                 *w->m_realPosition = ORIGINAL;
             else
                 g_pLayoutManager->getCurrentLayout()->recalculateWindow(w.lock());
@@ -124,6 +128,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     // clang-format on
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mode", Hyprlang::STRING{"flash"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:only_on_monitor_change", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:fade_opacity", Hyprlang::FLOAT{0.8F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:slide_height", Hyprlang::FLOAT{20.F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:bounce_strength", Hyprlang::FLOAT{0.95F});
