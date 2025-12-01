@@ -865,7 +865,7 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
         } else if (ARGS[1] == "-col") {
             const auto WDATA = dataFor(Desktop::focusState()->window());
             if (!WDATA) {
-                if (DATA->leftOffset <= DATA->maxWidth() && DATA->columns.size() > 0) {
+                if (DATA->columns.size() > 0) {
                     DATA->centerCol(DATA->columns.back());
                     DATA->recalculate();
                     focusWindowUpdate((DATA->columns.back()->windowDatas.back())->window.lock());
