@@ -59,7 +59,7 @@ Please note it _has_ to be inside `plugin { hyprbars { } }`.
 
 Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/Configuring/Window-Rules/):
 
-`hyprbars:nobar` -> disables the bar on matching windows.  
+`hyprbars:no_bar` -> disables the bar on matching windows.  
 `hyprbars:bar_color` -> sets the bar background color on matching windows.  
 `hyprbars:title_color` -> sets the bar title color on matching windows.  
 
