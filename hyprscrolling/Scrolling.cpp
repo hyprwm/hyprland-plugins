@@ -297,7 +297,7 @@ void SWorkspaceData::recalculate(bool forceInstant) {
 
         for (const auto& WINDOW : COL->windowDatas) {
             WINDOW->layoutBox =
-                CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->m_position + PMONITOR->m_reservedTopLeft + Vector2D{-cameraLeft, 0.0});
+                CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->logicalBoxMinusReserved().pos() + Vector2D{-cameraLeft, 0.0});
 
             currentTop += WINDOW->windowSize * USABLE.h;
 
@@ -367,10 +367,11 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     }
 
     // for gaps outer
+    const auto WORKAREA      = PMONITOR->logicalBoxMinusReserved();
     const bool DISPLAYLEFT   = !hasWindowsLeft;
     const bool DISPLAYRIGHT  = !hasWindowsRight;
-    const bool DISPLAYTOP    = STICKS(data->layoutBox.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
-    const bool DISPLAYBOTTOM = STICKS(data->layoutBox.y + data->layoutBox.h, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+    const bool DISPLAYTOP    = STICKS(data->layoutBox.y, WORKAREA.y);
+    const bool DISPLAYBOTTOM = STICKS(data->layoutBox.y + data->layoutBox.h, WORKAREA.y + WORKAREA.h);
 
     const auto PWINDOW = data->window.lock();
     // get specific gaps and rules for this workspace,
@@ -395,7 +396,6 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
-    auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
     CBox        nodeBox = data->layoutBox;
     nodeBox.round();
 
@@ -407,9 +407,9 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     auto       calcPos  = PWINDOW->m_position;
     auto       calcSize = PWINDOW->m_size;
 
-    const auto OFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto OFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? 0 : gapsIn.m_left), (double)(DISPLAYTOP ? 0 : gapsIn.m_top));
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto OFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? 0 : gapsIn.m_right), (double)(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
@@ -640,9 +640,9 @@ void CScrollingLayout::resizeActiveWindow(const Vector2D& delta, eRectCorner cor
     const auto DATA = dataFor(PWINDOW);
 
     if (!DATA) {
-        *PWINDOW->m_realSize =
-            (PWINDOW->m_realSize->goal() + delta)
-                .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}));
+        *PWINDOW->m_realSize = (PWINDOW->m_realSize->goal() + delta)
+                                   .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}),
+                                          PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}));
         PWINDOW->updateWindowDecos();
         return;
     }
@@ -769,10 +769,10 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
 
             SP<SScrollingWindowData> fakeNode = makeShared<SScrollingWindowData>(pWindow, nullptr);
             fakeNode->window                  = pWindow;
-            fakeNode->layoutBox = {PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
-            pWindow->m_size     = fakeNode->layoutBox.size();
-            fakeNode->ignoreFullscreenChecks = true;
-            fakeNode->overrideWorkspace      = pWindow->m_workspace;
+            fakeNode->layoutBox               = PMONITOR->logicalBoxMinusReserved();
+            pWindow->m_size                   = fakeNode->layoutBox.size();
+            fakeNode->ignoreFullscreenChecks  = true;
+            fakeNode->overrideWorkspace       = pWindow->m_workspace;
 
             applyNodeDataToWindow(fakeNode, false, false, false);
         }
@@ -1538,5 +1538,5 @@ SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
 }
 
 CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
-    return CBox{m->m_reservedTopLeft, m->m_size - m->m_reservedTopLeft - m->m_reservedBottomRight};
+    return m->logicalBoxMinusReserved().translate(-m->m_position);
 }
