@@ -538,7 +538,7 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
     auto droppingOn = Desktop::focusState()->window();
 
     if (droppingOn == window)
-        droppingOn = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
+        droppingOn = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
     SP<SScrollingWindowData> droppingData   = droppingOn ? dataFor(droppingOn) : nullptr;
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;

@@ -37,3 +37,6 @@
 # Nix
 result
 result-man
+
+build/
+.cache/

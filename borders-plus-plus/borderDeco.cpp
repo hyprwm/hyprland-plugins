@@ -1,7 +1,7 @@
 #include "borderDeco.hpp"
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;

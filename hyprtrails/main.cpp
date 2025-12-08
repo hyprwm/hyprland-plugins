@@ -4,7 +4,7 @@
 
 #include <any>
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/shaders/Shaders.hpp>
 #include <hyprland/src/render/Renderer.hpp>

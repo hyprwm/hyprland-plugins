@@ -4,7 +4,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
-#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
@@ -21,7 +21,7 @@ inline CFunctionHook* g_pSurfaceSizeHook     = nullptr;
 inline CFunctionHook* g_pWLSurfaceDamageHook = nullptr;
 typedef void (*origMotion)(CSeatManager*, uint32_t, const Vector2D&);
 typedef void (*origSurfaceSize)(CXWaylandSurface*, const CBox&);
-typedef CRegion (*origWLSurfaceDamage)(CWLSurface*);
+typedef CRegion (*origWLSurfaceDamage)(Desktop::View::CWLSurface*);
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -83,24 +83,25 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         newBox.w = CONFIG->res.x;
         newBox.h = CONFIG->res.y;
 
-        CWLSurface::fromResource(SURF)->m_fillIgnoreSmall = true;
+        Desktop::View::CWLSurface::fromResource(SURF)->m_fillIgnoreSmall = true;
     }
 
     (*(origSurfaceSize)g_pSurfaceSizeHook->m_original)(surface, newBox);
 }
 
-CRegion hkWLSurfaceDamage(CWLSurface* thisptr) {
+CRegion hkWLSurfaceDamage(Desktop::View::CWLSurface* thisptr) {
     const auto RG = (*(origWLSurfaceDamage)g_pWLSurfaceDamageHook->m_original)(thisptr);
 
-    if (thisptr->exists() && thisptr->getWindow()) {
-        const auto CONFIG = getAppConfig(thisptr->getWindow()->m_initialClass);
+    if (thisptr->exists() && Desktop::View::CWindow::fromView(thisptr->view())) {
+        const auto WINDOW = Desktop::View::CWindow::fromView(thisptr->view());
+        const auto CONFIG = getAppConfig(WINDOW->m_initialClass);
 
         if (CONFIG) {
-            const auto PMONITOR = thisptr->getWindow()->m_monitor.lock();
+            const auto PMONITOR = WINDOW->m_monitor.lock();
             if (PMONITOR)
                 g_pHyprRenderer->damageMonitor(PMONITOR);
             else
-                g_pHyprRenderer->damageWindow(thisptr->getWindow());
+                g_pHyprRenderer->damageWindow(WINDOW);
         }
     }
 
