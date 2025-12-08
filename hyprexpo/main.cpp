@@ -10,12 +10,14 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/trackpad/GestureTypes.hpp>
 #include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
+#include <hyprland/src/managers/LayoutManager.hpp>
 
 #include <hyprutils/string/ConstVarList.hpp>
 using namespace Hyprutils::String;
 
 #include "globals.hpp"
 #include "overview.hpp"
+#include "scrollOverview.hpp"
 #include "ExpoGesture.hpp"
 
 // Methods
@@ -67,6 +69,8 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
 
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
+    IS_SCROLLING = g_pLayoutManager->getCurrentLayout()->getLayoutName() == "scrolling";
+
     if (g_pOverview && g_pOverview->m_isSwiping)
         return {.success = false, .error = "already swiping"};
 
@@ -82,7 +86,12 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
             g_pOverview->close();
         else {
             renderingOverview = true;
-            g_pOverview       = std::make_unique<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
+
+            if (IS_SCROLLING)
+                g_pOverview = makeShared<CScrollOverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
+            else
+                g_pOverview = makeShared<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
+
             renderingOverview = false;
         }
         return {};
@@ -98,7 +107,10 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
         return {};
 
     renderingOverview = true;
-    g_pOverview       = std::make_unique<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
+    if (IS_SCROLLING)
+        g_pOverview = makeShared<CScrollOverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
+    else
+        g_pOverview = makeShared<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
     renderingOverview = false;
     return {};
 }
@@ -239,6 +251,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:bg_col", Hyprlang::INT{0xFF111111});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:scroll_moves_up_down", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom", Hyprlang::FLOAT{0.5});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
 

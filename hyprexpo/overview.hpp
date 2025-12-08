@@ -9,43 +9,40 @@
 #include <hyprland/src/managers/HookSystemManager.hpp>
 #include <vector>
 
+#include "IOverview.hpp"
+
 // saves on resources, but is a bit broken rn with blur.
 // hyprland's fault, but cba to fix.
 constexpr bool ENABLE_LOWRES = false;
 
 class CMonitor;
 
-class COverview {
+class COverview : public IOverview {
   public:
     COverview(PHLWORKSPACE startedOn_, bool swipe = false);
-    ~COverview();
+    virtual ~COverview();
 
-    void render();
-    void damage();
-    void onDamageReported();
-    void onPreRender();
+    virtual void render();
+    virtual void damage();
+    virtual void onDamageReported();
+    virtual void onPreRender();
 
-    void setClosing(bool closing);
+    virtual void setClosing(bool closing);
 
-    void resetSwipe();
-    void onSwipeUpdate(double delta);
-    void onSwipeEnd();
+    virtual void resetSwipe();
+    virtual void onSwipeUpdate(double delta);
+    virtual void onSwipeEnd();
 
     // close without a selection
-    void          close();
-    void          selectHoveredWorkspace();
+    virtual void close();
+    virtual void selectHoveredWorkspace();
 
-    bool          blockOverviewRendering = false;
-    bool          blockDamageReporting   = false;
-
-    PHLMONITORREF pMonitor;
-    bool          m_isSwiping = false;
+    virtual void fullRender();
 
   private:
     void       redrawID(int id, bool forcelowres = false);
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
-    void       fullRender();
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
@@ -84,5 +81,3 @@ class COverview {
 
     friend class COverviewPassElement;
 };
-
-inline std::unique_ptr<COverview> g_pOverview;
