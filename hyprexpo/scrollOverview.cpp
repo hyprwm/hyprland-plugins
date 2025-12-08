@@ -9,6 +9,8 @@
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/managers/LayoutManager.hpp>
+#include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
@@ -24,14 +26,14 @@ static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisp
 CScrollOverview::~CScrollOverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
-    g_pInputManager->unsetCursorImage();
+    Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
     g_pHyprOpenGL->markBlurDirtyForMonitor(pMonitor.lock());
 }
 
 CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
     static auto* const* PDEFAULTZOOM = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom")->getDataStaticPtr();
 
-    const auto          PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    const auto          PMONITOR = Desktop::focusState()->monitor();
     pMonitor                     = PMONITOR;
 
     for (const auto& w : g_pCompositor->getWorkspaces()) {
@@ -107,7 +109,7 @@ CScrollOverview::CScrollOverview(PHLWORKSPACE startedOn_, bool swipe_) : started
 
     windowOpenHook = g_pHookSystem->hookDynamic("openWindow", onWindowOpen);
 
-    g_pInputManager->setCursorImageUntilUnset("left_ptr");
+    Cursor::overrideController->setOverride("left_ptr", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 
     redrawAll();
 
@@ -252,12 +254,12 @@ void CScrollOverview::redrawWorkspace(PHLWORKSPACE workspace, bool forcelowres) 
         auto img     = image->windowImages.emplace_back(makeShared<SWindowImage>());
         img->pWindow = w;
         img->fb.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
-        if (!w->m_isX11 && w->m_wlSurface) {
-            img->windowCommit = makeUnique<CHyprSignalListener>(w->m_wlSurface->resource()->m_events.commit.listen([wk = WP<SWindowImage>{img}] {
+        if (!w->m_isX11 && w->wlSurface()) {
+            img->windowCommit = makeUnique<CHyprSignalListener>(w->wlSurface()->resource()->m_events.commit.listen([wk = WP<SWindowImage>{img}] {
                 if (!wk || !wk->pWindow)
                     return;
 
-                if (wk->pWindow->m_wlSurface->resource()->m_current.accumulateBufferDamage().empty())
+                if (wk->pWindow->wlSurface()->resource()->m_current.accumulateBufferDamage().empty())
                     return;
 
                 reinterpretPointerCast<CScrollOverview>(g_pOverview)->redrawWindowImage(wk.lock());
@@ -339,16 +341,12 @@ void CScrollOverview::onDamageReported() {
 }
 
 void CScrollOverview::close() {
-
-    if (closing)
-        return;
-
     closing = true;
 
     if (!closeOnWindow)
-        closeOnWindow = g_pCompositor->m_lastWindow;
+        closeOnWindow = Desktop::focusState()->window();
 
-    if (closeOnWindow == g_pCompositor->m_lastWindow)
+    if (closeOnWindow == Desktop::focusState()->window())
         *viewOffset = Vector2D{};
     else {
 
@@ -358,7 +356,7 @@ void CScrollOverview::close() {
             pMonitor->changeWorkspace(closeOnWindow->m_workspace, true, true, true);
         }
 
-        g_pCompositor->focusWindow(closeOnWindow.lock());
+        Desktop::focusState()->fullWindowFocus(closeOnWindow.lock());
 
         size_t activeIdx = 0;
         for (size_t i = 0; i < images.size(); ++i) {
@@ -487,26 +485,49 @@ void CScrollOverview::fullRender() {
     }
 }
 
-static float lerp(const float& from, const float& to, const float perc) {
+static float hyprlerp(const float& from, const float& to, const float perc) {
     return (to - from) * perc + from;
 }
 
-static Vector2D lerp(const Vector2D& from, const Vector2D& to, const float perc) {
-    return Vector2D{lerp(from.x, to.x, perc), lerp(from.y, to.y, perc)};
+static Vector2D hyprlerp(const Vector2D& from, const Vector2D& to, const float perc) {
+    return Vector2D{hyprlerp(from.x, to.x, perc), hyprlerp(from.y, to.y, perc)};
 }
 
 void CScrollOverview::setClosing(bool closing_) {
-    // TODO:
+    closing = closing_;
 }
 
 void CScrollOverview::resetSwipe() {
-    // TODO:
+    static auto* const* PDEFAULTZOOM = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom")->getDataStaticPtr();
+
+    if (closing) {
+        close();
+        return;
+    }
+
+    (*scale)    = **PDEFAULTZOOM;
+    m_isSwiping = false;
 }
 
 void CScrollOverview::onSwipeUpdate(double delta) {
-    // TODO:
+    static auto* const* PDEFAULTZOOM = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom")->getDataStaticPtr();
+    static auto* const* PDISTANCE    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
+
+    m_isSwiping = true;
+
+    const float PERC = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
+
+    scale->setValueAndWarp(hyprlerp(1.F, **PDEFAULTZOOM, PERC));
 }
 
 void CScrollOverview::onSwipeEnd() {
-    // TODO:
+    static auto* const* PDEFAULTZOOM = (Hyprlang::FLOAT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:scrolling:default_zoom")->getDataStaticPtr();
+
+    if (closing) {
+        close();
+        return;
+    }
+
+    (*scale)    = **PDEFAULTZOOM;
+    m_isSwiping = false;
 }

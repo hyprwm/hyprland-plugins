@@ -34,10 +34,10 @@ class COverview : public IOverview {
     virtual void onSwipeEnd();
 
     // close without a selection
-    virtual void  close();
-    virtual void  selectHoveredWorkspace();
+    virtual void close();
+    virtual void selectHoveredWorkspace();
 
-  virtual void fullRender();
+    virtual void fullRender();
 
   private:
     void       redrawID(int id, bool forcelowres = false);
