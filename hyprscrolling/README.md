@@ -9,6 +9,7 @@ Adds a scrolling layout to Hyprland.
 Make sure to set the `general:layout` to `scrolling` to use this layout.
 
 All config values can be set in your Hyprland config file, for example:
+
 ```
 plugin {
     hyprscrolling {
@@ -25,7 +26,7 @@ plugin {
 | explicit_column_widths | a comma-separated list of widths for columns to be used with `+conf` or `-conf` | string | `0.333, 0.5, 0.667, 1.0` |
 | focus_fit_method | when a column is focused, what method to use to bring it into view. 0 - center, 1 - fit | int | 0 |
 | follow_focus | when a window is focused, the layout will move to make it visible | bool | true |
-
+| follow_debounce_ms | time to debounce focus events for | int | 0 |
 
 ## Layout messages
 
@@ -42,6 +43,7 @@ plugin {
 | togglefit | Toggle the focus_fit_method (center, fit) | none |
 
 Example key bindings for your Hyprland config:
+
 ```
 bind = $mainMod, period, layoutmsg, move +col
 bind = $mainMod, comma, layoutmsg, move -col

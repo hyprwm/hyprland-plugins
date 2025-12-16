@@ -4,6 +4,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/helpers/time/Timer.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
@@ -504,8 +505,17 @@ void CScrollingLayout::onEnable() {
         if (!DATA || !WINDOWDATA)
             return;
 
-        DATA->fitCol(WINDOWDATA->column.lock());
+        static const auto PFOLLOW_DEBOUNCE_MS = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:follow_debounce_ms");
+        static CTimer     debounceTimer;
+        if (debounceTimer.getMillis() < *PFOLLOW_DEBOUNCE_MS)
+            return;
+        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:focus_fit_method");
+        if (*PFITMETHOD == 1)
+            DATA->fitCol(WINDOWDATA->column.lock());
+        else
+            DATA->centerCol(WINDOWDATA->column.lock());
         DATA->recalculate();
+        debounceTimer.reset();
     });
 
     for (auto const& w : g_pCompositor->m_windows) {
