@@ -48,7 +48,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     int      methodStartID = pMonitor->activeWorkspaceID();
     CVarList method{*PMETHOD, 0, 's', true};
     if (method.size() < 2)
-        Debug::log(ERR, "[he] invalid workspace_method");
+        Log::logger->log(Log::ERR, "[he] invalid workspace_method");
     else {
         methodCenter  = method[0] == "center";
         methodStartID = getWorkspaceIDNameFromString(method[1]).id;

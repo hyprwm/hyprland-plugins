@@ -78,11 +78,11 @@ void                      onNewWindow(PHLWINDOW pWindow) {
     py = std::clamp(py, 0.f, 100.f);
 
     if (px + sx > 100.f) {
-        Debug::log(WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100.f - px);
+        Log::logger->log(Log::WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100.f - px);
         sx = 100.f - px;
     }
     if (py + sy > 100.f) {
-        Debug::log(WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100.f - py);
+        Log::logger->log(Log::WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100.f - py);
         sy = 100.f - py;
     }
 
@@ -104,13 +104,13 @@ void                      onNewWindow(PHLWINDOW pWindow) {
     pWindow->m_hidden = true;
 
     g_pInputManager->refocus();
-    Debug::log(LOG, "[hyprwinwrap] new window moved to bg {}", pWindow);
+    Log::logger->log(Log::DEBUG, "[hyprwinwrap] new window moved to bg {}", pWindow);
 }
 
 void onCloseWindow(PHLWINDOW pWindow) {
     std::erase_if(bgWindows, [pWindow](const auto& ref) { return ref.expired() || ref.lock() == pWindow; });
 
-    Debug::log(LOG, "[hyprwinwrap] closed window {}", pWindow);
+    Log::logger->log(Log::DEBUG, "[hyprwinwrap] closed window {}", pWindow);
 }
 
 void onRenderStage(eRenderStage stage) {

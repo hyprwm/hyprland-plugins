@@ -277,7 +277,7 @@ void SWorkspaceData::recalculate(bool forceInstant) {
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("plugin:hyprscrolling:fullscreen_on_one_column");
 
     if (!workspace) {
-        Debug::log(ERR, "[scroller] broken internal state on workspace data");
+        Log::logger->log(Log::ERR, "[scroller] broken internal state on workspace data");
         return;
     }
 
@@ -350,7 +350,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
 
     if (!data || !data->column || !data->column->workspace) {
         if (!data->overrideWorkspace) {
-            Debug::log(ERR, "[scroller] broken internal state on workspace (1)");
+            Log::logger->log(Log::ERR, "[scroller] broken internal state on workspace (1)");
             return;
         }
 
@@ -362,7 +362,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     }
 
     if (!PMONITOR || !PWORKSPACE) {
-        Debug::log(ERR, "[scroller] broken internal state on workspace (2)");
+        Log::logger->log(Log::ERR, "[scroller] broken internal state on workspace (2)");
         return;
     }
 
@@ -379,7 +379,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
 
     if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {} holding invalid {}!!", (uintptr_t)data.get(), PWINDOW);
+        Log::logger->log(Log::ERR, "Node {} holding invalid {}!!", (uintptr_t)data.get(), PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -482,7 +482,7 @@ void CScrollingLayout::onEnable() {
         for (auto& w : widths) {
             try {
                 m_config.configuredWidths.emplace_back(std::stof(std::string{w}));
-            } catch (...) { Debug::log(ERR, "scrolling: Failed to parse width {} as float", w); }
+            } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
         }
     });
 
@@ -530,7 +530,7 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
     auto workspaceData = dataFor(window->m_workspace);
 
     if (!workspaceData) {
-        Debug::log(LOG, "[scrolling] No workspace data yet, creating");
+        Log::logger->log(Log::DEBUG, "[scrolling] No workspace data yet, creating");
         workspaceData       = m_workspaceDatas.emplace_back(makeShared<SWorkspaceData>(window->m_workspace, this));
         workspaceData->self = workspaceData;
     }
@@ -543,7 +543,7 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
     SP<SScrollingWindowData> droppingData   = droppingOn ? dataFor(droppingOn) : nullptr;
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
 
-    Debug::log(LOG, "[scrolling] new window {:x}, droppingColumn: {:x}, columns before: {}", (uintptr_t)window.get(), (uintptr_t)droppingColumn.get(),
+    Log::logger->log(Log::DEBUG, "[scrolling] new window {:x}, droppingColumn: {:x}, columns before: {}", (uintptr_t)window.get(), (uintptr_t)droppingColumn.get(),
                workspaceData->columns.size());
 
     if (!droppingColumn) {
