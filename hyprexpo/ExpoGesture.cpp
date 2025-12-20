@@ -26,6 +26,9 @@ void CExpoGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
         return;
     }
 
+    if (!g_pOverview)
+        return;
+
     m_lastDelta += distance(e);
 
     if (m_lastDelta <= 0.01) // plugin will crash if swipe ends at <= 0
@@ -35,7 +38,9 @@ void CExpoGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
 }
 
 void CExpoGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+    if (!g_pOverview)
+        return;
+
     g_pOverview->setClosing(false);
     g_pOverview->onSwipeEnd();
-    g_pOverview->resetSwipe();
 }

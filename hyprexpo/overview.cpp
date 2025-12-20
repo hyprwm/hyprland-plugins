@@ -10,16 +10,13 @@
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
 
 static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview->damage();
-}
-
-static void removeOverview(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
-    g_pOverview.reset();
 }
 
 COverview::~COverview() {
@@ -250,6 +247,9 @@ void COverview::selectHoveredWorkspace() {
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
+    if (!pMonitor)
+        return;
+
     if (pMonitor->m_activeWorkspace != startedOn && !closing) {
         // likely user changed.
         onWorkspaceChange();
@@ -321,6 +321,8 @@ void COverview::redrawID(int id, bool forcelowres) {
 }
 
 void COverview::redrawAll(bool forcelowres) {
+    if (!pMonitor)
+        return;
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         redrawID(i, forcelowres);
     }
@@ -362,10 +364,11 @@ void COverview::close() {
 
     Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
+    size->warp();
+    pos->warp();
+
     *size = pMonitor->m_size * pMonitor->m_size / tileSize;
     *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
-
-    size->setCallbackOnEnd(removeOverview);
 
     closing = true;
 
@@ -393,6 +396,8 @@ void COverview::close() {
 
         startedOn = pMonitor->m_activeWorkspace;
     }
+
+    size->setCallbackOnEnd([](auto) { g_pEventLoopManager->doLater([] { g_pOverview.reset(); }); });
 }
 
 void COverview::onPreRender() {
@@ -417,7 +422,8 @@ void COverview::onWorkspaceChange() {
     }
 
     closeOnID = openedID;
-    close();
+    if (!closing)
+        close();
 }
 
 void COverview::render() {
@@ -469,9 +475,6 @@ void COverview::resetSwipe() {
 void COverview::onSwipeUpdate(double delta) {
     m_isSwiping = true;
 
-    if (swipeWasCommenced)
-        return;
-
     static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
 
     const float         PERC               = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
@@ -491,6 +494,9 @@ void COverview::onSwipeUpdate(double delta) {
 }
 
 void COverview::onSwipeEnd() {
+    if (closing || !m_isSwiping)
+        return;
+
     const auto SIZEMIN = pMonitor->m_size;
     const auto SIZEMAX = pMonitor->m_size * pMonitor->m_size / (pMonitor->m_size / SIDE_LENGTH);
     const auto PERC    = (size->value() - SIZEMIN).x / (SIZEMAX - SIZEMIN).x;
@@ -503,6 +509,6 @@ void COverview::onSwipeEnd() {
 
     size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
 
-    swipeWasCommenced = true;
+    swipeWasCommenced = false;
     m_isSwiping       = false;
 }
