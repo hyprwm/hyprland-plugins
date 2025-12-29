@@ -129,7 +129,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     CBox   monbox = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
 
-    Mat3x3 matrix   = g_pHyprOpenGL->m_renderData.monitorProjection.projectBox(monbox, wlTransformToHyprutils(invertTransform(WL_OUTPUT_TRANSFORM_NORMAL)), monbox.rot);
+    Mat3x3 matrix   = g_pHyprOpenGL->m_renderData.monitorProjection.projectBox(monbox, Math::wlTransformToHyprutils(Math::invertTransform(WL_OUTPUT_TRANSFORM_NORMAL)), monbox.rot);
     Mat3x3 glMatrix = g_pHyprOpenGL->m_renderData.projection.copy().multiply(matrix);
 
     g_pHyprOpenGL->blend(true);
@@ -224,13 +224,12 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
             // vecNormal.y = std::abs(vecNormal.y);
 
             // extend by coeff
-            float ageCoeff = t * (agesForBezier.size() - 1);
-            float ageFloor = std::floor(ageCoeff);
-            float ageCeil  = std::ceil(ageCoeff);
-            float approxAge =
-                agesForBezier[sc<int>(ageFloor)] + (agesForBezier[sc<int>(ageCeil)] - agesForBezier[sc<int>(ageFloor)]) * (ageCoeff - ageFloor);
-            float    coeff  = originalCoeff * (1.0 - (approxAge / maxAge));
-            Vector2D newVec = {vecNormal.x * coeff / pMonitor->m_size.x, vecNormal.y * coeff / pMonitor->m_size.y};
+            float    ageCoeff  = t * (agesForBezier.size() - 1);
+            float    ageFloor  = std::floor(ageCoeff);
+            float    ageCeil   = std::ceil(ageCoeff);
+            float    approxAge = agesForBezier[sc<int>(ageFloor)] + (agesForBezier[sc<int>(ageCeil)] - agesForBezier[sc<int>(ageFloor)]) * (ageCoeff - ageFloor);
+            float    coeff     = originalCoeff * (1.0 - (approxAge / maxAge));
+            Vector2D newVec    = {vecNormal.x * coeff / pMonitor->m_size.x, vecNormal.y * coeff / pMonitor->m_size.y};
 
             if ((newVec.x == 0 && newVec.y == 0) || std::isnan(newVec.x) || std::isnan(newVec.y))
                 continue;
@@ -243,16 +242,15 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    box thisboxopengl =
-        box{sc<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x),
-            sc<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
-            sc<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
-            sc<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
+    box thisboxopengl = box{sc<float>((PWINDOW->m_realPosition->value().x - pMonitor->m_position.x) / pMonitor->m_size.x),
+                            sc<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
+                            sc<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
+                            sc<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
     glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR], COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     CBox transformedBox = monbox;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(g_pHyprOpenGL->m_renderData.pMonitor->m_transform)), g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprOpenGL->m_renderData.pMonitor->m_transform)), g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x,
                              g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y);
 
     glVertexAttribPointer(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
