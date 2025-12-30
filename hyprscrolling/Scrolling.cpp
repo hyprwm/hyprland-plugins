@@ -289,6 +289,7 @@ void SWorkspaceData::recalculate(bool forceInstant) {
 
     double       currentLeft = 0;
     const double cameraLeft  = MAX_WIDTH < USABLE.w ? std::round((MAX_WIDTH - USABLE.w) / 2.0) : leftOffset; // layout pixels
+    const auto   workAreaPos = layout->workAreaOnWorkspace(PMONITOR->m_activeWorkspace).pos();
 
     for (size_t i = 0; i < columns.size(); ++i) {
         const auto&  COL        = columns[i];
@@ -296,8 +297,7 @@ void SWorkspaceData::recalculate(bool forceInstant) {
         const double ITEM_WIDTH = *PFSONONE && columns.size() == 1 ? USABLE.w : USABLE.w * COL->columnWidth;
 
         for (const auto& WINDOW : COL->windowDatas) {
-            WINDOW->layoutBox =
-                CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(PMONITOR->logicalBoxMinusReserved().pos() + Vector2D{-cameraLeft, 0.0});
+            WINDOW->layoutBox = CBox{currentLeft, currentTop, ITEM_WIDTH, WINDOW->windowSize * USABLE.h}.translate(workAreaPos + Vector2D{-cameraLeft, 0.0});
 
             currentTop += WINDOW->windowSize * USABLE.h;
 
@@ -367,7 +367,7 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     }
 
     // for gaps outer
-    const auto WORKAREA      = PMONITOR->logicalBoxMinusReserved();
+    const auto WORKAREA      = workAreaOnWorkspace(PWORKSPACE);
     const bool DISPLAYLEFT   = !hasWindowsLeft;
     const bool DISPLAYRIGHT  = !hasWindowsRight;
     const bool DISPLAYTOP    = STICKS(data->layoutBox.y, WORKAREA.y);
@@ -390,10 +390,8 @@ void CScrollingLayout::applyNodeDataToWindow(SP<SScrollingWindowData> data, bool
     PWINDOW->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
 
-    static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    auto* const PGAPSIN     = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     CBox        nodeBox = data->layoutBox;
@@ -544,7 +542,7 @@ void CScrollingLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direct
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
 
     Log::logger->log(Log::DEBUG, "[scrolling] new window {:x}, droppingColumn: {:x}, columns before: {}", (uintptr_t)window.get(), (uintptr_t)droppingColumn.get(),
-               workspaceData->columns.size());
+                     workspaceData->columns.size());
 
     if (!droppingColumn) {
         auto col = workspaceData->add();
@@ -769,7 +767,7 @@ void CScrollingLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFull
 
             SP<SScrollingWindowData> fakeNode = makeShared<SScrollingWindowData>(pWindow, nullptr);
             fakeNode->window                  = pWindow;
-            fakeNode->layoutBox               = PMONITOR->logicalBoxMinusReserved();
+            fakeNode->layoutBox               = workAreaOnWorkspace(PWORKSPACE);
             pWindow->m_size                   = fakeNode->layoutBox.size();
             fakeNode->ignoreFullscreenChecks  = true;
             fakeNode->overrideWorkspace       = pWindow->m_workspace;
@@ -1538,5 +1536,5 @@ SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
 }
 
 CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
-    return m->logicalBoxMinusReserved().translate(-m->m_position);
+    return workAreaOnWorkspace(m->m_activeWorkspace).translate(-m->m_position);
 }
