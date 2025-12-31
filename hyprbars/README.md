@@ -4,6 +4,36 @@ Adds simple title bars to windows.
 
 ![image](https://github.com/user-attachments/assets/184a66b9-eb91-4f6f-8953-b265a2735939)
 
+_Example config taken from [EvanKoe's dotfiles](https://github.com/EvanKoe/dotfiles_2023) (requires light wallpaper to look good):_  
+
+```
+plugin {
+	hyprbars {
+		bar_height = 30
+		bar_buttons_alignment = left
+		bar_part_of_window = true
+		bar_blur = true
+		bar_padding = 12
+		bar_button_padding = 8
+		bar_color = rgba(ffffffcc)
+		col.text = rgb(212121)
+
+		hyprbars-button = rgb(dd0000), 15, , hyprctl dispatch killactive
+		hyprbars-button = rgb(00dd00), 15, , hyprctl dispatch fullscreen 1
+		hyprbars-button = rgb(eeee00), 15, , hyprctl dispatch pseudo
+		hyprbars-button = rgb(5577ff), 15, , hyprctl dispatch togglefloating
+	}
+}
+windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+windowrule = plugin:hyprbars:bar_color rgb(CDE7ED), class:^(google-chrome)
+
+windowrule = plugin:hyprbars:bar_color rgba(1d2330ea), class:^(kitty)
+windowrule = plugin:hyprbars:title_color rgb(dddddd), class:^(kitty)
+
+windowrule = plugin:hyprbars:bar_color rgb(273F44), class:^(google-chrome) initialTitle:DevTools
+windowrule = plugin:hyprbars:title_color rgb(dddddd), class:^(google-chrome) initialTitle:DevTools
+```
+
 ## Config
 
 All config options are in `plugin:hyprbars`:
