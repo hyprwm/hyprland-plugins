@@ -33,7 +33,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-static bool renderingOverview = false;
+static bool       renderingOverview = false;
 
 const std::string KEYWORD_EXPO_GESTURE = "hyprexpo-gesture";
 
@@ -139,20 +139,15 @@ static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RH
         return result;
     }
 
-    int      startDataIdx = 2;
-    uint32_t modMask      = 0;
-    float    deltaScale   = 1.F;
-    bool disableInhibit = false;
+    int      startDataIdx   = 2;
+    uint32_t modMask        = 0;
+    float    deltaScale     = 1.F;
+    bool     disableInhibit = false;
 
-    const int prefix_size = std::size(KEYWORD_EXPO_GESTURE);
-    for (const auto arg : std::string(LHS).substr(prefix_size)) {
+    for (const auto arg : std::string(LHS).substr(KEYWORD_EXPO_GESTURE.size())) {
         switch (arg) {
-            case 'p':
-                disableInhibit = true;
-                break;
-            default:
-                result.setError("hyprexpo-gesture: invalid flag");
-                return result;
+            case 'p': disableInhibit = true; break;
+            default: result.setError("hyprexpo-gesture: invalid flag"); return result;
         }
     }
 
