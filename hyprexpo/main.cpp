@@ -35,6 +35,8 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 
 static bool renderingOverview = false;
 
+const std::string KEYWORD_EXPO_GESTURE = "hyprexpo-gesture";
+
 //
 static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
     if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering || g_pOverview->pMonitor != pMonitor)
@@ -140,6 +142,19 @@ static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RH
     int      startDataIdx = 2;
     uint32_t modMask      = 0;
     float    deltaScale   = 1.F;
+    bool disableInhibit = false;
+
+    const int prefix_size = std::size(KEYWORD_EXPO_GESTURE);
+    for (const auto arg : std::string(LHS).substr(prefix_size)) {
+        switch (arg) {
+            case 'p':
+                disableInhibit = true;
+                break;
+            default:
+                result.setError("hyprexpo-gesture: invalid flag");
+                return result;
+        }
+    }
 
     while (true) {
 
@@ -164,9 +179,9 @@ static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RH
     std::expected<void, std::string> resultFromGesture;
 
     if (data[startDataIdx] == "expo")
-        resultFromGesture = g_pTrackpadGestures->addGesture(makeUnique<CExpoGesture>(), fingerCount, direction, modMask, deltaScale);
+        resultFromGesture = g_pTrackpadGestures->addGesture(makeUnique<CExpoGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
     else if (data[startDataIdx] == "unset")
-        resultFromGesture = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
+        resultFromGesture = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
     else {
         result.setError(std::format("Invalid gesture: {}", data[startDataIdx]).c_str());
         return result;
@@ -232,7 +247,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", ::onExpoDispatcher);
 
-    HyprlandAPI::addConfigKeyword(PHANDLE, "hyprexpo-gesture", ::expoGestureKeyword, {});
+    HyprlandAPI::addConfigKeyword(PHANDLE, KEYWORD_EXPO_GESTURE, ::expoGestureKeyword, {true});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});
