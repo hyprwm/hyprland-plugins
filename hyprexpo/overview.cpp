@@ -14,6 +14,7 @@
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
 #include "OverviewPassElement.hpp"
+#include <pango/pangocairo.h>
 
 static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview->damage();
@@ -30,15 +31,22 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     const auto PMONITOR = Desktop::focusState()->monitor();
     pMonitor            = PMONITOR;
 
-    static auto* const* PCOLUMNS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
-    static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gap_size")->getDataStaticPtr();
-    static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
-    static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
-    static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
+    static auto* const* PCOLUMNS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
+    static auto* const* PGAPS      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gap_size")->getDataStaticPtr();
+    static auto* const* PCOL       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
+    static auto* const* PSKIP      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
+    static auto const*  PMETHOD    = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
+    static auto* const* PSHOWLABEL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:show_label")->getDataStaticPtr();
+    static auto* const* PFONTSIZE  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_font_size")->getDataStaticPtr();
+    static auto const*  PANCHOR    = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_anchor")->getDataStaticPtr();
 
     SIDE_LENGTH = **PCOLUMNS;
     GAP_WIDTH   = **PGAPS;
     BG_COLOR    = **PCOL;
+    show_label  = **PSHOWLABEL;
+    fontSize    = std::max(8, (int)**PFONTSIZE);
+
+    labelAnchor = parseLabelAnchor(*PANCHOR);
 
     // process the method
     bool     methodCenter  = true;
@@ -142,6 +150,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
         image.fb.alloc(monbox.w, monbox.h, PMONITOR->m_output->state->state().drmFormat);
+        image.textTex = makeShared<CTexture>();
 
         CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
         g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
@@ -430,6 +439,140 @@ void COverview::render() {
     g_pHyprRenderer->m_renderPass.add(makeUnique<COverviewPassElement>());
 }
 
+COverview::LabelAnchor COverview::parseLabelAnchor(const std::string& anchorStr) {
+    if (anchorStr == "tl") {
+        return LabelAnchor::TOP_LEFT;
+    } else if (anchorStr == "tr") {
+        return LabelAnchor::TOP_RIGHT;
+    } else if (anchorStr == "bl") {
+        return LabelAnchor::BOTTOM_LEFT;
+    } else if (anchorStr == "br") {
+        return LabelAnchor::BOTTOM_RIGHT;
+    } else if (anchorStr == "tc") {
+        return LabelAnchor::TOP_CENTER;
+    } else if (anchorStr == "bc") {
+        return LabelAnchor::BOTTOM_CENTER;
+    } else if (anchorStr == "cl") {
+        return LabelAnchor::CENTER_LEFT;
+    } else if (anchorStr == "cr") {
+        return LabelAnchor::CENTER_RIGHT;
+    } else if (anchorStr == "cc") {
+        return LabelAnchor::CENTER;
+    } else {
+        return LabelAnchor::TOP_LEFT; // default fallback
+    }
+}
+
+Vector2D COverview::calculateTextPosition(const CBox& texbox, const Vector2D& textBufferSize, const double padding, LabelAnchor anchor) {
+    switch (anchor) {
+        case LabelAnchor::TOP_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + padding};
+        case LabelAnchor::TOP_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + padding};
+        case LabelAnchor::BOTTOM_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::BOTTOM_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::TOP_CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + padding};
+        case LabelAnchor::BOTTOM_CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + texbox.height - textBufferSize.y - padding};
+        case LabelAnchor::CENTER_LEFT:
+            return Vector2D{texbox.x + padding, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        case LabelAnchor::CENTER_RIGHT:
+            return Vector2D{texbox.x + texbox.width - textBufferSize.x - padding, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        case LabelAnchor::CENTER:
+            return Vector2D{texbox.x + texbox.width / 2.0 - textBufferSize.x / 2.0, texbox.y + texbox.height / 2.0 - textBufferSize.y / 2.0};
+        default:
+            return Vector2D{texbox.x + padding, texbox.y + padding}; // fallback to TOP_LEFT
+    }
+}
+
+double COverview::calculateTextWidth(const std::string& text, const float scale, const int fontSize) {
+    // Create a temporary surface for measurement and Pango layout
+    const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+    const auto   CAIRO        = cairo_create(CAIROSURFACE);
+    PangoLayout* layout       = pango_cairo_create_layout(CAIRO);
+    pango_layout_set_text(layout, text.c_str(), -1);
+
+    PangoFontDescription* fontDesc = pango_font_description_from_string("sans");
+    pango_font_description_set_size(fontDesc, fontSize * scale * PANGO_SCALE);
+    pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_BOLD);
+    pango_layout_set_font_description(layout, fontDesc);
+    PangoRectangle ink_rect, logical_rect;
+    pango_layout_get_extents(layout, &ink_rect, &logical_rect);
+
+    // Clean up
+    pango_font_description_free(fontDesc);
+    g_object_unref(layout);
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
+
+    return (double)logical_rect.width / PANGO_SCALE;
+}
+
+void COverview::renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize) {
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    // clear the pixmap
+    cairo_save(CAIRO);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
+
+    // draw text using Pango
+    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    pango_layout_set_text(layout, text.c_str(), -1);
+
+    PangoFontDescription* fontDesc = pango_font_description_from_string("sans");
+    pango_font_description_set_size(fontDesc, fontSize * scale * PANGO_SCALE);
+    pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_BOLD);
+    pango_layout_set_font_description(layout, fontDesc);
+    pango_font_description_free(fontDesc);
+
+    const int maxWidth = bufferSize.x;
+
+    pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
+    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_NONE);
+
+    cairo_set_source_rgba(CAIRO, color.r, color.g, color.b, color.a);
+
+    PangoRectangle ink_rect, logical_rect;
+    pango_layout_get_extents(layout, &ink_rect, &logical_rect);
+
+    const int    layoutWidth  = ink_rect.width;
+    const int    layoutHeight = logical_rect.height;
+
+    const double xOffset = (bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0);
+    const double yOffset = (bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0);
+
+    cairo_move_to(CAIRO, xOffset, yOffset);
+    pango_cairo_show_layout(CAIRO, layout);
+
+    g_object_unref(layout);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    // copy the data to an OpenGL texture we have
+    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    out->allocate();
+    glBindTexture(GL_TEXTURE_2D, out->m_texID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+#ifndef GLES2
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+#endif
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+
+    // delete cairo
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
+}
+
 void COverview::fullRender() {
     const auto GAPSIZE = (closing ? (1.0 - size->getPercent()) : size->getPercent()) * GAP_WIDTH;
 
@@ -447,11 +590,55 @@ void COverview::fullRender() {
 
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
-            CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
+            const auto idx    = x + y * SIDE_LENGTH;
+            CBox       texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
             texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternal(images[x + y * SIDE_LENGTH].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
+            g_pHyprOpenGL->renderTextureInternal(images[idx].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
+
+            // Render workspace name in top left corner (if enabled)
+            const auto& image = images[idx];
+            if (image.workspaceID != WORKSPACE_INVALID && image.pWorkspace && show_label) {
+                // Generate text for workspace name and remove "name:" prefix if present
+                std::string workspaceName = image.pWorkspace->getConfigName();
+                if (workspaceName.starts_with("name:")) {
+                    workspaceName = workspaceName.substr(5); // Remove "name:" prefix
+                }
+
+                // Trim workspace name to max 30 characters
+                if (workspaceName.length() > 30) {
+                    workspaceName = workspaceName.substr(0, 27) + "...";
+                }
+
+                // Text rendering parameters using configurable font size
+                const CHyprColor textColor = CHyprColor{1.0, 1.0, 1.0, 1.0}; // Solid white text
+
+                // Calculate accurate text dimensions using Pango
+                const double textWidthRaw = calculateTextWidth(workspaceName, pMonitor->m_scale, fontSize);
+                // Add padding and limit to max 70% of tile width
+                const double textWidth = std::min(tileRenderSize.x * 0.7, textWidthRaw + 20.0);
+                // Height scales with font size (1.5x font size + padding)
+                const double   textHeight     = fontSize * 1.5 + 10.0;
+                const Vector2D textBufferSize = Vector2D{textWidth, textHeight};
+
+                // Calculate text position based on anchor
+                const double padding = 10.0;
+                Vector2D     textPos = calculateTextPosition(texbox, textBufferSize, padding, labelAnchor);
+
+                if (image.textTex->m_texID == 0) {
+                    renderText(image.textTex, workspaceName, textColor, textBufferSize, pMonitor->m_scale, fontSize);
+                }
+
+                // Render semi-transparent dark background behind text
+                const CHyprColor bgColor = CHyprColor{0.0, 0.0, 0.0, 0.7};
+                CBox             bgBox   = {textPos.x - 5.0, textPos.y - 3.0, textBufferSize.x + 10.0, textBufferSize.y + 6.0};
+                g_pHyprOpenGL->renderRect(bgBox, bgColor, {.round = 0});
+
+                // Render the text
+                CBox textBox = {textPos.x, textPos.y, textBufferSize.x, textBufferSize.y};
+                g_pHyprOpenGL->renderTexture(image.textTex, textBox, {.a = 1.0});
+            }
         }
     }
 }

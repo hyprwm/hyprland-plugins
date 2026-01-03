@@ -5,9 +5,11 @@
 #include "globals.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Framebuffer.hpp>
+#include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/managers/HookSystemManager.hpp>
 #include <vector>
+#include <pango/pangocairo.h>
 
 // saves on resources, but is a bit broken rn with blur.
 // hyprland's fault, but cba to fix.
@@ -17,6 +19,18 @@ class CMonitor;
 
 class COverview {
   public:
+    enum class LabelAnchor {
+        TOP_LEFT,
+        TOP_RIGHT,
+        BOTTOM_LEFT,
+        BOTTOM_RIGHT,
+        TOP_CENTER,
+        BOTTOM_CENTER,
+        CENTER_LEFT,
+        CENTER_RIGHT,
+        CENTER
+    };
+
     COverview(PHLWORKSPACE startedOn_, bool swipe = false);
     ~COverview();
 
@@ -46,10 +60,18 @@ class COverview {
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
     void       fullRender();
+    void       renderText(SP<CTexture> out, const std::string& text, const CHyprColor& color, const Vector2D& bufferSize, const float scale, const int fontSize);
+    double     calculateTextWidth(const std::string& text, const float scale, const int fontSize);
+    LabelAnchor parseLabelAnchor(const std::string& anchorStr);
+    Vector2D   calculateTextPosition(const CBox& texbox, const Vector2D& textBufferSize, const double padding, LabelAnchor anchor);
 
     int        SIDE_LENGTH = 3;
     int        GAP_WIDTH   = 5;
     CHyprColor BG_COLOR    = CHyprColor{0.1, 0.1, 0.1, 1.0};
+    bool       show_label  = false;
+    int        fontSize    = 24;
+
+    LabelAnchor labelAnchor = LabelAnchor::TOP_LEFT;
 
     bool       damageDirty = false;
 
@@ -58,6 +80,7 @@ class COverview {
         int64_t      workspaceID = -1;
         PHLWORKSPACE pWorkspace;
         CBox         box;
+        SP<CTexture> textTex;
     };
 
     Vector2D                     lastMousePosLocal = Vector2D{};
