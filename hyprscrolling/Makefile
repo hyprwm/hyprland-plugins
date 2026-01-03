@@ -5,8 +5,10 @@ else
     EXTRA_FLAGS =
 endif
 
+CXXFLAGS ?= -O2
+CXXFLAGS += -shared -fPIC -std=c++2b
 
 all:
-	$(CXX) -shared -fPIC $(EXTRA_FLAGS) main.cpp Scrolling.cpp -o hyprscrolling.so -g `pkg-config --cflags pixman-1 libdrm hyprland pangocairo libinput libudev wayland-server xkbcommon` -std=c++2b
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_FLAGS) main.cpp Scrolling.cpp -o hyprscrolling.so `pkg-config --cflags pixman-1 libdrm hyprland pangocairo libinput libudev wayland-server xkbcommon`
 clean:
 	rm ./hyprscrolling.so
