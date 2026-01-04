@@ -483,6 +483,8 @@ void CScrollingLayout::onEnable() {
                 m_config.configuredWidths.emplace_back(std::stof(std::string{w}));
             } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
         }
+        if (m_config.configuredWidths.empty())
+            m_config.configuredWidths = {0.333, 0.5, 0.667, 1.0};
     });
 
     m_focusCallback = g_pHookSystem->hookDynamic("activeWindow", [this](void* hk, SCallbackInfo& info, std::any param) {
