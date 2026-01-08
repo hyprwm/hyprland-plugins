@@ -5,7 +5,7 @@
 inline HANDLE PHANDLE = nullptr;
 
 struct SGlobalState {
-    SShader          trailShader;
+    CShader          trailShader;
     wl_event_source* tick = nullptr;
 };
 

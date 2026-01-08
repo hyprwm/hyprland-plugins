@@ -134,7 +134,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     g_pHyprOpenGL->blend(true);
 
-    glUseProgram(g_pGlobalState->trailShader.program);
+    glUseProgram(g_pGlobalState->trailShader.program());
 
     glMatrix.transpose();
     g_pGlobalState->trailShader.setUniformMatrix3fv(SHADER_PROJ, 1, GL_FALSE, glMatrix.getMatrix());
@@ -246,16 +246,16 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
                             sc<float>((PWINDOW->m_realPosition->value().y - pMonitor->m_position.y) / pMonitor->m_size.y),
                             sc<float>((PWINDOW->m_realPosition->value().x + PWINDOW->m_realSize->value().x) / pMonitor->m_size.x),
                             sc<float>((PWINDOW->m_realPosition->value().y + PWINDOW->m_realSize->value().y) / pMonitor->m_size.y)};
-    glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT], thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h);
-    glUniform4f(g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR], COLOR.r, COLOR.g, COLOR.b, COLOR.a);
+    //glUniform4f(g_pGlobalState->trailShader.getUniformLocation(SHADER_GRADIENT), thisboxopengl.x, thisboxopengl.y, thisboxopengl.w, thisboxopengl.h); //#TODO this shader is missing a uniform 'gradient' in shaders.hpp
+    glUniform4f(g_pGlobalState->trailShader.getUniformLocation(SHADER_COLOR), COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     CBox transformedBox = monbox;
-    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprOpenGL->m_renderData.pMonitor->m_transform)), g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x,
-                             g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y);
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprOpenGL->m_renderData.pMonitor->m_transform)),
+                             g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y);
 
-    glVertexAttribPointer(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
+    glVertexAttribPointer(g_pGlobalState->trailShader.getUniformLocation(SHADER_POS_ATTRIB), 2, GL_FLOAT, GL_FALSE, 0, (float*)points.data());
 
-    glEnableVertexAttribArray(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB]);
+    glEnableVertexAttribArray(g_pGlobalState->trailShader.getUniformLocation(SHADER_POS_ATTRIB));
 
     if (g_pHyprOpenGL->m_renderData.clipBox.width != 0 && g_pHyprOpenGL->m_renderData.clipBox.height != 0) {
         CRegion damageClip{g_pHyprOpenGL->m_renderData.clipBox.x, g_pHyprOpenGL->m_renderData.clipBox.y, g_pHyprOpenGL->m_renderData.clipBox.width,
@@ -275,7 +275,7 @@ void CTrail::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    glDisableVertexAttribArray(g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB]);
+    glDisableVertexAttribArray(g_pGlobalState->trailShader.getUniformLocation(SHADER_POS_ATTRIB));
 
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
