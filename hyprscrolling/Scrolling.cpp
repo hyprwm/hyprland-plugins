@@ -948,6 +948,15 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
                 }
 
                 return {};
+            } else if (ARGS[1] == "+confnl") {
+                for (size_t i = 0; i < m_config.configuredWidths.size(); ++i) {
+                    if (m_config.configuredWidths[i] > WDATA->column->columnWidth) {
+                        WDATA->column->columnWidth = m_config.configuredWidths[i];
+                        break;
+                    }
+                }
+
+                return {};
             } else if (ARGS[1] == "-conf") {
                 for (size_t i = m_config.configuredWidths.size() - 1;; --i) {
                     if (m_config.configuredWidths[i] < WDATA->column->columnWidth) {
@@ -957,6 +966,19 @@ std::any CScrollingLayout::layoutMessage(SLayoutMessageHeader header, std::strin
 
                     if (i == 0) {
                         WDATA->column->columnWidth = m_config.configuredWidths.back();
+                        break;
+                    }
+                }
+
+                return {};
+            } else if (ARGS[1] == "-confnl") {
+                for (size_t i = m_config.configuredWidths.size() - 1;; --i) {
+                    if (m_config.configuredWidths[i] < WDATA->column->columnWidth) {
+                        WDATA->column->columnWidth = m_config.configuredWidths[i];
+                        break;
+                    }
+
+                    if (i == 0) {
                         break;
                     }
                 }
