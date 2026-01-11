@@ -1,6 +1,6 @@
 # hyprfocus
 
-Flashfocus for Hyprland.
+[Flashfocus](https://github.com/fennerm/flashfocus) for Hyprland.
 
 ## Configuring
 
