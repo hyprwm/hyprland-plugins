@@ -237,7 +237,9 @@ void SWorkspaceData::fitCol(SP<SColumnData> c) {
         if (COL != c)
             currentLeft += ITEM_WIDTH;
         else {
-            leftOffset = std::clamp((double)leftOffset, currentLeft - USABLE.w + ITEM_WIDTH, currentLeft);
+            const double minOffset = currentLeft - USABLE.w + ITEM_WIDTH;
+            const double maxOffset = currentLeft;
+            leftOffset = std::clamp((double)leftOffset, std::min(minOffset, maxOffset), std::max(minOffset, maxOffset));
             return;
         }
     }
