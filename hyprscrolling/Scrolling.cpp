@@ -1539,12 +1539,17 @@ SP<SScrollingWindowData> CScrollingLayout::dataFor(PHLWINDOW w) {
 }
 
 SP<SWorkspaceData> CScrollingLayout::currentWorkspaceData() {
-    if (!Desktop::focusState()->monitor() || !Desktop::focusState()->monitor()->m_activeWorkspace)
+    const auto PMONITOR = Desktop::focusState()->monitor();
+
+    if (!PMONITOR)
         return nullptr;
 
-    // FIXME: special
+    const auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
 
-    return dataFor(Desktop::focusState()->monitor()->m_activeWorkspace);
+    if (!PWORKSPACE)
+        return nullptr;
+
+    return dataFor(PWORKSPACE);
 }
 
 CBox CScrollingLayout::usableAreaFor(PHLMONITOR m) {
