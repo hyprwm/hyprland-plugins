@@ -47,9 +47,11 @@ class COverview {
     void       onWorkspaceChange();
     void       fullRender();
 
-    int        SIDE_LENGTH = 3;
-    int        GAP_WIDTH   = 5;
-    CHyprColor BG_COLOR    = CHyprColor{0.1, 0.1, 0.1, 1.0};
+    int        SIDE_LENGTH           = 3;  // columns in grid
+    int        GAP_WIDTH             = 5;
+    CHyprColor BG_COLOR              = CHyprColor{0.1, 0.1, 0.1, 1.0};
+    int        gridRows              = 3;  // rows in dynamic grid
+    bool       dynamicGrid           = false;
 
     bool       damageDirty = false;
 
