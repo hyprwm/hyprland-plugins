@@ -48,6 +48,10 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         activeCount = std::max(activeCount, 1);
         SIDE_LENGTH = (int)std::ceil(std::sqrt((double)activeCount));  // columns
         gridRows = (int)std::ceil((double)activeCount / SIDE_LENGTH);   // rows
+        // Ensure minimum 2x2 grid for better aspect ratio (unless only 1 workspace)
+        if (activeCount > 1 && gridRows < 2) {
+            gridRows = 2;
+        }
     } else {
         dynamicGrid = false;
         SIDE_LENGTH = **PCOLUMNS;
@@ -199,8 +203,27 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         } else
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
-        image.box = {(i % cols) * tileRenderSize.x + (i % cols) * GAP_WIDTH,
-                     ((int)i / cols) * tileRenderSize.y + ((int)i / cols) * GAP_WIDTH,
+        // Calculate centering offsets
+        int tilesInLastRow = images.size() % cols;
+        if (tilesInLastRow == 0) tilesInLastRow = cols;
+        int lastRow = (images.size() - 1) / cols;
+        int actualRows = lastRow + 1;
+        int row = i / cols;
+
+        // Horizontal centering for partial last row
+        double offsetX = 0;
+        if (row == lastRow && tilesInLastRow < cols) {
+            offsetX = (cols - tilesInLastRow) * (tileRenderSize.x + GAP_WIDTH) / 2.0;
+        }
+
+        // Vertical centering when tiles don't fill all rows
+        double offsetY = 0;
+        if (actualRows < rows) {
+            offsetY = (rows - actualRows) * (tileRenderSize.y + GAP_WIDTH) / 2.0;
+        }
+
+        image.box = {offsetX + (i % cols) * tileRenderSize.x + (i % cols) * GAP_WIDTH,
+                     offsetY + row * tileRenderSize.y + row * GAP_WIDTH,
                      tileRenderSize.x, tileRenderSize.y};
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
@@ -268,7 +291,17 @@ void COverview::selectHoveredWorkspace() {
     if (closing)
         return;
 
-    // get tile x,y using actual grid dimensions
+    // Check each tile's actual box for hit detection (handles centered partial rows)
+    for (size_t i = 0; i < images.size(); ++i) {
+        const auto& box = images[i].box;
+        if (lastMousePosLocal.x >= box.x && lastMousePosLocal.x < box.x + box.w &&
+            lastMousePosLocal.y >= box.y && lastMousePosLocal.y < box.y + box.h) {
+            closeOnID = i;
+            return;
+        }
+    }
+
+    // Fallback: use grid calculation and clamp to nearest valid tile
     int cols = SIDE_LENGTH;
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
     int x     = lastMousePosLocal.x / pMonitor->m_size.x * cols;
@@ -489,7 +522,26 @@ void COverview::fullRender() {
     for (size_t i = 0; i < images.size(); ++i) {
         int x = i % cols;
         int y = i / cols;
-        CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
+
+        // Calculate centering offsets
+        int tilesInLastRow = images.size() % cols;
+        if (tilesInLastRow == 0) tilesInLastRow = cols;
+        int lastRow = (images.size() - 1) / cols;
+        int actualRows = lastRow + 1;
+
+        // Horizontal centering for partial last row
+        double offsetX = 0;
+        if (y == lastRow && tilesInLastRow < cols) {
+            offsetX = (cols - tilesInLastRow) * (tileRenderSize.x + GAPSIZE) / 2.0;
+        }
+
+        // Vertical centering when tiles don't fill all rows
+        double offsetY = 0;
+        if (actualRows < rows) {
+            offsetY = (rows - actualRows) * (tileRenderSize.y + GAPSIZE) / 2.0;
+        }
+
+        CBox texbox = {offsetX + x * tileRenderSize.x + x * GAPSIZE, offsetY + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
         texbox.scale(pMonitor->m_scale).translate(pos->value());
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
@@ -553,7 +605,7 @@ void COverview::onSwipeEnd() {
     *size = pMonitor->m_size;
     *pos  = {0, 0};
 
-    size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
+    size->setCallbackOnEnd([this](auto) { redrawAll(true); });
 
     swipeWasCommenced = false;
     m_isSwiping       = false;
