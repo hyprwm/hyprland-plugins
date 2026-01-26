@@ -5,6 +5,7 @@
 #include "globals.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Framebuffer.hpp>
+#include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <vector>
@@ -46,6 +47,7 @@ class COverview {
     void       redrawAll(bool forcelowres = false);
     void       onWorkspaceChange();
     void       fullRender();
+    void       renderLabel(SP<CTexture>& tex, const std::string& text, int size);
 
     int        SIDE_LENGTH           = 3;  // columns in grid
     int        GAP_WIDTH             = 5;
@@ -57,6 +59,7 @@ class COverview {
 
     struct SWorkspaceImage {
         CFramebuffer fb;
+        SP<CTexture> labelTex;
         int64_t      workspaceID = -1;
         PHLWORKSPACE pWorkspace;
         CBox         box;

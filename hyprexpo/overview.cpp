@@ -1,5 +1,7 @@
 #include "overview.hpp"
 #include <any>
+#include <cairo/cairo.h>
+#include <pango/pangocairo.h>
 #define private public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
@@ -228,6 +230,15 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
+    }
+
+    // Generate workspace number labels - ensure EGL context is current for GL calls
+    g_pHyprRenderer->makeEGLCurrent();
+    const int LABEL_SIZE = 36;
+    for (size_t i = 0; i < images.size(); ++i) {
+        images[i].labelTex = makeShared<CTexture>();
+        std::string labelText = std::to_string(images[i].workspaceID);
+        renderLabel(images[i].labelTex, labelText, LABEL_SIZE);
     }
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
@@ -546,7 +557,91 @@ void COverview::fullRender() {
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
         g_pHyprOpenGL->renderTextureInternal(images[i].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
+
+        // Render workspace number label at top-right corner
+        if (images[i].labelTex && images[i].labelTex->m_texID) {
+            const float labelSize = 36 * pMonitor->m_scale;
+            const float padding   = 8 * pMonitor->m_scale;
+            CBox        labelBox  = {
+                texbox.x + texbox.w - labelSize - padding,
+                texbox.y + padding,
+                labelSize,
+                labelSize
+            };
+            labelBox.round();
+            g_pHyprOpenGL->renderTextureInternal(images[i].labelTex, labelBox, {.damage = &damage, .a = 0.9f});
+        }
     }
+}
+
+void COverview::renderLabel(SP<CTexture>& tex, const std::string& text, int size) {
+    if (!tex)
+        return;
+
+    const auto PMONITOR = pMonitor.lock();
+    if (!PMONITOR)
+        return;
+
+    const float scale      = PMONITOR->m_scale;
+    const int   bufferSize = std::max(1, (int)(size * scale));
+
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize, bufferSize);
+    if (cairo_surface_status(CAIROSURFACE) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(CAIROSURFACE);
+        return;
+    }
+    const auto CAIRO = cairo_create(CAIROSURFACE);
+
+    // Clear the surface
+    cairo_save(CAIRO);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
+
+    // Draw semi-transparent dark background circle
+    cairo_set_source_rgba(CAIRO, 0.0, 0.0, 0.0, 0.7);
+    cairo_arc(CAIRO, bufferSize / 2.0, bufferSize / 2.0, bufferSize / 2.0 - 2, 0, 2 * M_PI);
+    cairo_fill(CAIRO);
+
+    // Draw text using Pango
+    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    pango_layout_set_text(layout, text.c_str(), -1);
+
+    PangoFontDescription* fontDesc = pango_font_description_from_string("sans bold");
+    pango_font_description_set_size(fontDesc, (int)(size * 0.5 * scale * PANGO_SCALE));
+    pango_layout_set_font_description(layout, fontDesc);
+    pango_font_description_free(fontDesc);
+
+    cairo_set_source_rgba(CAIRO, 1.0, 1.0, 1.0, 1.0);
+
+    PangoRectangle ink_rect, logical_rect;
+    pango_layout_get_extents(layout, &ink_rect, &logical_rect);
+
+    const double xOffset = (bufferSize / 2.0 - logical_rect.width / PANGO_SCALE / 2.0);
+    const double yOffset = (bufferSize / 2.0 - logical_rect.height / PANGO_SCALE / 2.0);
+
+    cairo_move_to(CAIRO, xOffset, yOffset);
+    pango_cairo_show_layout(CAIRO, layout);
+
+    g_object_unref(layout);
+    cairo_surface_flush(CAIROSURFACE);
+
+    // Upload to OpenGL texture
+    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    tex->allocate();
+    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+#ifndef GLES2
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+#endif
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize, bufferSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
 }
 
 static float lerp(const float& from, const float& to, const float perc) {
