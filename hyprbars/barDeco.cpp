@@ -1,7 +1,8 @@
 #include "barDeco.hpp"
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
@@ -85,16 +86,20 @@ bool CHyprBar::inputIsValid() {
         return false;
 
     if (!m_pWindow->m_workspace || !m_pWindow->m_workspace->isVisible() || !g_pInputManager->m_exclusiveLSes.empty() ||
-        (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->m_wlSurface->resource())))
+        (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource())))
         return false;
 
-    const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+    const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
-    if (WINDOWATCURSOR != m_pWindow && m_pWindow != g_pCompositor->m_lastWindow)
+    auto focusState = Desktop::focusState();
+    auto window = focusState->window();
+    auto monitor = focusState->monitor();
+    
+    if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
         return false;
 
     // check if input is on top or overlay shell layers
-    auto     PMONITOR     = g_pCompositor->m_lastMonitor.lock();
+    auto     PMONITOR     = monitor;
     PHLLS    foundSurface = nullptr;
     Vector2D surfaceCoords;
 
@@ -158,7 +163,7 @@ void CHyprBar::onTouchMove(SCallbackInfo& info, ITouch::SMotionEvent e) {
         return;
 
     auto PMONITOR     = m_pWindow->m_monitor.lock();
-    PMONITOR          = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+    PMONITOR          = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
     const auto COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y);
 
     if (!m_bDraggingThis) {
@@ -183,7 +188,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
     if (m_bTouchEv) {
         ITouch::SDownEvent e        = touchEvent.value();
         auto               PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
-        PMONITOR                    = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+        PMONITOR                    = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
         COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
     }
 
@@ -202,7 +207,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
             if (m_bTouchEv)
                 g_pKeybindManager->m_dispatchers["settiled"]("activewindow");
             g_pKeybindManager->m_dispatchers["mouse"]("0movewindow");
-            Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
+            Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
         }
 
         m_bDraggingThis = false;
@@ -211,8 +216,8 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
         return;
     }
 
-    if (g_pCompositor->m_lastWindow.lock() != PWINDOW)
-        g_pCompositor->focusWindow(PWINDOW);
+    if (Desktop::focusState()->window() != PWINDOW)
+        Desktop::focusState()->fullWindowFocus(PWINDOW);
 
     if (PWINDOW->m_isFloating)
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
@@ -234,7 +239,7 @@ void CHyprBar::handleDownEvent(SCallbackInfo& info, std::optional<ITouch::SDownE
 }
 
 void CHyprBar::handleUpEvent(SCallbackInfo& info) {
-    if (m_pWindow.lock() != g_pCompositor->m_lastWindow.lock())
+    if (m_pWindow.lock() != Desktop::focusState()->window())
         return;
 
     if (m_bCancelledDown)
@@ -248,7 +253,7 @@ void CHyprBar::handleUpEvent(SCallbackInfo& info) {
         if (m_bTouchEv)
             g_pKeybindManager->m_dispatchers["settiled"]("activewindow");
 
-        Debug::log(LOG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
+        Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
     }
 
     m_bDragPending = false;
@@ -259,7 +264,7 @@ void CHyprBar::handleUpEvent(SCallbackInfo& info) {
 void CHyprBar::handleMovement() {
     g_pKeybindManager->m_dispatchers["mouse"]("1movewindow");
     m_bDraggingThis = true;
-    Debug::log(LOG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
+    Log::logger->log(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
     return;
 }
 
@@ -573,7 +578,7 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
-    if (!PWINDOW->m_windowData.decorate.valueOrDefault())
+    if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return;
 
     auto data = CBarPassElement::SBarData{this, a};
@@ -593,7 +598,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
 
     if (**PINACTIVECOLOR > 0) {
-        bool currentWindowFocus = PWINDOW == g_pCompositor->m_lastWindow.lock();
+        bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
         if (currentWindowFocus != m_bWindowHasFocus) {
             m_bWindowHasFocus = currentWindowFocus;
             m_bButtonsDirty   = true;
@@ -754,7 +759,6 @@ PHLWINDOW CHyprBar::getOwner() {
 
 void CHyprBar::updateRules() {
     const auto PWINDOW              = m_pWindow.lock();
-    auto       rules                = PWINDOW->m_matchedRules;
     auto       prevHidden           = m_hidden;
     auto       prevForcedTitleColor = m_bForcedTitleColor;
 
@@ -762,25 +766,17 @@ void CHyprBar::updateRules() {
     m_bForcedTitleColor = std::nullopt;
     m_hidden            = false;
 
-    for (auto& r : rules) {
-        applyRule(r);
-    }
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
+        m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))
+        m_bForcedBarColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
+        m_bForcedTitleColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
 
     if (prevHidden != m_hidden)
         g_pDecorationPositioner->repositionDeco(this);
     if (prevForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
-}
-
-void CHyprBar::applyRule(const SP<CWindowRule>& r) {
-    auto arg = r->m_rule.substr(r->m_rule.find_first_of(' ') + 1);
-
-    if (r->m_rule == "plugin:hyprbars:nobar")
-        m_hidden = true;
-    else if (r->m_rule.starts_with("plugin:hyprbars:bar_color"))
-        m_bForcedBarColor = CHyprColor(configStringToInt(arg).value_or(0));
-    else if (r->m_rule.starts_with("plugin:hyprbars:title_color"))
-        m_bForcedTitleColor = CHyprColor(configStringToInt(arg).value_or(0));
 }
 
 void CHyprBar::damageOnButtonHover() {

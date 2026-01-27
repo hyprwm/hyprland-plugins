@@ -9,7 +9,7 @@
 
 #define private public
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/LayoutManager.hpp>
@@ -27,7 +27,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 // hooks
 inline CFunctionHook* subsurfaceHook = nullptr;
 inline CFunctionHook* commitHook     = nullptr;
-typedef void (*origCommitSubsurface)(CSubsurface* thisptr);
+typedef void (*origCommitSubsurface)(Desktop::View::CSubsurface* thisptr);
 typedef void (*origCommit)(void* owner, void* data);
 
 std::vector<PHLWINDOWREF> bgWindows;
@@ -78,11 +78,11 @@ void                      onNewWindow(PHLWINDOW pWindow) {
     py = std::clamp(py, 0.f, 100.f);
 
     if (px + sx > 100.f) {
-        Debug::log(WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100.f - px);
+        Log::logger->log(Log::WARN, "[hyprwinwrap] size_x (%d) + pos_x (%d) > 100, adjusting size_x to %d", sx, px, 100.f - px);
         sx = 100.f - px;
     }
     if (py + sy > 100.f) {
-        Debug::log(WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100.f - py);
+        Log::logger->log(Log::WARN, "[hyprwinwrap] size_y (%d) + pos_y (%d) > 100, adjusting size_y to %d", sy, py, 100.f - py);
         sy = 100.f - py;
     }
 
@@ -104,13 +104,13 @@ void                      onNewWindow(PHLWINDOW pWindow) {
     pWindow->m_hidden = true;
 
     g_pInputManager->refocus();
-    Debug::log(LOG, "[hyprwinwrap] new window moved to bg {}", pWindow);
+    Log::logger->log(Log::DEBUG, "[hyprwinwrap] new window moved to bg {}", pWindow);
 }
 
 void onCloseWindow(PHLWINDOW pWindow) {
     std::erase_if(bgWindows, [pWindow](const auto& ref) { return ref.expired() || ref.lock() == pWindow; });
 
-    Debug::log(LOG, "[hyprwinwrap] closed window {}", pWindow);
+    Log::logger->log(Log::DEBUG, "[hyprwinwrap] closed window {}", pWindow);
 }
 
 void onRenderStage(eRenderStage stage) {
@@ -132,8 +132,8 @@ void onRenderStage(eRenderStage stage) {
     }
 }
 
-void onCommitSubsurface(CSubsurface* thisptr) {
-    const auto PWINDOW = thisptr->m_wlSurface->getWindow();
+void onCommitSubsurface(Desktop::View::CSubsurface* thisptr) {
+    const auto PWINDOW = Desktop::View::CWindow::fromView(thisptr->wlSurface()->view());
 
     if (!PWINDOW || std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommitSubsurface)subsurfaceHook->m_original)(thisptr);
@@ -151,7 +151,7 @@ void onCommitSubsurface(CSubsurface* thisptr) {
 }
 
 void onCommit(void* owner, void* data) {
-    const auto PWINDOW = ((CWindow*)owner)->m_self.lock();
+    const auto PWINDOW = ((Desktop::View::CWindow*)owner)->m_self.lock();
 
     if (std::find_if(bgWindows.begin(), bgWindows.end(), [PWINDOW](const auto& ref) { return ref.lock() == PWINDOW; }) == bgWindows.end()) {
         ((origCommit)commitHook->m_original)(owner, data);
@@ -203,16 +203,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P4 = HyprlandAPI::registerCallbackDynamic(PHANDLE, "configReloaded", [&](void* self, SCallbackInfo& info, std::any data) { onConfigReloaded(); });
     // clang-format on
 
-    auto fns = HyprlandAPI::findFunctionsByName(PHANDLE, "onCommit");
+    auto fns = HyprlandAPI::findFunctionsByName(PHANDLE, "_ZN7Desktop4View11CSubsurface8onCommitEv");
     if (fns.size() < 1)
         throw std::runtime_error("hyprwinwrap: onCommit not found");
-    for (auto& fn : fns) {
-        if (!fn.demangled.contains("CSubsurface"))
-            continue;
-        subsurfaceHook = HyprlandAPI::createFunctionHook(PHANDLE, fn.address, (void*)&onCommitSubsurface);
-    }
+    subsurfaceHook = HyprlandAPI::createFunctionHook(PHANDLE, fns[0].address, (void*)&onCommitSubsurface);
 
-    fns = HyprlandAPI::findFunctionsByName(PHANDLE, "listener_commitWindow");
+    fns = HyprlandAPI::findFunctionsByName(PHANDLE, "_ZN7Desktop4View7CWindow12commitWindowEv");
     if (fns.size() < 1)
         throw std::runtime_error("hyprwinwrap: listener_commitWindow not found");
     commitHook = HyprlandAPI::createFunctionHook(PHANDLE, fns[0].address, (void*)&onCommit);

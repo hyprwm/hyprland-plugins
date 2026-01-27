@@ -6,7 +6,7 @@
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/devices/IPointer.hpp>
 #include <hyprland/src/devices/ITouch.hpp>
-#include <hyprland/src/desktop/WindowRule.hpp>
+#include <hyprland/src/desktop/rule/windowRule/WindowRule.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #include "globals.hpp"
@@ -43,7 +43,6 @@ class CHyprBar : public IHyprWindowDecoration {
     PHLWINDOW                          getOwner();
 
     void                               updateRules();
-    void                               applyRule(const SP<CWindowRule>&);
 
     WP<CHyprBar>                       m_self;
 

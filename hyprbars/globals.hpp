@@ -20,6 +20,9 @@ class CHyprBar;
 struct SGlobalState {
     std::vector<SHyprButton>  buttons;
     std::vector<WP<CHyprBar>> bars;
+    uint32_t                  nobarRuleIdx = 0;
+    uint32_t                  barColorRuleIdx = 0;
+    uint32_t                  titleColorRuleIdx = 0;
 };
 
 inline UP<SGlobalState> g_pGlobalState;
