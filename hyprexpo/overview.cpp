@@ -17,6 +17,22 @@
 #undef private
 #include "OverviewPassElement.hpp"
 
+// Given a cell size, return a box (with offsets) that preserves monAspect within the cell
+static CBox aspectCorrectBox(double cellW, double cellH, double monAspect) {
+    double cellAspect = cellW / cellH;
+    double tileW, tileH;
+    if (cellAspect > monAspect) {
+        tileH = cellH;
+        tileW = cellH * monAspect;
+    } else {
+        tileW = cellW;
+        tileH = cellW / monAspect;
+    }
+    double padX = (cellW - tileW) / 2.0;
+    double padY = (cellH - tileH) / 2.0;
+    return {padX, padY, tileW, tileH};
+}
+
 static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview->damage();
 }
@@ -224,9 +240,12 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
             offsetY = (rows - actualRows) * (tileRenderSize.y + GAP_WIDTH) / 2.0;
         }
 
-        image.box = {offsetX + (i % cols) * tileRenderSize.x + (i % cols) * GAP_WIDTH,
-                     offsetY + row * tileRenderSize.y + row * GAP_WIDTH,
-                     tileRenderSize.x, tileRenderSize.y};
+        double monAspect = pMonitor->m_size.x / pMonitor->m_size.y;
+        CBox   cellBox   = {offsetX + (i % cols) * tileRenderSize.x + (i % cols) * GAP_WIDTH,
+                             offsetY + row * tileRenderSize.y + row * GAP_WIDTH,
+                             tileRenderSize.x, tileRenderSize.y};
+        CBox   fitBox    = aspectCorrectBox(tileRenderSize.x, tileRenderSize.y, monAspect);
+        image.box = {cellBox.x + fitBox.x, cellBox.y + fitBox.y, fitBox.w, fitBox.h};
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
@@ -552,7 +571,10 @@ void COverview::fullRender() {
             offsetY = (rows - actualRows) * (tileRenderSize.y + GAPSIZE) / 2.0;
         }
 
-        CBox texbox = {offsetX + x * tileRenderSize.x + x * GAPSIZE, offsetY + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
+        double monAspect = SIZE.x / SIZE.y;
+        CBox   cellBox   = {offsetX + x * tileRenderSize.x + x * GAPSIZE, offsetY + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
+        CBox   fitBox    = aspectCorrectBox(tileRenderSize.x, tileRenderSize.y, monAspect);
+        CBox   texbox    = {cellBox.x + fitBox.x, cellBox.y + fitBox.y, fitBox.w, fitBox.h};
         texbox.scale(pMonitor->m_scale).translate(pos->value());
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
