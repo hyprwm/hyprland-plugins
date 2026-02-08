@@ -8,6 +8,7 @@
 #include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/event/EventBus.hpp>
+#include <chrono>
 #include <vector>
 
 // saves on resources, but is a bit broken rn with blur.
@@ -86,6 +87,15 @@ class COverview {
 
     bool                         swipe             = false;
     bool                         swipeWasCommenced = false;
+
+    int                          hoveredID         = -1;
+    int                          selectedID        = -1;
+    CHyprSignalListener          keyPressHook;
+    bool                         dragging          = false;
+    int                          dragSourceID      = -1;
+    Vector2D                     dragStartPos;
+
+    std::chrono::steady_clock::time_point createdAt;
 
     friend class COverviewPassElement;
 };

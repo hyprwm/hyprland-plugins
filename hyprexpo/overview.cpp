@@ -2,6 +2,9 @@
 #include <any>
 #include <cairo/cairo.h>
 #include <pango/pangocairo.h>
+#include <xkbcommon/xkbcommon.h>
+#include <hyprland/src/devices/IKeyboard.hpp>
+#include <hyprland/src/devices/IPointer.hpp>
 #define private public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
@@ -12,6 +15,7 @@
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #undef private
@@ -45,6 +49,7 @@ COverview::~COverview() {
 }
 
 COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
+    createdAt           = std::chrono::steady_clock::now();
     const auto PMONITOR = Desktop::focusState()->monitor();
     pMonitor            = PMONITOR;
 
@@ -54,6 +59,9 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static auto* const* PSKIP     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
     static auto* const* PDYNAMIC  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:dynamic_grid")->getDataStaticPtr();
     static auto const*  PMETHOD   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
+    static auto* const* PFILLGAPS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:fill_gaps")->getDataStaticPtr();
+    static auto* const* PMRUSORT  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:mru_sort")->getDataStaticPtr();
+    static auto* const* PSHOWNAMES = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:show_workspace_names")->getDataStaticPtr();
 
     // Dynamic grid: count active workspaces and calculate optimal grid size
     if (**PDYNAMIC) {
@@ -101,6 +109,33 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         std::sort(activeWorkspaceIDs.begin(), activeWorkspaceIDs.end());
         if (activeWorkspaceIDs.empty())
             activeWorkspaceIDs.push_back(pMonitor->activeWorkspaceID());
+
+        // Fill gaps: include all workspace IDs between min and max
+        if (**PFILLGAPS && !activeWorkspaceIDs.empty()) {
+            int64_t minID = activeWorkspaceIDs.front();
+            int64_t maxID = activeWorkspaceIDs.back();
+            activeWorkspaceIDs.clear();
+            for (int64_t id = minID; id <= maxID; ++id)
+                activeWorkspaceIDs.push_back(id);
+        }
+
+        // MRU sort: move current workspace to front
+        if (**PMRUSORT) {
+            int64_t currentWsID = startedOn ? startedOn->m_id : pMonitor->activeWorkspaceID();
+            auto    it          = std::find(activeWorkspaceIDs.begin(), activeWorkspaceIDs.end(), currentWsID);
+            if (it != activeWorkspaceIDs.end() && it != activeWorkspaceIDs.begin()) {
+                int64_t val = *it;
+                activeWorkspaceIDs.erase(it);
+                activeWorkspaceIDs.insert(activeWorkspaceIDs.begin(), val);
+            }
+        }
+
+        // Recalculate grid dimensions after fill_gaps may have changed the count
+        int activeCount = activeWorkspaceIDs.size();
+        SIDE_LENGTH     = (int)std::ceil(std::sqrt((double)activeCount));
+        gridRows        = (int)std::ceil((double)activeCount / SIDE_LENGTH);
+        if (activeCount > 1 && gridRows < 2)
+            gridRows = 2;
 
         images.resize(activeWorkspaceIDs.size());
         for (size_t i = 0; i < activeWorkspaceIDs.size(); ++i)
@@ -251,12 +286,17 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         g_pHyprRenderer->endRender();
     }
 
-    // Generate workspace number labels - ensure EGL context is current for GL calls
+    // Generate workspace labels - ensure EGL context is current for GL calls
     g_pHyprRenderer->makeEGLCurrent();
-    const int LABEL_SIZE = 36;
+    static auto* const* PLABELSIZE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_size")->getDataStaticPtr();
+    const int LABEL_SIZE = **PLABELSIZE;
     for (size_t i = 0; i < images.size(); ++i) {
         images[i].labelTex = makeShared<CTexture>();
-        std::string labelText = std::to_string(images[i].workspaceID);
+        std::string labelText;
+        if (**PSHOWNAMES && images[i].pWorkspace && !images[i].pWorkspace->m_name.empty())
+            labelText = images[i].pWorkspace->m_name;
+        else
+            labelText = std::to_string(images[i].workspaceID);
         renderLabel(images[i].labelTex, labelText, LABEL_SIZE);
     }
 
@@ -297,24 +337,161 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
         info.cancelled    = true;
         lastMousePosLocal = g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position;
+
+        // Check if we should start a drag
+        if (dragSourceID >= 0 && !dragging) {
+            Vector2D delta = lastMousePosLocal - dragStartPos;
+            if (delta.size() > 10.0)
+                dragging = true;
+        }
+        if (dragging)
+            damage();
     };
 
-    auto onCursorSelect = [this](Event::SCallbackInfo& info) {
+    auto onMouseButton = [this](IPointer::SButtonEvent e, Event::SCallbackInfo& info) {
+        if (closing)
+            return;
+
+        info.cancelled = true;
+
+        static auto* const* PDRAGMOVE_ = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_drag_move")->getDataStaticPtr();
+
+        if (**PDRAGMOVE_) {
+            if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+                // Record drag start
+                dragStartPos = lastMousePosLocal;
+                dragSourceID = -1;
+                dragging     = false;
+                for (size_t j = 0; j < images.size(); ++j) {
+                    const auto& box = images[j].box;
+                    if (lastMousePosLocal.x >= box.x && lastMousePosLocal.x < box.x + box.w &&
+                        lastMousePosLocal.y >= box.y && lastMousePosLocal.y < box.y + box.h) {
+                        dragSourceID = j;
+                        break;
+                    }
+                }
+            } else {
+                // Button released
+                if (dragging) {
+                    // Find target tile under cursor
+                    int targetID = -1;
+                    for (size_t j = 0; j < images.size(); ++j) {
+                        const auto& box = images[j].box;
+                        if (lastMousePosLocal.x >= box.x && lastMousePosLocal.x < box.x + box.w &&
+                            lastMousePosLocal.y >= box.y && lastMousePosLocal.y < box.y + box.h) {
+                            targetID = j;
+                            break;
+                        }
+                    }
+
+                    if (targetID >= 0 && targetID != dragSourceID && dragSourceID >= 0) {
+                        auto srcWs = images[dragSourceID].pWorkspace;
+                        auto dstWs = images[targetID].pWorkspace;
+                        if (srcWs && dstWs) {
+                            PHLWINDOW topWindow;
+                            for (auto& w : g_pCompositor->m_windows) {
+                                if (w->m_workspace == srcWs && !w->isHidden() && !w->isX11OverrideRedirect()) {
+                                    topWindow = w;
+                                    break;
+                                }
+                            }
+                            if (topWindow) {
+                                g_pCompositor->moveWindowToWorkspaceSafe(topWindow, dstWs);
+                                redrawID(dragSourceID);
+                                redrawID(targetID);
+                            }
+                        }
+                    }
+
+                    dragging     = false;
+                    dragSourceID = -1;
+                    damage();
+                } else {
+                    // Simple click - original behavior
+                    dragging     = false;
+                    dragSourceID = -1;
+                    selectHoveredWorkspace();
+                    close();
+                }
+            }
+        } else {
+            // Drag disabled - original behavior on release only
+            if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
+                selectHoveredWorkspace();
+                close();
+            }
+        }
+    };
+
+    auto onTouchSelect = [this](Event::SCallbackInfo& info) {
         if (closing)
             return;
 
         info.cancelled = true;
 
         selectHoveredWorkspace();
-
         close();
     };
 
     mouseMoveHook = Event::bus()->m_events.input.mouse.move.listen([onCursorMove](Vector2D, Event::SCallbackInfo& info) { onCursorMove(info); });
     touchMoveHook = Event::bus()->m_events.input.touch.motion.listen([onCursorMove](ITouch::SMotionEvent, Event::SCallbackInfo& info) { onCursorMove(info); });
 
-    mouseButtonHook = Event::bus()->m_events.input.mouse.button.listen([onCursorSelect](IPointer::SButtonEvent, Event::SCallbackInfo& info) { onCursorSelect(info); });
-    touchDownHook   = Event::bus()->m_events.input.touch.down.listen([onCursorSelect](ITouch::SDownEvent, Event::SCallbackInfo& info) { onCursorSelect(info); });
+    mouseButtonHook = Event::bus()->m_events.input.mouse.button.listen(onMouseButton);
+    touchDownHook   = Event::bus()->m_events.input.touch.down.listen([onTouchSelect](ITouch::SDownEvent, Event::SCallbackInfo& info) { onTouchSelect(info); });
+
+    static auto* const* PKBNAV = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:enable_keyboard_nav")->getDataStaticPtr();
+    if (**PKBNAV) {
+        selectedID = openedID;
+        keyPressHook = Event::bus()->m_events.input.keyboard.key.listen([this](IKeyboard::SKeyEvent keyEvent, Event::SCallbackInfo& info) {
+            if (closing)
+                return;
+
+            if (keyEvent.state != WL_KEYBOARD_KEY_STATE_PRESSED)
+                return;
+
+            auto          keyboard = g_pSeatManager->m_keyboard.lock();
+            if (!keyboard)
+                return;
+            xkb_keysym_t  sym      = xkb_state_key_get_one_sym(keyboard->m_xkbState, keyEvent.keycode + 8);
+
+            int cols  = SIDE_LENGTH;
+            int total = (int)images.size();
+
+            switch (sym) {
+                case XKB_KEY_Left:
+                    if (selectedID > 0) selectedID--;
+                    break;
+                case XKB_KEY_Right:
+                    if (selectedID < total - 1) selectedID++;
+                    break;
+                case XKB_KEY_Up:
+                    if (selectedID - cols >= 0) selectedID -= cols;
+                    break;
+                case XKB_KEY_Down:
+                    if (selectedID + cols < total) selectedID += cols;
+                    break;
+                case XKB_KEY_Return:
+                    closeOnID = selectedID;
+                    close();
+                    break;
+                case XKB_KEY_Escape:
+                    close();
+                    break;
+                default:
+                    if (sym >= XKB_KEY_1 && sym <= XKB_KEY_9) {
+                        int idx = sym - XKB_KEY_1;
+                        if (idx < total) {
+                            closeOnID = idx;
+                            close();
+                        }
+                    }
+                    return;
+            }
+
+            info.cancelled = true;
+            damage();
+        });
+    }
 }
 
 void COverview::selectHoveredWorkspace() {
@@ -578,20 +755,109 @@ void COverview::fullRender() {
         texbox.scale(pMonitor->m_scale).translate(pos->value());
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-        g_pHyprOpenGL->renderTextureInternal(images[i].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
 
-        // Render workspace number label at top-right corner
+        // Staggered fade-in animation
+        static auto* const* PANIMATE_R = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:animate_entry")->getDataStaticPtr();
+        float tileAlpha = 1.0f;
+        if (**PANIMATE_R && !closing) {
+            auto  elapsed  = std::chrono::duration<float>(std::chrono::steady_clock::now() - createdAt).count();
+            float delay    = i * 0.05f;
+            float duration = 0.2f;
+            if (elapsed < delay)
+                tileAlpha = 0.0f;
+            else if (elapsed < delay + duration)
+                tileAlpha = (elapsed - delay) / duration;
+            else
+                tileAlpha = 1.0f;
+
+            if (tileAlpha < 1.0f)
+                this->damage();
+        }
+
+        g_pHyprOpenGL->renderTextureInternal(images[i].fb.getTexture(), texbox, {.damage = &damage, .a = tileAlpha});
+
+        // Active workspace highlight
+        static auto* const* PACTIVECOL    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:active_highlight_col")->getDataStaticPtr();
+        static auto* const* PACTIVEBORDER = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:active_highlight_border")->getDataStaticPtr();
+        static auto* const* PHOVERCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:hover_highlight_col")->getDataStaticPtr();
+        static auto* const* PHOVERBORDER  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:hover_highlight_border")->getDataStaticPtr();
+
+        if (images[i].pWorkspace == startedOn) {
+            CHyprColor activeCol = **PACTIVECOL;
+            int        borderW   = **PACTIVEBORDER * pMonitor->m_scale;
+            CBox       top       = {texbox.x, texbox.y, texbox.w, borderW};
+            CBox       bottom    = {texbox.x, texbox.y + texbox.h - borderW, texbox.w, borderW};
+            CBox       left      = {texbox.x, texbox.y, borderW, texbox.h};
+            CBox       right     = {texbox.x + texbox.w - borderW, texbox.y, borderW, texbox.h};
+            g_pHyprOpenGL->renderRect(top, activeCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(bottom, activeCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(left, activeCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(right, activeCol, {.damage = &damage});
+        }
+
+        // Drag visual feedback: dim the source tile
+        if (dragging && dragSourceID == (int)i) {
+            CHyprColor dimCol{0.0f, 0.0f, 0.0f, 0.3f};
+            g_pHyprOpenGL->renderRect(texbox, dimCol, {.damage = &damage});
+        }
+
+        // Hover highlight (also used as drop target indicator during drag)
+        bool isHovered = (lastMousePosLocal.x >= images[i].box.x && lastMousePosLocal.x < images[i].box.x + images[i].box.w &&
+                          lastMousePosLocal.y >= images[i].box.y && lastMousePosLocal.y < images[i].box.y + images[i].box.h);
+        if (isHovered && (dragging ? (int)i != dragSourceID : images[i].pWorkspace != startedOn)) {
+            CHyprColor hoverCol = **PHOVERCOL;
+            int        borderW  = **PHOVERBORDER * pMonitor->m_scale;
+            CBox       top      = {texbox.x, texbox.y, texbox.w, borderW};
+            CBox       bottom   = {texbox.x, texbox.y + texbox.h - borderW, texbox.w, borderW};
+            CBox       left     = {texbox.x, texbox.y, borderW, texbox.h};
+            CBox       right    = {texbox.x + texbox.w - borderW, texbox.y, borderW, texbox.h};
+            g_pHyprOpenGL->renderRect(top, hoverCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(bottom, hoverCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(left, hoverCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(right, hoverCol, {.damage = &damage});
+        }
+
+        // Keyboard selection indicator
+        if (selectedID >= 0 && selectedID == (int)i) {
+            CHyprColor selCol{1.0f, 1.0f, 1.0f, 0.9f};
+            int        selBorderW = 3 * pMonitor->m_scale;
+            CBox       top        = {texbox.x, texbox.y, texbox.w, selBorderW};
+            CBox       bottom     = {texbox.x, texbox.y + texbox.h - selBorderW, texbox.w, selBorderW};
+            CBox       left       = {texbox.x, texbox.y, selBorderW, texbox.h};
+            CBox       right      = {texbox.x + texbox.w - selBorderW, texbox.y, selBorderW, texbox.h};
+            g_pHyprOpenGL->renderRect(top, selCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(bottom, selCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(left, selCol, {.damage = &damage});
+            g_pHyprOpenGL->renderRect(right, selCol, {.damage = &damage});
+        }
+
+        // Render workspace label
         if (images[i].labelTex && images[i].labelTex->m_texID) {
-            const float labelSize = 36 * pMonitor->m_scale;
-            const float padding   = 8 * pMonitor->m_scale;
-            CBox        labelBox  = {
-                texbox.x + texbox.w - labelSize - padding,
-                texbox.y + padding,
-                labelSize,
-                labelSize
-            };
+            static auto* const* PLABELSIZE2 = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_size")->getDataStaticPtr();
+            static auto const*  PLABELPOS   = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_pos")->getDataStaticPtr();
+
+            const float     labelSize = **PLABELSIZE2 * pMonitor->m_scale;
+            const float     padding   = 8 * pMonitor->m_scale;
+            const std::string posStr  = *PLABELPOS;
+
+            float lx, ly;
+            if (posStr == "top_left") {
+                lx = texbox.x + padding;
+                ly = texbox.y + padding;
+            } else if (posStr == "bottom_right") {
+                lx = texbox.x + texbox.w - labelSize - padding;
+                ly = texbox.y + texbox.h - labelSize - padding;
+            } else if (posStr == "bottom_left") {
+                lx = texbox.x + padding;
+                ly = texbox.y + texbox.h - labelSize - padding;
+            } else { // "top_right" (default)
+                lx = texbox.x + texbox.w - labelSize - padding;
+                ly = texbox.y + padding;
+            }
+
+            CBox labelBox = {lx, ly, labelSize, labelSize};
             labelBox.round();
-            g_pHyprOpenGL->renderTextureInternal(images[i].labelTex, labelBox, {.damage = &damage, .a = 0.9f});
+            g_pHyprOpenGL->renderTextureInternal(images[i].labelTex, labelBox, {.damage = &damage, .a = 0.9f * tileAlpha});
         }
     }
 }
@@ -634,7 +900,9 @@ void COverview::renderLabel(SP<CTexture>& tex, const std::string& text, int size
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
-    cairo_set_source_rgba(CAIRO, 1.0, 1.0, 1.0, 1.0);
+    static auto* const* PLABELCOL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:label_col")->getDataStaticPtr();
+    CHyprColor          labelColor = **PLABELCOL;
+    cairo_set_source_rgba(CAIRO, labelColor.r, labelColor.g, labelColor.b, labelColor.a);
 
     PangoRectangle ink_rect, logical_rect;
     pango_layout_get_extents(layout, &ink_rect, &logical_rect);

@@ -175,9 +175,9 @@ static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RH
     std::expected<void, std::string> resultFromGesture;
 
     if (data[startDataIdx] == "expo")
-        resultFromGesture = g_pTrackpadGestures->addGesture(makeUnique<CExpoGesture>(), fingerCount, direction, modMask, deltaScale);
+        resultFromGesture = g_pTrackpadGestures->addGesture(makeUnique<CExpoGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
     else if (data[startDataIdx] == "unset")
-        resultFromGesture = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
+        resultFromGesture = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
     else {
         result.setError(std::format("Invalid gesture: {}", data[startDataIdx]).c_str());
         return result;
@@ -253,6 +253,20 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:dynamic_grid", Hyprlang::INT{0});
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
+
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:active_highlight_col", Hyprlang::INT{0xFF3584E4});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:active_highlight_border", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:hover_highlight_col", Hyprlang::INT{0x80FFFFFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:hover_highlight_border", Hyprlang::INT{2});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_pos", Hyprlang::STRING{"top_right"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_size", Hyprlang::INT{36});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:label_col", Hyprlang::INT{0xFFFFFFFF});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:show_workspace_names", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:enable_keyboard_nav", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:fill_gaps", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:mru_sort", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:enable_drag_move", Hyprlang::INT{0});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:animate_entry", Hyprlang::INT{0});
 
     HyprlandAPI::reloadConfig();
 
