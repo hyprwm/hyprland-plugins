@@ -21,20 +21,16 @@
 #undef private
 #include "OverviewPassElement.hpp"
 
-// Given a cell size, return a box (with offsets) that preserves monAspect within the cell
-static CBox aspectCorrectBox(double cellW, double cellH, double monAspect) {
-    double cellAspect = cellW / cellH;
-    double tileW, tileH;
-    if (cellAspect > monAspect) {
-        tileH = cellH;
-        tileW = cellH * monAspect;
-    } else {
-        tileW = cellW;
-        tileH = cellW / monAspect;
-    }
-    double padX = (cellW - tileW) / 2.0;
-    double padY = (cellH - tileH) / 2.0;
-    return {padX, padY, tileW, tileH};
+// Compute aspect-correct tile size that fits within a cols x rows grid with gaps
+static Vector2D aspectCorrectTileSize(double screenW, double screenH, int cols, int rows, double gapSize) {
+    double monAspect = screenW / screenH;
+    double maxTileW  = (screenW - gapSize * (cols - 1)) / cols;
+    double maxTileH  = (screenH - gapSize * (rows - 1)) / rows;
+    double cellAspect = maxTileW / maxTileH;
+    if (cellAspect > monAspect)
+        return {maxTileH * monAspect, maxTileH};
+    else
+        return {maxTileW, maxTileW / monAspect};
 }
 
 static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
@@ -206,8 +202,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     int cols = SIDE_LENGTH;
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
     Vector2D tileSize       = {pMonitor->m_size.x / cols, pMonitor->m_size.y / rows};
-    Vector2D tileRenderSize = {(pMonitor->m_size.x - GAP_WIDTH * pMonitor->m_scale * (cols - 1)) / cols,
-                               (pMonitor->m_size.y - GAP_WIDTH * pMonitor->m_scale * (rows - 1)) / rows};
+    double   scaledGap      = GAP_WIDTH * pMonitor->m_scale;
+    Vector2D tileRenderSize = aspectCorrectTileSize(pMonitor->m_size.x, pMonitor->m_size.y, cols, rows, scaledGap);
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
     if (!ENABLE_LOWRES)
@@ -256,31 +252,32 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         } else
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
-        // Calculate centering offsets
+        // Calculate centering offsets for uniform-gap layout
         int tilesInLastRow = images.size() % cols;
         if (tilesInLastRow == 0) tilesInLastRow = cols;
-        int lastRow = (images.size() - 1) / cols;
+        int lastRow    = (images.size() - 1) / cols;
         int actualRows = lastRow + 1;
-        int row = i / cols;
+        int row        = i / cols;
 
-        // Horizontal centering for partial last row
-        double offsetX = 0;
+        // Center entire grid vertically
+        double gridH    = actualRows * tileRenderSize.y + (actualRows - 1) * scaledGap;
+        double baseOffY = (pMonitor->m_size.y - gridH) / 2.0;
+
+        // Full rows: center grid horizontally
+        double gridW    = cols * tileRenderSize.x + (cols - 1) * scaledGap;
+        double baseOffX = (pMonitor->m_size.x - gridW) / 2.0;
+
+        // Partial last row: center that row's tiles
+        double tileX;
         if (row == lastRow && tilesInLastRow < cols) {
-            offsetX = (cols - tilesInLastRow) * (tileRenderSize.x + GAP_WIDTH) / 2.0;
+            double rowW = tilesInLastRow * tileRenderSize.x + (tilesInLastRow - 1) * scaledGap;
+            tileX = (pMonitor->m_size.x - rowW) / 2.0 + (i % cols) * (tileRenderSize.x + scaledGap);
+        } else {
+            tileX = baseOffX + (i % cols) * (tileRenderSize.x + scaledGap);
         }
+        double tileY = baseOffY + row * (tileRenderSize.y + scaledGap);
 
-        // Vertical centering when tiles don't fill all rows
-        double offsetY = 0;
-        if (actualRows < rows) {
-            offsetY = (rows - actualRows) * (tileRenderSize.y + GAP_WIDTH) / 2.0;
-        }
-
-        double monAspect = pMonitor->m_size.x / pMonitor->m_size.y;
-        CBox   cellBox   = {offsetX + (i % cols) * tileRenderSize.x + (i % cols) * GAP_WIDTH,
-                             offsetY + row * tileRenderSize.y + row * GAP_WIDTH,
-                             tileRenderSize.x, tileRenderSize.y};
-        CBox   fitBox    = aspectCorrectBox(tileRenderSize.x, tileRenderSize.y, monAspect);
-        image.box = {cellBox.x + fitBox.x, cellBox.y + fitBox.y, fitBox.w, fitBox.h};
+        image.box = {tileX, tileY, tileRenderSize.x, tileRenderSize.y};
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
@@ -616,10 +613,14 @@ void COverview::onDamageReported() {
     int cols = SIDE_LENGTH;
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
     Vector2D tileSize       = {SIZE.x / cols, SIZE.y / rows};
-    Vector2D tileRenderSize = {(SIZE.x - GAP_WIDTH * (cols - 1)) / cols,
-                               (SIZE.y - GAP_WIDTH * (rows - 1)) / rows};
-    CBox texbox = CBox{(openedID % cols) * tileRenderSize.x + (openedID % cols) * GAP_WIDTH,
-                       (openedID / cols) * tileRenderSize.y + (openedID / cols) * GAP_WIDTH, tileRenderSize.x, tileRenderSize.y}
+    Vector2D tileRenderSize = aspectCorrectTileSize(SIZE.x, SIZE.y, cols, rows, (double)GAP_WIDTH);
+    int    actualRows = ((int)images.size() + cols - 1) / cols;
+    double gridW      = cols * tileRenderSize.x + (cols - 1) * GAP_WIDTH;
+    double gridH      = actualRows * tileRenderSize.y + (actualRows - 1) * GAP_WIDTH;
+    double baseOffX   = (SIZE.x - gridW) / 2.0;
+    double baseOffY   = (SIZE.y - gridH) / 2.0;
+    CBox texbox = CBox{baseOffX + (openedID % cols) * (tileRenderSize.x + GAP_WIDTH),
+                       baseOffY + (openedID / cols) * (tileRenderSize.y + GAP_WIDTH), tileRenderSize.x, tileRenderSize.y}
                       .translate(pMonitor->m_position);
 
     damage();
@@ -721,37 +722,34 @@ void COverview::fullRender() {
     int cols = SIDE_LENGTH;
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
     Vector2D tileSize       = {SIZE.x / cols, SIZE.y / rows};
-    Vector2D tileRenderSize = {(SIZE.x - GAPSIZE * (cols - 1)) / cols,
-                               (SIZE.y - GAPSIZE * (rows - 1)) / rows};
+    Vector2D tileRenderSize = aspectCorrectTileSize(SIZE.x, SIZE.y, cols, rows, GAPSIZE);
 
     g_pHyprOpenGL->clear(BG_COLOR.stripA());
+
+    // Precompute grid centering
+    int tilesInLastRow = images.size() % cols;
+    if (tilesInLastRow == 0) tilesInLastRow = cols;
+    int    lastRow    = (images.size() - 1) / cols;
+    int    actualRows = lastRow + 1;
+    double gridW      = cols * tileRenderSize.x + (cols - 1) * GAPSIZE;
+    double gridH      = actualRows * tileRenderSize.y + (actualRows - 1) * GAPSIZE;
+    double baseOffX   = (SIZE.x - gridW) / 2.0;
+    double baseOffY   = (SIZE.y - gridH) / 2.0;
 
     for (size_t i = 0; i < images.size(); ++i) {
         int x = i % cols;
         int y = i / cols;
 
-        // Calculate centering offsets
-        int tilesInLastRow = images.size() % cols;
-        if (tilesInLastRow == 0) tilesInLastRow = cols;
-        int lastRow = (images.size() - 1) / cols;
-        int actualRows = lastRow + 1;
-
-        // Horizontal centering for partial last row
-        double offsetX = 0;
+        double tileX;
         if (y == lastRow && tilesInLastRow < cols) {
-            offsetX = (cols - tilesInLastRow) * (tileRenderSize.x + GAPSIZE) / 2.0;
+            double rowW = tilesInLastRow * tileRenderSize.x + (tilesInLastRow - 1) * GAPSIZE;
+            tileX = (SIZE.x - rowW) / 2.0 + x * (tileRenderSize.x + GAPSIZE);
+        } else {
+            tileX = baseOffX + x * (tileRenderSize.x + GAPSIZE);
         }
+        double tileY = baseOffY + y * (tileRenderSize.y + GAPSIZE);
 
-        // Vertical centering when tiles don't fill all rows
-        double offsetY = 0;
-        if (actualRows < rows) {
-            offsetY = (rows - actualRows) * (tileRenderSize.y + GAPSIZE) / 2.0;
-        }
-
-        double monAspect = SIZE.x / SIZE.y;
-        CBox   cellBox   = {offsetX + x * tileRenderSize.x + x * GAPSIZE, offsetY + y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
-        CBox   fitBox    = aspectCorrectBox(tileRenderSize.x, tileRenderSize.y, monAspect);
-        CBox   texbox    = {cellBox.x + fitBox.x, cellBox.y + fitBox.y, fitBox.w, fitBox.h};
+        CBox texbox = {tileX, tileY, tileRenderSize.x, tileRenderSize.y};
         texbox.scale(pMonitor->m_scale).translate(pos->value());
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
