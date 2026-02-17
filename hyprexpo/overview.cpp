@@ -246,6 +246,14 @@ void COverview::selectHoveredWorkspace() {
     closeOnID = x + y * SIDE_LENGTH;
 }
 
+int64_t COverview::selectedWorkspaceID() const {
+    const int ID = closeOnID == -1 ? openedID : closeOnID;
+    if (ID < 0 || ID >= (int)images.size())
+        return WORKSPACE_INVALID;
+
+    return images[ID].workspaceID;
+}
+
 void COverview::redrawID(int id, bool forcelowres) {
     if (!pMonitor)
         return;
@@ -354,7 +362,7 @@ void COverview::onDamageReported() {
     g_pCompositor->scheduleFrameForMonitor(pMonitor.lock());
 }
 
-void COverview::close() {
+void COverview::close(bool switchToSelection) {
     if (closing)
         return;
 
@@ -374,7 +382,7 @@ void COverview::close() {
 
     redrawAll();
 
-    if (TILE.workspaceID != pMonitor->activeWorkspaceID()) {
+    if (switchToSelection && TILE.workspaceID != pMonitor->activeWorkspaceID()) {
         pMonitor->setSpecialWorkspace(0);
 
         // If this tile's workspace was WORKSPACE_INVALID, move to the next

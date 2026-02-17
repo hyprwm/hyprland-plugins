@@ -32,8 +32,9 @@ class COverview {
     void onSwipeEnd();
 
     // close without a selection
-    void          close();
+    void          close(bool switchToSelection = true);
     void          selectHoveredWorkspace();
+    int64_t       selectedWorkspaceID() const;
 
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
