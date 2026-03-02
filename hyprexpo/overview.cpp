@@ -252,32 +252,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         } else
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
-        // Calculate centering offsets for uniform-gap layout
-        int tilesInLastRow = images.size() % cols;
-        if (tilesInLastRow == 0) tilesInLastRow = cols;
-        int lastRow    = (images.size() - 1) / cols;
-        int actualRows = lastRow + 1;
-        int row        = i / cols;
-
-        // Center entire grid vertically
-        double gridH    = actualRows * tileRenderSize.y + (actualRows - 1) * scaledGap;
-        double baseOffY = (pMonitor->m_size.y - gridH) / 2.0;
-
-        // Full rows: center grid horizontally
-        double gridW    = cols * tileRenderSize.x + (cols - 1) * scaledGap;
-        double baseOffX = (pMonitor->m_size.x - gridW) / 2.0;
-
-        // Partial last row: center that row's tiles
-        double tileX;
-        if (row == lastRow && tilesInLastRow < cols) {
-            double rowW = tilesInLastRow * tileRenderSize.x + (tilesInLastRow - 1) * scaledGap;
-            tileX = (pMonitor->m_size.x - rowW) / 2.0 + (i % cols) * (tileRenderSize.x + scaledGap);
-        } else {
-            tileX = baseOffX + (i % cols) * (tileRenderSize.x + scaledGap);
-        }
-        double tileY = baseOffY + row * (tileRenderSize.y + scaledGap);
-
-        image.box = {tileX, tileY, tileRenderSize.x, tileRenderSize.y};
+        Vector2D tilePos = tilePosForID(i, pMonitor->m_size, scaledGap);
+        image.box        = {tilePos.x, tilePos.y, tileRenderSize.x, tileRenderSize.y};
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
@@ -307,10 +283,10 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     // zoom on the current workspace.
     // const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
 
-    g_pAnimationManager->createAnimation(pMonitor->m_size * pMonitor->m_size / tileSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation((-(Vector2D{(currentid % cols) * tileSize.x, (currentid / cols) * tileSize.y}) * pMonitor->m_scale) *
-                                             (pMonitor->m_size / tileSize),
-                                         pos, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    Vector2D initSize    = pMonitor->m_size * pMonitor->m_size / tileSize;
+    Vector2D initTilePos = tilePosForID(currentid, initSize, 0.0);
+    g_pAnimationManager->createAnimation(initSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(-(initTilePos * pMonitor->m_scale), pos, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
 
     size->setUpdateCallback(damageMonitor);
     pos->setUpdateCallback(damageMonitor);
@@ -614,14 +590,8 @@ void COverview::onDamageReported() {
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
     Vector2D tileSize       = {SIZE.x / cols, SIZE.y / rows};
     Vector2D tileRenderSize = aspectCorrectTileSize(SIZE.x, SIZE.y, cols, rows, (double)GAP_WIDTH);
-    int    actualRows = ((int)images.size() + cols - 1) / cols;
-    double gridW      = cols * tileRenderSize.x + (cols - 1) * GAP_WIDTH;
-    double gridH      = actualRows * tileRenderSize.y + (actualRows - 1) * GAP_WIDTH;
-    double baseOffX   = (SIZE.x - gridW) / 2.0;
-    double baseOffY   = (SIZE.y - gridH) / 2.0;
-    CBox texbox = CBox{baseOffX + (openedID % cols) * (tileRenderSize.x + GAP_WIDTH),
-                       baseOffY + (openedID / cols) * (tileRenderSize.y + GAP_WIDTH), tileRenderSize.x, tileRenderSize.y}
-                      .translate(pMonitor->m_position);
+    Vector2D tilePos        = tilePosForID(openedID, SIZE, (double)GAP_WIDTH);
+    CBox     texbox         = CBox{tilePos.x, tilePos.y, tileRenderSize.x, tileRenderSize.y}.translate(pMonitor->m_position);
 
     damage();
 
@@ -629,6 +599,35 @@ void COverview::onDamageReported() {
     g_pHyprRenderer->damageBox(texbox);
     blockDamageReporting = false;
     g_pCompositor->scheduleFrameForMonitor(pMonitor.lock());
+}
+
+Vector2D COverview::tilePosForID(int id, Vector2D totalSize, double gapSize) const {
+    int      cols           = SIDE_LENGTH;
+    int      rows           = dynamicGrid ? gridRows : SIDE_LENGTH;
+    Vector2D tileRenderSize = aspectCorrectTileSize(totalSize.x, totalSize.y, cols, rows, gapSize);
+
+    int tilesInLastRow = images.size() % cols;
+    if (tilesInLastRow == 0)
+        tilesInLastRow = cols;
+    int    lastRow    = ((int)images.size() - 1) / cols;
+    int    actualRows = lastRow + 1;
+    double gridW      = cols * tileRenderSize.x + (cols - 1) * gapSize;
+    double gridH      = actualRows * tileRenderSize.y + (actualRows - 1) * gapSize;
+    double baseOffX   = (totalSize.x - gridW) / 2.0;
+    double baseOffY   = (totalSize.y - gridH) / 2.0;
+
+    int    x = id % cols;
+    int    y = id / cols;
+    double tileX;
+    if (y == lastRow && tilesInLastRow < cols) {
+        double rowW = tilesInLastRow * tileRenderSize.x + (tilesInLastRow - 1) * gapSize;
+        tileX       = (totalSize.x - rowW) / 2.0 + x * (tileRenderSize.x + gapSize);
+    } else {
+        tileX = baseOffX + x * (tileRenderSize.x + gapSize);
+    }
+    double tileY = baseOffY + y * (tileRenderSize.y + gapSize);
+
+    return {tileX, tileY};
 }
 
 void COverview::close() {
@@ -641,13 +640,14 @@ void COverview::close() {
 
     int cols = SIDE_LENGTH;
     int rows = dynamicGrid ? gridRows : SIDE_LENGTH;
-    Vector2D    tileSize = {pMonitor->m_size.x / cols, pMonitor->m_size.y / rows};
+    Vector2D    tileSize    = {pMonitor->m_size.x / cols, pMonitor->m_size.y / rows};
+    Vector2D    targetSize = pMonitor->m_size * pMonitor->m_size / tileSize;
 
     size->warp();
     pos->warp();
 
-    *size = pMonitor->m_size * pMonitor->m_size / tileSize;
-    *pos  = (-(Vector2D{(double)(ID % cols) * tileSize.x, (double)(ID / cols) * tileSize.y}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    *size = targetSize;
+    *pos  = -(tilePosForID(ID, targetSize, 0.0) * pMonitor->m_scale);
 
     closing = true;
 
@@ -726,30 +726,9 @@ void COverview::fullRender() {
 
     g_pHyprOpenGL->clear(BG_COLOR.stripA());
 
-    // Precompute grid centering
-    int tilesInLastRow = images.size() % cols;
-    if (tilesInLastRow == 0) tilesInLastRow = cols;
-    int    lastRow    = (images.size() - 1) / cols;
-    int    actualRows = lastRow + 1;
-    double gridW      = cols * tileRenderSize.x + (cols - 1) * GAPSIZE;
-    double gridH      = actualRows * tileRenderSize.y + (actualRows - 1) * GAPSIZE;
-    double baseOffX   = (SIZE.x - gridW) / 2.0;
-    double baseOffY   = (SIZE.y - gridH) / 2.0;
-
     for (size_t i = 0; i < images.size(); ++i) {
-        int x = i % cols;
-        int y = i / cols;
-
-        double tileX;
-        if (y == lastRow && tilesInLastRow < cols) {
-            double rowW = tilesInLastRow * tileRenderSize.x + (tilesInLastRow - 1) * GAPSIZE;
-            tileX = (SIZE.x - rowW) / 2.0 + x * (tileRenderSize.x + GAPSIZE);
-        } else {
-            tileX = baseOffX + x * (tileRenderSize.x + GAPSIZE);
-        }
-        double tileY = baseOffY + y * (tileRenderSize.y + GAPSIZE);
-
-        CBox texbox = {tileX, tileY, tileRenderSize.x, tileRenderSize.y};
+        Vector2D tilePos = tilePosForID(i, SIZE, GAPSIZE);
+        CBox     texbox  = {tilePos.x, tilePos.y, tileRenderSize.x, tileRenderSize.y};
         texbox.scale(pMonitor->m_scale).translate(pos->value());
         texbox.round();
         CRegion damage{0, 0, INT16_MAX, INT16_MAX};
@@ -961,8 +940,7 @@ void COverview::onSwipeUpdate(double delta) {
     Vector2D            tileSize = {pMonitor->m_size.x / cols, pMonitor->m_size.y / rows};
 
     const auto          SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto          POSMAX  = (-(Vector2D{(double)(WORKSPACE_FOCUS_ID % cols) * tileSize.x, (double)(WORKSPACE_FOCUS_ID / cols) * tileSize.y}) * pMonitor->m_scale) *
-        (pMonitor->m_size / tileSize);
+    const auto          POSMAX  = -(tilePosForID(WORKSPACE_FOCUS_ID, SIZEMAX, 0.0) * pMonitor->m_scale);
 
     const auto SIZEMIN = pMonitor->m_size;
     const auto POSMIN  = Vector2D{0, 0};

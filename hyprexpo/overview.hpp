@@ -49,6 +49,7 @@ class COverview {
     void       onWorkspaceChange();
     void       fullRender();
     void       renderLabel(SP<CTexture>& tex, const std::string& text, int size);
+    Vector2D   tilePosForID(int id, Vector2D totalSize, double gapSize) const;
 
     int        SIDE_LENGTH           = 3;  // columns in grid
     int        GAP_WIDTH             = 5;
