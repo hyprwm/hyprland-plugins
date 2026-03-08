@@ -8,7 +8,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/shaders/Shaders.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-#include <hyprland/src/managers/HookSystemManager.hpp>
+#include <hyprland/src/event/EventBus.hpp>
 
 #include "globals.hpp"
 #include "shaders.hpp"
@@ -26,75 +26,11 @@ void onNewWindow(void* self, std::any data) {
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, makeUnique<CTrail>(PWINDOW));
 }
 
-GLuint CompileShader(const GLuint& type, std::string src) {
-    auto shader = glCreateShader(type);
-
-    auto shaderSource = src.c_str();
-
-    glShaderSource(shader, 1, (const GLchar**)&shaderSource, nullptr);
-    glCompileShader(shader);
-
-    GLint ok;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
-
-    if (ok == GL_FALSE)
-        throw std::runtime_error("compileShader() failed!");
-
-    return shader;
-}
-
-GLuint CreateProgram(const std::string& vert, const std::string& frag) {
-    auto vertCompiled = CompileShader(GL_VERTEX_SHADER, vert);
-
-    if (!vertCompiled)
-        throw std::runtime_error("Compiling vshader failed.");
-
-    auto fragCompiled = CompileShader(GL_FRAGMENT_SHADER, frag);
-
-    if (!fragCompiled)
-        throw std::runtime_error("Compiling fshader failed.");
-
-    auto prog = glCreateProgram();
-    glAttachShader(prog, vertCompiled);
-    glAttachShader(prog, fragCompiled);
-    glLinkProgram(prog);
-
-    glDetachShader(prog, vertCompiled);
-    glDetachShader(prog, fragCompiled);
-    glDeleteShader(vertCompiled);
-    glDeleteShader(fragCompiled);
-
-    GLint ok;
-    glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-
-    if (ok == GL_FALSE)
-        throw std::runtime_error("createProgram() failed! GL_LINK_STATUS not OK!");
-
-    return prog;
-}
-
-int onTick(void* data) {
-    EMIT_HOOK_EVENT("trailTick", nullptr);
-
-    const int TIMEOUT = g_pHyprRenderer->m_mostHzMonitor ? 1000.0 / g_pHyprRenderer->m_mostHzMonitor->m_refreshRate : 16;
-    wl_event_source_timer_update(g_pGlobalState->tick, TIMEOUT);
-
-    return 0;
-}
-
 void initGlobal() {
     g_pHyprRenderer->makeEGLCurrent();
 
-    GLuint prog                                                     = CreateProgram(QUADTRAIL, FRAGTRAIL);
-    g_pGlobalState->trailShader.program                             = prog;
-    g_pGlobalState->trailShader.uniformLocations[SHADER_PROJ]       = glGetUniformLocation(prog, "proj");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_TEX]        = glGetUniformLocation(prog, "tex");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR]      = glGetUniformLocation(prog, "color");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT]   = glGetUniformLocation(prog, "snapshots");
-
-    g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, &onTick, nullptr);
-    wl_event_source_timer_update(g_pGlobalState->tick, 1);
+    if (!g_pGlobalState->trailShader.createProgram(QUADTRAIL, FRAGTRAIL, true, false))
+        throw std::runtime_error("[ht] Failed to create trail shader");
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -115,7 +51,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", Hyprlang::INT{2});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{*configStringToInt("rgba(ffaa00ff)")});
 
-    static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
+    static auto P = Event::bus()->m_events.window.open.listen([&](PHLWINDOW w) { onNewWindow(nullptr, w); });
 
     g_pGlobalState = makeUnique<SGlobalState>();
     initGlobal();
@@ -136,6 +72,5 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    wl_event_source_remove(g_pGlobalState->tick);
     g_pHyprRenderer->m_renderPass.removeAllOfType("CTrailPassElement");
 }
