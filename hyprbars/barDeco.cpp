@@ -599,7 +599,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     CHyprColor DEST_COLOR;
-    if (**PINACTIVEBARCOLOR > 0 && !m_bWindowHasFocus)
+    if (**PINACTIVEBARCOLOR != -1 && !m_bWindowHasFocus)
         DEST_COLOR = CHyprColor(**PINACTIVEBARCOLOR);
     else
         DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
