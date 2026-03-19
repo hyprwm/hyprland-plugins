@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hyprutils/signal/Listener.hpp>
 #define WLR_USE_UNSTABLE
 
 #include <deque>
@@ -46,7 +47,7 @@ class CTrail : public IHyprWindowDecoration {
     virtual void                       damageEntire();
 
   private:
-    SP<HOOK_CALLBACK_FN>                                              pTickCb;
+    Hyprutils::Signal::CHyprSignalListener                            pTickCb;
     void                                                              onTick();
     void                                                              renderPass(PHLMONITOR pMonitor, const float& a);
 

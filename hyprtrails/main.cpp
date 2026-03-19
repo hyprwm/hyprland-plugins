@@ -8,7 +8,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/shaders/Shaders.hpp>
 #include <hyprland/src/render/Renderer.hpp>
-#include <hyprland/src/managers/HookSystemManager.hpp>
+#include <hyprland/src/event/EventBus.hpp>
 
 #include "globals.hpp"
 #include "shaders.hpp"
@@ -19,10 +19,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-void onNewWindow(void* self, std::any data) {
-    // data is guaranteed
-    const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-
+void onNewWindow(PHLWINDOW PWINDOW) {
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, makeUnique<CTrail>(PWINDOW));
 }
 
@@ -74,7 +71,7 @@ GLuint CreateProgram(const std::string& vert, const std::string& frag) {
 }
 
 int onTick(void* data) {
-    EMIT_HOOK_EVENT("trailTick", nullptr);
+    g_pGlobalState->events.trailTick.emit();
 
     const int TIMEOUT = g_pHyprRenderer->m_mostHzMonitor ? 1000.0 / g_pHyprRenderer->m_mostHzMonitor->m_refreshRate : 16;
     wl_event_source_timer_update(g_pGlobalState->tick, TIMEOUT);
@@ -85,13 +82,7 @@ int onTick(void* data) {
 void initGlobal() {
     g_pHyprRenderer->makeEGLCurrent();
 
-    GLuint prog                                                     = CreateProgram(QUADTRAIL, FRAGTRAIL);
-    g_pGlobalState->trailShader.program                             = prog;
-    g_pGlobalState->trailShader.uniformLocations[SHADER_PROJ]       = glGetUniformLocation(prog, "proj");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_TEX]        = glGetUniformLocation(prog, "tex");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_COLOR]      = glGetUniformLocation(prog, "color");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
-    g_pGlobalState->trailShader.uniformLocations[SHADER_GRADIENT]   = glGetUniformLocation(prog, "snapshots");
+    g_pGlobalState->trailShader.createProgram(QUADTRAIL, FRAGTRAIL);
 
     g_pGlobalState->tick = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, &onTick, nullptr);
     wl_event_source_timer_update(g_pGlobalState->tick, 1);
@@ -115,7 +106,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:history_step", Hyprlang::INT{2});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprtrails:color", Hyprlang::INT{*configStringToInt("rgba(ffaa00ff)")});
 
-    static auto P = HyprlandAPI::registerCallbackDynamic(PHANDLE, "openWindow", [&](void* self, SCallbackInfo& info, std::any data) { onNewWindow(self, data); });
+    static auto P = Event::bus()->m_events.window.open.listen([&](PHLWINDOW PWINDOW) { onNewWindow(PWINDOW); });
 
     g_pGlobalState = makeUnique<SGlobalState>();
     initGlobal();
