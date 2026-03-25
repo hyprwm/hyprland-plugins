@@ -15,6 +15,9 @@ constexpr bool ENABLE_LOWRES = false;
 
 class CMonitor;
 
+Vector2D                     overviewMonitorSize(const PHLMONITORREF& monitor);
+Hyprutils::Math::eTransform wlOutputTransformToHyprutilsTransform(wl_output_transform transform);
+
 class COverview {
   public:
     COverview(PHLWORKSPACE startedOn_, bool swipe = false);

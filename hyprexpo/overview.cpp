@@ -19,6 +19,76 @@ static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thispt
     g_pOverview->damage();
 }
 
+Vector2D overviewMonitorSize(const PHLMONITORREF& monitor) {
+    if (!monitor)
+        return {};
+
+    if (monitor->m_transformedSize.x > 0 && monitor->m_transformedSize.y > 0 && monitor->m_scale > 0)
+        return monitor->m_transformedSize / monitor->m_scale;
+
+    if (monitor->m_size.x > 0 && monitor->m_size.y > 0)
+        return monitor->m_size;
+
+    if (monitor->m_pixelSize.x > 0 && monitor->m_pixelSize.y > 0 && monitor->m_scale > 0)
+        return monitor->m_pixelSize / monitor->m_scale;
+
+    return {};
+}
+
+Hyprutils::Math::eTransform wlOutputTransformToHyprutilsTransform(const wl_output_transform transform) {
+    switch (transform) {
+        case WL_OUTPUT_TRANSFORM_NORMAL: return HYPRUTILS_TRANSFORM_NORMAL;
+        case WL_OUTPUT_TRANSFORM_90: return HYPRUTILS_TRANSFORM_90;
+        case WL_OUTPUT_TRANSFORM_180: return HYPRUTILS_TRANSFORM_180;
+        case WL_OUTPUT_TRANSFORM_270: return HYPRUTILS_TRANSFORM_270;
+        case WL_OUTPUT_TRANSFORM_FLIPPED: return HYPRUTILS_TRANSFORM_FLIPPED;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_90: return HYPRUTILS_TRANSFORM_FLIPPED_90;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_180: return HYPRUTILS_TRANSFORM_FLIPPED_180;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_270: return HYPRUTILS_TRANSFORM_FLIPPED_270;
+        default: return HYPRUTILS_TRANSFORM_NORMAL;
+    }
+}
+
+static Vector2D overviewRenderSize(const PHLMONITORREF& monitor) {
+    if (!monitor)
+        return {};
+
+    if (monitor->m_pixelSize.x > 0 && monitor->m_pixelSize.y > 0)
+        return monitor->m_pixelSize;
+
+    if (monitor->m_transformedSize.x > 0 && monitor->m_transformedSize.y > 0)
+        return monitor->m_transformedSize;
+
+    return overviewMonitorSize(monitor) * monitor->m_scale;
+}
+
+static Hyprutils::Math::eTransform inverseTransform(const Hyprutils::Math::eTransform transform) {
+    switch (transform) {
+        case HYPRUTILS_TRANSFORM_90: return HYPRUTILS_TRANSFORM_270;
+        case HYPRUTILS_TRANSFORM_180: return HYPRUTILS_TRANSFORM_180;
+        case HYPRUTILS_TRANSFORM_270: return HYPRUTILS_TRANSFORM_90;
+        case HYPRUTILS_TRANSFORM_FLIPPED_90: return HYPRUTILS_TRANSFORM_FLIPPED_270;
+        case HYPRUTILS_TRANSFORM_FLIPPED_180: return HYPRUTILS_TRANSFORM_FLIPPED_180;
+        case HYPRUTILS_TRANSFORM_FLIPPED_270: return HYPRUTILS_TRANSFORM_FLIPPED_90;
+        default: return transform;
+    }
+}
+
+static Hyprutils::Math::eTransform overviewTextureTransform(const PHLMONITORREF& monitor) {
+    if (!monitor)
+        return HYPRUTILS_TRANSFORM_NORMAL;
+
+    return inverseTransform(wlOutputTransformToHyprutilsTransform(monitor->m_transform));
+}
+
+static void applyOverviewTextureTransform(CFramebuffer& fb, const PHLMONITORREF& monitor) {
+    const auto TEX = fb.getTexture();
+    if (!TEX)
+        return;
+
+    TEX->m_transform = overviewTextureTransform(monitor);
+}
+
 COverview::~COverview() {
     g_pHyprRenderer->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
@@ -122,12 +192,13 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
-    Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH * pMonitor->m_scale, GAP_WIDTH * pMonitor->m_scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
+    const auto MONSIZE      = overviewMonitorSize(pMonitor);
+    Vector2D   tileSize     = MONSIZE / SIDE_LENGTH;
+    Vector2D   tileRenderSize = (MONSIZE - Vector2D{GAP_WIDTH * pMonitor->m_scale, GAP_WIDTH * pMonitor->m_scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
     if (!ENABLE_LOWRES)
-        monbox = {{0, 0}, pMonitor->m_pixelSize};
+        monbox = {{0, 0}, overviewRenderSize(pMonitor)};
 
     int          currentid = 0;
 
@@ -142,6 +213,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
         image.fb.alloc(monbox.w, monbox.h, PMONITOR->m_output->state->state().drmFormat);
+        applyOverviewTextureTransform(image.fb, pMonitor);
 
         CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
         g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
@@ -189,16 +261,16 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     // zoom on the current workspace.
     // const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
 
-    g_pAnimationManager->createAnimation(pMonitor->m_size * pMonitor->m_size / tileSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation((-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{currentid % SIDE_LENGTH, currentid / SIDE_LENGTH}) * pMonitor->m_scale) *
-                                             (pMonitor->m_size / tileSize),
+    g_pAnimationManager->createAnimation(MONSIZE * MONSIZE / tileSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation((-((MONSIZE / (double)SIDE_LENGTH) * Vector2D{currentid % SIDE_LENGTH, currentid / SIDE_LENGTH}) * pMonitor->m_scale) *
+                                             (MONSIZE / tileSize),
                                          pos, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
 
     size->setUpdateCallback(damageMonitor);
     pos->setUpdateCallback(damageMonitor);
 
     if (!swipe) {
-        *size = pMonitor->m_size;
+        *size = MONSIZE;
         *pos  = {0, 0};
 
         size->setCallbackOnEnd([this](auto) { redrawAll(true); });
@@ -241,8 +313,9 @@ void COverview::selectHoveredWorkspace() {
         return;
 
     // get tile x,y
-    int x     = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-    int y     = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
+    const auto MONSIZE = overviewMonitorSize(pMonitor);
+    int        x       = lastMousePosLocal.x / MONSIZE.x * SIDE_LENGTH;
+    int        y       = lastMousePosLocal.y / MONSIZE.y * SIDE_LENGTH;
     closeOnID = x + y * SIDE_LENGTH;
 }
 
@@ -261,15 +334,15 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     id = std::clamp(id, 0, SIDE_LENGTH * SIDE_LENGTH);
 
-    Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
-    Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
+    const auto MONSIZE      = overviewMonitorSize(pMonitor);
+    Vector2D   tileSize     = MONSIZE / SIDE_LENGTH;
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
-    if (!forcelowres && (size->value() != pMonitor->m_size || closing))
-        monbox = {{0, 0}, pMonitor->m_pixelSize};
+    if (!forcelowres && (size->value() != MONSIZE || closing))
+        monbox = {{0, 0}, overviewRenderSize(pMonitor)};
 
     if (!ENABLE_LOWRES)
-        monbox = {{0, 0}, pMonitor->m_pixelSize};
+        monbox = {{0, 0}, overviewRenderSize(pMonitor)};
 
     auto& image = images[id];
 
@@ -277,6 +350,8 @@ void COverview::redrawID(int id, bool forcelowres) {
         image.fb.release();
         image.fb.alloc(monbox.w, monbox.h, pMonitor->m_output->state->state().drmFormat);
     }
+
+    applyOverviewTextureTransform(image.fb, pMonitor);
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
     g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
@@ -362,13 +437,14 @@ void COverview::close() {
 
     const auto& TILE = images[std::clamp(ID, 0, SIDE_LENGTH * SIDE_LENGTH)];
 
-    Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
+    const auto  MONSIZE  = overviewMonitorSize(pMonitor);
+    Vector2D    tileSize = (MONSIZE / SIDE_LENGTH);
 
     size->warp();
     pos->warp();
 
-    *size = pMonitor->m_size * pMonitor->m_size / tileSize;
-    *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    *size = MONSIZE * MONSIZE / tileSize;
+    *pos  = (-((MONSIZE / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->m_scale) * (MONSIZE / tileSize);
 
     closing = true;
 
@@ -480,13 +556,14 @@ void COverview::onSwipeUpdate(double delta) {
     const float         PERC               = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
     const auto          WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
-    Vector2D            tileSize = (pMonitor->m_size / SIDE_LENGTH);
+    const auto          MONSIZE  = overviewMonitorSize(pMonitor);
+    Vector2D            tileSize = (MONSIZE / SIDE_LENGTH);
 
-    const auto          SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto          POSMAX  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
-        (pMonitor->m_size / tileSize);
+    const auto          SIZEMAX = MONSIZE * MONSIZE / tileSize;
+    const auto          POSMAX  = (-((MONSIZE / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
+        (MONSIZE / tileSize);
 
-    const auto SIZEMIN = pMonitor->m_size;
+    const auto SIZEMIN = MONSIZE;
     const auto POSMIN  = Vector2D{0, 0};
 
     size->setValueAndWarp(lerp(SIZEMIN, SIZEMAX, PERC));
@@ -497,14 +574,15 @@ void COverview::onSwipeEnd() {
     if (closing || !m_isSwiping)
         return;
 
-    const auto SIZEMIN = pMonitor->m_size;
-    const auto SIZEMAX = pMonitor->m_size * pMonitor->m_size / (pMonitor->m_size / SIDE_LENGTH);
+    const auto MONSIZE = overviewMonitorSize(pMonitor);
+    const auto SIZEMIN = MONSIZE;
+    const auto SIZEMAX = MONSIZE * MONSIZE / (MONSIZE / SIDE_LENGTH);
     const auto PERC    = (size->value() - SIZEMIN).x / (SIZEMAX - SIZEMIN).x;
     if (PERC > 0.5) {
         close();
         return;
     }
-    *size = pMonitor->m_size;
+    *size = MONSIZE;
     *pos  = {0, 0};
 
     size->setCallbackOnEnd([this](WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) { redrawAll(true); });
