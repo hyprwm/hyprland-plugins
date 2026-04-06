@@ -115,7 +115,7 @@ void onCloseWindow(PHLWINDOW pWindow) {
 }
 
 void onRenderStage(eRenderStage stage) {
-    if (stage != RENDER_PRE_WINDOWS)
+    if (stage != RENDER_POST_WALLPAPER)
         return;
 
     for (auto& bg : bgWindows) {
