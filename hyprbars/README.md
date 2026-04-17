@@ -66,5 +66,9 @@ Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/
 Example:
 ```bash
 # Sets the bar color in red for all windows that have 'myClass' as a class
-windowrule = plugin:hyprbars:bar_color rgb(ff0000), class:^(myClass)
+windowrule {
+    name = myClass-red-bars
+    match:class = ^(myClass)$
+    hyprbars:bar_color = rgb(ff0000)
+}
 ```
