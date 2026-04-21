@@ -116,6 +116,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P3 = Event::bus()->m_events.window.updateRules.listen([&](PHLWINDOW w) { onUpdateWindowRules(w); });
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color", Hyprlang::INT{*configStringToInt("rgba(33333388)")});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_color_inactive", Hyprlang::INT{0}); // unset by default, uses bar_color if not set
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_height", Hyprlang::INT{15});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:col.text", Hyprlang::INT{*configStringToInt("rgba(ffffffff)")});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:bar_text_size", Hyprlang::INT{10});
@@ -131,6 +132,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:enabled", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover", Hyprlang::INT{0});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color", Hyprlang::INT{0}); // unset
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:button_hover_bg_color", Hyprlang::INT{*configStringToInt("rgba(ffffff11)")}); // subtle white hover
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprbars:on_double_click", Hyprlang::STRING{""});
 
     HyprlandAPI::addConfigKeyword(PHANDLE, "plugin:hyprbars:hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});

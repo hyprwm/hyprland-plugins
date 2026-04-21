@@ -511,6 +511,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     static auto* const PBARPADDING       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_padding")->getDataStaticPtr();
     static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
     static auto* const PICONONHOVER      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:icon_on_hover")->getDataStaticPtr();
+    static auto* const PHOVERBGCOLOR     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:button_hover_bg_color")->getDataStaticPtr();
 
     const bool         BUTTONSRIGHT = std::string{*PALIGNBUTTONS} != "left";
     const auto         visibleCount = getVisibleButtonCount(PBARBUTTONPADDING, PBARPADDING, Vector2D{barBox->w, barBox->h}, scale);
@@ -544,11 +545,44 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         CBox pos = {barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize : offset), barBox->y + (barBox->height - scaledButtonSize) / 2.0, scaledButtonSize,
                     scaledButtonSize};
 
+        // Check if this button is being hovered
+        bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
+
+        // Draw hover background rectangle if hovering
+        if (currentBit && **PHOVERBGCOLOR > 0) {
+            const auto hoverColor = CHyprColor(**PHOVERBGCOLOR);
+            // Create consistent hover box based on bar height
+            const float hoverSize = barBox->height * 0.9; // 90% of bar height for nice padding
+
+            // Special case: first button (index 0, rightmost = Close) extends to edge
+            const bool isFirstButton = (i == 0);
+            const bool isLastButton = (i == visibleCount - 1);
+            float hoverX, hoverWidth;
+
+            if (BUTTONSRIGHT && isFirstButton) {
+                // Close button (rightmost): include half padding on left, extend to edge on right
+                hoverX = pos.x - scaledButtonsPad / 2.0;
+                hoverWidth = barBox->x + barBox->width - hoverX;
+            } else if (BUTTONSRIGHT && isLastButton) {
+                // Leftmost button: include half padding on left and right
+                hoverWidth = scaledButtonSize + scaledButtonsPad;
+                hoverX = pos.x - scaledButtonsPad / 2.0;
+            } else {
+                // Middle buttons: include half padding on both sides
+                hoverWidth = scaledButtonSize + scaledButtonsPad;
+                hoverX = pos.x - scaledButtonsPad / 2.0;
+            }
+
+            CBox hoverBox = {hoverX,
+                            barBox->y + (barBox->height - hoverSize) / 2.0,
+                            hoverWidth,
+                            hoverSize};
+            g_pHyprOpenGL->renderRect(hoverBox, hoverColor, {.round = 3}); // Rounded corners
+        }
+
         if (!**PICONONHOVER || (**PICONONHOVER && m_iButtonHoverState > 0))
             g_pHyprOpenGL->renderTexture(button.iconTex, pos, {.a = a});
         offset += scaledButtonsPad + scaledButtonSize;
-
-        bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
         if (hovering != currentBit) {
             m_iButtonHoverState ^= (1 << i);
             // damage to get rid of some artifacts when icons are "hidden"
@@ -580,24 +614,31 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     const auto         PWINDOW = m_pWindow.lock();
 
-    static auto* const PCOLOR            = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
-    static auto* const PHEIGHT           = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
-    static auto* const PPRECEDENCE       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
-    static auto* const PALIGNBUTTONS     = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
-    static auto* const PENABLETITLE      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
-    static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
-    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
-    static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PCOLOR              = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color")->getDataStaticPtr();
+    static auto* const PCOLORINACTIVE      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_color_inactive")->getDataStaticPtr();
+    static auto* const PHEIGHT             = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_height")->getDataStaticPtr();
+    static auto* const PPRECEDENCE         = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_precedence_over_border")->getDataStaticPtr();
+    static auto* const PALIGNBUTTONS       = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_buttons_alignment")->getDataStaticPtr();
+    static auto* const PENABLETITLE        = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_title_enabled")->getDataStaticPtr();
+    static auto* const PENABLEBLUR         = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
+    static auto* const PENABLEBLURGLOBAL   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
+    static auto* const PINACTIVECOLOR      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
 
-    if (**PINACTIVECOLOR > 0) {
-        bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
-        if (currentWindowFocus != m_bWindowHasFocus) {
-            m_bWindowHasFocus = currentWindowFocus;
-            m_bButtonsDirty   = true;
-        }
+    // Check window focus state
+    bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
+    if (currentWindowFocus != m_bWindowHasFocus) {
+        m_bWindowHasFocus = currentWindowFocus;
+        if (**PINACTIVECOLOR > 0)
+            m_bButtonsDirty = true;
     }
 
-    const CHyprColor DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
+    // Choose bar color based on focus state
+    CHyprColor baseBarColor = **PCOLOR;
+    if (!m_bWindowHasFocus && **PCOLORINACTIVE > 0) {
+        baseBarColor = **PCOLORINACTIVE;
+    }
+
+    const CHyprColor DEST_COLOR = m_bForcedBarColor.value_or(baseBarColor);
     if (DEST_COLOR != m_cRealBarColor->goal())
         *m_cRealBarColor = DEST_COLOR;
 
