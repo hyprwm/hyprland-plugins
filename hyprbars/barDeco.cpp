@@ -588,8 +588,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     static auto* const PENABLEBLUR       = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_blur")->getDataStaticPtr();
     static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
     static auto* const PINACTIVECOLOR    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:inactive_button_color")->getDataStaticPtr();
+    static auto* const PINACTIVEBARCOLOR = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprbars:bar_inactive_color")->getDataStaticPtr();
 
-    if (**PINACTIVECOLOR > 0) {
+    {
         bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
         if (currentWindowFocus != m_bWindowHasFocus) {
             m_bWindowHasFocus = currentWindowFocus;
@@ -597,7 +598,11 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         }
     }
 
-    const CHyprColor DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
+    CHyprColor DEST_COLOR;
+    if (**PINACTIVEBARCOLOR != -1 && !m_bWindowHasFocus)
+        DEST_COLOR = CHyprColor(**PINACTIVEBARCOLOR);
+    else
+        DEST_COLOR = m_bForcedBarColor.value_or(**PCOLOR);
     if (DEST_COLOR != m_cRealBarColor->goal())
         *m_cRealBarColor = DEST_COLOR;
 
