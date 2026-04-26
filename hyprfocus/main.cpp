@@ -43,27 +43,28 @@ static void onFocusChange(PHLWINDOW window) {
 
     lastWindow = window;
 
+    static const auto PENABLE = CConfigValue<Hyprlang::INT>("plugin:hyprfocus:enable");
+    if (!*PENABLE)
+        return;
+
     static const auto PANIMATE_FLOATING = CConfigValue<Hyprlang::INT>("plugin:hyprfocus:animate_floating");
     if (!*PANIMATE_FLOATING && window->m_isFloating)
         return;
 
-    static const auto PKEYBOARD_MODE = CConfigValue<std::string>("plugin:hyprfocus:keyboard_mode");
-    static const auto PMOUSE_MODE    = CConfigValue<std::string>("plugin:hyprfocus:mouse_mode");
+    static const auto PKEYBOARD_ANIM = CConfigValue<std::string>("plugin:hyprfocus:keyboard_focus_animation");
+    static const auto PMOUSE_ANIM    = CConfigValue<std::string>("plugin:hyprfocus:mouse_focus_animation");
     const bool wasMouse = g_lastFocusWasMouse;
     g_lastFocusWasMouse = false;
 
+    const std::string& mode = wasMouse ? *PMOUSE_ANIM : *PKEYBOARD_ANIM;
+
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
-    static const auto PBOUNCE  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:bounce_strength");
+    static const auto PSHRINK  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:shrink_strength");
     static const auto PSLIDE   = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:slide_height");
-    static const auto PMODE    = CConfigValue<std::string>("plugin:hyprfocus:mode");
     const auto        PIN      = g_pConfigManager->getAnimationPropertyConfig("hyprfocusIn");
     const auto        POUT     = g_pConfigManager->getAnimationPropertyConfig("hyprfocusOut");
 
-    const std::string effectiveMode = wasMouse
-        ? ((*PMOUSE_MODE).empty()    ? *PMODE : *PMOUSE_MODE)
-        : ((*PKEYBOARD_MODE).empty() ? *PMODE : *PKEYBOARD_MODE);
-
-    if (effectiveMode == "flash") {
+    if (mode == "flash") {
         window->m_activeInactiveAlpha->setConfig(PIN);
         *window->m_activeInactiveAlpha = std::clamp(*POPACITY, 0.F, 1.F);
 
@@ -76,13 +77,13 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
         });
-    } else if (effectiveMode == "bounce") {
+    } else if (mode == "shrink") {
         const auto ORIGINAL = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
 
         window->m_realPosition->setConfig(PIN);
         window->m_realSize->setConfig(PIN);
 
-        auto box = ORIGINAL.copy().scaleFromCenter(std::clamp(*PBOUNCE, 0.1F, 1.F));
+        auto box = ORIGINAL.copy().scaleFromCenter(std::clamp(*PSHRINK, 0.1F, 1.F));
 
         *window->m_realPosition = box.pos();
         *window->m_realSize     = box.size();
@@ -101,7 +102,7 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->m_realSize->setCallbackOnEnd(nullptr);
         });
-    } else if (effectiveMode == "slide") {
+    } else if (mode == "slide") {
         const auto ORIGINAL = window->m_realPosition->goal();
 
         window->m_realPosition->setConfig(PIN);
@@ -142,13 +143,13 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P   = HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onFocusChange(std::any_cast<PHLWINDOW>(data)); });
     // clang-format on
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mode", Hyprlang::STRING{"flash"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:keyboard_mode", Hyprlang::STRING{""});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mouse_mode", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:enable", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:animate_floating", Hyprlang::INT{1});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:keyboard_focus_animation", Hyprlang::STRING{"flash"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mouse_focus_animation", Hyprlang::STRING{"nothing"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:fade_opacity", Hyprlang::FLOAT{0.8F});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:shrink_strength", Hyprlang::FLOAT{0.95F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:slide_height", Hyprlang::FLOAT{20.F});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:bounce_strength", Hyprlang::FLOAT{0.95F});
 
     // this will not be cleaned up after we are unloaded but it doesn't really matter,
     // as if we create this again it will just overwrite the old one.
