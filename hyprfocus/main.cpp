@@ -29,6 +29,9 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
+// Set when a mouse event fires; cleared after each focus change or on keyPress.
+static bool g_lastFocusWasMouse = false;
+
 static void onFocusChange(PHLWINDOW window) {
     if (!window)
         return;
@@ -40,6 +43,15 @@ static void onFocusChange(PHLWINDOW window) {
 
     lastWindow = window;
 
+    static const auto PANIMATE_FLOATING = CConfigValue<Hyprlang::INT>("plugin:hyprfocus:animate_floating");
+    if (!*PANIMATE_FLOATING && window->m_isFloating)
+        return;
+
+    static const auto PKEYBOARD_MODE = CConfigValue<std::string>("plugin:hyprfocus:keyboard_mode");
+    static const auto PMOUSE_MODE    = CConfigValue<std::string>("plugin:hyprfocus:mouse_mode");
+    const bool wasMouse = g_lastFocusWasMouse;
+    g_lastFocusWasMouse = false;
+
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
     static const auto PBOUNCE  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:bounce_strength");
     static const auto PSLIDE   = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:slide_height");
@@ -47,7 +59,11 @@ static void onFocusChange(PHLWINDOW window) {
     const auto        PIN      = g_pConfigManager->getAnimationPropertyConfig("hyprfocusIn");
     const auto        POUT     = g_pConfigManager->getAnimationPropertyConfig("hyprfocusOut");
 
-    if (*PMODE == "flash") {
+    const std::string effectiveMode = wasMouse
+        ? ((*PMOUSE_MODE).empty()    ? *PMODE : *PMOUSE_MODE)
+        : ((*PKEYBOARD_MODE).empty() ? *PMODE : *PKEYBOARD_MODE);
+
+    if (effectiveMode == "flash") {
         window->m_activeInactiveAlpha->setConfig(PIN);
         *window->m_activeInactiveAlpha = std::clamp(*POPACITY, 0.F, 1.F);
 
@@ -60,7 +76,7 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
         });
-    } else if (*PMODE == "bounce") {
+    } else if (effectiveMode == "bounce") {
         const auto ORIGINAL = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
 
         window->m_realPosition->setConfig(PIN);
@@ -85,7 +101,7 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->m_realSize->setCallbackOnEnd(nullptr);
         });
-    } else if (*PMODE == "slide") {
+    } else if (effectiveMode == "slide") {
         const auto ORIGINAL = window->m_realPosition->goal();
 
         window->m_realPosition->setConfig(PIN);
@@ -120,10 +136,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     }
 
     // clang-format off
-    static auto P  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onFocusChange(std::any_cast<PHLWINDOW>(data)); });
+    static auto PM  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseButton", [&](void* self, SCallbackInfo& info, std::any data) { g_lastFocusWasMouse = true; });
+    static auto PMM = HyprlandAPI::registerCallbackDynamic(PHANDLE, "mouseMove",   [&](void* self, SCallbackInfo& info, std::any data) { g_lastFocusWasMouse = true; });
+    static auto PK  = HyprlandAPI::registerCallbackDynamic(PHANDLE, "keyPress",    [&](void* self, SCallbackInfo& info, std::any data) { g_lastFocusWasMouse = false; });
+    static auto P   = HyprlandAPI::registerCallbackDynamic(PHANDLE, "activeWindow", [&](void* self, SCallbackInfo& info, std::any data) { onFocusChange(std::any_cast<PHLWINDOW>(data)); });
     // clang-format on
 
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mode", Hyprlang::STRING{"flash"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:keyboard_mode", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mouse_mode", Hyprlang::STRING{""});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:animate_floating", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:fade_opacity", Hyprlang::FLOAT{0.8F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:slide_height", Hyprlang::FLOAT{20.F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:bounce_strength", Hyprlang::FLOAT{0.95F});
