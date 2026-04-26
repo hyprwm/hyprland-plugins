@@ -59,7 +59,7 @@ static void onFocusChange(PHLWINDOW window) {
     const std::string& mode = wasMouse ? *PMOUSE_ANIM : *PKEYBOARD_ANIM;
 
     static const auto POPACITY = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:fade_opacity");
-    static const auto PSHRINK  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:shrink_strength");
+    static const auto PSHRINK  = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:shrink_percentage");
     static const auto PSLIDE   = CConfigValue<Hyprlang::FLOAT>("plugin:hyprfocus:slide_height");
     const auto        PIN      = g_pConfigManager->getAnimationPropertyConfig("hyprfocusIn");
     const auto        POUT     = g_pConfigManager->getAnimationPropertyConfig("hyprfocusOut");
@@ -146,9 +146,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:enable", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:animate_floating", Hyprlang::INT{1});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:keyboard_focus_animation", Hyprlang::STRING{"flash"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mouse_focus_animation", Hyprlang::STRING{"nothing"});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:mouse_focus_animation", Hyprlang::STRING{"none"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:fade_opacity", Hyprlang::FLOAT{0.8F});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:shrink_strength", Hyprlang::FLOAT{0.95F});
+    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:shrink_percentage", Hyprlang::FLOAT{0.95F});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfocus:slide_height", Hyprlang::FLOAT{20.F});
 
     // this will not be cleaned up after we are unloaded but it doesn't really matter,
