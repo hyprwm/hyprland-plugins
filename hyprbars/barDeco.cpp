@@ -20,6 +20,8 @@
 #include "globals.hpp"
 #include "BarPassElement.hpp"
 
+#include <climits>
+
 using namespace Render::GL;
 
 static CHyprColor configColor(Config::INTEGER color) {
