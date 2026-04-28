@@ -6,12 +6,18 @@
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/shared/actions/ConfigActions.hpp>
+#include <hyprland/src/config/values/types/ColorValue.hpp>
+#include <hyprland/src/config/values/types/IntValue.hpp>
+#include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/helpers/time/Time.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/trackpad/GestureTypes.hpp>
 #include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 
+#include <lua.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
 using namespace Hyprutils::String;
 
@@ -23,7 +29,7 @@ using namespace Hyprutils::String;
 inline CFunctionHook* g_pRenderWorkspaceHook = nullptr;
 inline CFunctionHook* g_pAddDamageHookA      = nullptr;
 inline CFunctionHook* g_pAddDamageHookB      = nullptr;
-typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, const CBox&);
+typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, const CBox&);
 typedef void (*origAddDamageA)(void*, const CBox&);
 typedef void (*origAddDamageB)(void*, const pixman_region32_t*);
 
@@ -39,7 +45,7 @@ static bool       renderingOverview = false;
 const std::string KEYWORD_EXPO_GESTURE = "hyprexpo-gesture";
 
 //
-static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
+static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering || g_pOverview->pMonitor != pMonitor)
         ((origRenderWorkspace)(g_pRenderWorkspaceHook->m_original))(thisptr, pMonitor, pWorkspace, now, geometry);
     else
@@ -104,6 +110,13 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
     g_pOverview       = std::make_unique<COverview>(Desktop::focusState()->monitor()->m_activeWorkspace);
     renderingOverview = false;
     return {};
+}
+
+static int luaExpo(lua_State* L) {
+    const auto RESULT = onExpoDispatcher(luaL_optstring(L, 1, "toggle"));
+    if (!RESULT.success)
+        return luaL_error(L, "%s", RESULT.error.c_str());
+    return 0;
 }
 
 static void failNotif(const std::string& reason) {
@@ -242,16 +255,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     });
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", ::onExpoDispatcher);
+    HyprlandAPI::addLuaFunction(PHANDLE, "hyprexpo", "expo", ::luaExpo);
 
     HyprlandAPI::addConfigKeyword(PHANDLE, KEYWORD_EXPO_GESTURE, ::expoGestureKeyword, {true});
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:bg_col", Hyprlang::INT{0xFF111111});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty", Hyprlang::INT{0});
-
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:columns", "columns", 3));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:gap_size", "gap size", 5));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CColorValue>("plugin:hyprexpo:bg_col", "background color", 0xFF111111));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CStringValue>("plugin:hyprexpo:workspace_method", "workspace method", "center current"));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:skip_empty", "skip empty workspaces", 0));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:gesture_distance", "gesture distance", 200));
 
     HyprlandAPI::reloadConfig();
 
