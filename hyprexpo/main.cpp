@@ -74,6 +74,47 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     g_pOverview->onDamageReported();
 }
 
+static PHLWINDOW windowToBringFromWorkspace(const PHLWORKSPACE& workspace) {
+    if (!workspace)
+        return nullptr;
+
+    for (auto it = g_pCompositor->m_windows.rbegin(); it != g_pCompositor->m_windows.rend(); ++it) {
+        const auto& w = *it;
+        if (!w || w->m_workspace != workspace || !w->m_isMapped || w->isHidden())
+            continue;
+
+        return w;
+    }
+
+    return nullptr;
+}
+
+static SDispatchResult bringWindowFromWorkspace(int64_t sourceWorkspaceID) {
+    if (sourceWorkspaceID == WORKSPACE_INVALID)
+        return {.success = false, .error = "selected workspace is empty"};
+
+    const auto FOCUSSTATE = Desktop::focusState();
+    const auto MONITOR    = FOCUSSTATE->monitor();
+    if (!MONITOR || !MONITOR->m_activeWorkspace)
+        return {.success = false, .error = "no active monitor/workspace"};
+
+    if (sourceWorkspaceID == MONITOR->activeWorkspaceID())
+        return {};
+
+    const auto SOURCEWORKSPACE = g_pCompositor->getWorkspaceByID(sourceWorkspaceID);
+    if (!SOURCEWORKSPACE)
+        return {.success = false, .error = "selected workspace is not open"};
+
+    const auto WINDOW = windowToBringFromWorkspace(SOURCEWORKSPACE);
+    if (!WINDOW)
+        return {.success = false, .error = "selected workspace has no mapped windows"};
+
+    g_pCompositor->moveWindowToWorkspaceSafe(WINDOW, MONITOR->m_activeWorkspace);
+    FOCUSSTATE->fullWindowFocus(WINDOW, Desktop::FOCUS_REASON_KEYBIND);
+    g_pCompositor->warpCursorTo(WINDOW->middle());
+    return {};
+}
+
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
     if (g_pOverview && g_pOverview->m_isSwiping)
@@ -83,6 +124,15 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
         if (g_pOverview) {
             g_pOverview->selectHoveredWorkspace();
             g_pOverview->close();
+        }
+        return {};
+    }
+    if (arg == "bring") {
+        if (g_pOverview) {
+            g_pOverview->selectHoveredWorkspace();
+            const auto BRINGRESULT = bringWindowFromWorkspace(g_pOverview->selectedWorkspaceID());
+            g_pOverview->close(false);
+            return BRINGRESULT;
         }
         return {};
     }
@@ -264,6 +314,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CColorValue>("plugin:hyprexpo:bg_col", "background color", 0xFF111111));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CStringValue>("plugin:hyprexpo:workspace_method", "workspace method", "center current"));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:skip_empty", "skip empty workspaces", 0));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:show_workspace_numbers", "show workspace numbers", 0));
+    HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CColorValue>("plugin:hyprexpo:workspace_number_color", "workspace number color", 0xFFFFFFFF));
     HyprlandAPI::addConfigValueV2(PHANDLE, makeShared<Config::Values::CIntValue>("plugin:hyprexpo:gesture_distance", "gesture distance", 200));
 
     HyprlandAPI::reloadConfig();
