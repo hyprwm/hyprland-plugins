@@ -10,6 +10,8 @@
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/shared/actions/ConfigActions.hpp>
+#include <hyprland/src/config/supplementary/executor/Executor.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/KeybindManager.hpp>
 #undef private
@@ -38,7 +40,7 @@ static SDispatchResult moveOrExec(std::string in) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[0]);
 
     if (!PWINDOW)
-        g_pKeybindManager->spawn(vars[1]);
+        Config::Supplementary::executor()->spawn(vars[1]);
     else {
         if (monitor->m_activeWorkspace != PWINDOW->m_workspace)
             g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->m_activeWorkspace);
@@ -122,7 +124,7 @@ static SDispatchResult closeUnfocused(std::string in) {
         if (w->m_workspace != monitor->m_activeWorkspace || w->m_monitor != monitor || !w->m_isMapped || w == window)
             continue;
 
-        g_pCompositor->closeWindow(w);
+        Config::Actions::closeWindow(w);
     }
 
     return SDispatchResult{};

@@ -6,8 +6,9 @@ COverviewPassElement::COverviewPassElement() {
     ;
 }
 
-void COverviewPassElement::draw(const CRegion& damage) {
+std::vector<UP<IPassElement>> COverviewPassElement::draw() {
     g_pOverview->fullRender();
+    return {};
 }
 
 bool COverviewPassElement::needsLiveBlur() {

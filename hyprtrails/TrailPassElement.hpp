@@ -13,12 +13,16 @@ class CTrailPassElement : public IPassElement {
     CTrailPassElement(const STrailData& data_);
     virtual ~CTrailPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
+    virtual std::vector<UP<IPassElement>> draw() override;
+    virtual bool                          needsLiveBlur() override;
+    virtual bool                          needsPrecomputeBlur() override;
 
-    virtual const char* passName() {
+    virtual const char*                   passName() override {
         return "CTrailPassElement";
+    }
+
+    virtual ePassElementType type() override {
+        return EK_CUSTOM;
     }
 
   private:

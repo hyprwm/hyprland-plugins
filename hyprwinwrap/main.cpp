@@ -8,6 +8,7 @@
 #include <sstream>
 
 #define private public
+#define protected public
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
@@ -17,6 +18,10 @@
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #undef private
+#undef protected
+
+using namespace Render;
+using namespace Render::GL;
 
 #include "globals.hpp"
 
@@ -121,13 +126,13 @@ void onRenderStage(eRenderStage stage) {
     for (auto& bg : bgWindows) {
         const auto bgw = bg.lock();
 
-        if (bgw->m_monitor != g_pHyprOpenGL->m_renderData.pMonitor)
+        if (bgw->m_monitor != g_pHyprRenderer->m_renderData.pMonitor)
             continue;
 
         // cant use setHidden cuz that sends suspended and shit too that would be laggy
         bgw->m_hidden = false;
 
-        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_renderData.pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL, false, true);
+        g_pHyprRenderer->renderWindow(bgw, g_pHyprRenderer->m_renderData.pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL, false, true);
 
         bgw->m_hidden = true;
     }
@@ -146,7 +151,7 @@ void onCommitSubsurface(Desktop::View::CSubsurface* thisptr) {
 
     ((origCommitSubsurface)subsurfaceHook->m_original)(thisptr);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
+        g_pHyprRenderer->damageMonitor(MON);
 
     PWINDOW->m_hidden = true;
 }
@@ -164,7 +169,7 @@ void onCommit(void* owner, void* data) {
 
     ((origCommit)commitHook->m_original)(owner, data);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
+        g_pHyprRenderer->damageMonitor(MON);
 
     PWINDOW->m_hidden = true;
 }
@@ -173,15 +178,15 @@ void onConfigReloaded() {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
     const std::string  classRule(*PCLASS);
     if (!classRule.empty()) {
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + classRule + ")$");
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + classRule + ")$");
+        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 float, class:^("} + classRule + ")$");
+        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 size 100% 100%, class:^("} + classRule + ")$");
     }
 
     static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
     const std::string  titleRule(*PTITLE);
     if (!titleRule.empty()) {
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, title:^("} + titleRule + ")$");
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, title:^("} + titleRule + ")$");
+        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 float, title:^("} + titleRule + ")$");
+        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 size 100% 100%, title:^("} + titleRule + ")$");
     }
 }
 
