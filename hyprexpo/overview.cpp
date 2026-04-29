@@ -26,14 +26,45 @@
 
 using namespace Hyprutils::String;
 
-static const CConfigValue<Config::INTEGER> PCOLUMNS("plugin:hyprexpo:columns");
-static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
-static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
-static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
-static const CConfigValue<Config::INTEGER> PSHOWNUM("plugin:hyprexpo:show_workspace_numbers");
-static const CConfigValue<Config::INTEGER> PNUMCOL("plugin:hyprexpo:workspace_number_color");
-static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
-static const CConfigValue<Config::INTEGER> PDISTANCE("plugin:hyprexpo:gesture_distance");
+static const CConfigValue<Config::INTEGER>& PCOLUMNS() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:columns");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PGAPS() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:gap_size");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PCOL() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:bg_col");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PSKIP() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:skip_empty");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PSHOWNUM() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:show_workspace_numbers");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PNUMCOL() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:workspace_number_color");
+    return VALUE;
+}
+
+static const CConfigValue<Config::STRING>& PMETHOD() {
+    static const CConfigValue<Config::STRING> VALUE("plugin:hyprexpo:workspace_method");
+    return VALUE;
+}
+
+static const CConfigValue<Config::INTEGER>& PDISTANCE() {
+    static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:gesture_distance");
+    return VALUE;
+}
 
 static void                                clearWithColor(const CHyprColor& color) {
     glClearColor(color.r, color.g, color.b, color.a);
@@ -144,15 +175,15 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     const auto PMONITOR = Desktop::focusState()->monitor();
     pMonitor            = PMONITOR;
 
-    SIDE_LENGTH          = *PCOLUMNS;
-    GAP_WIDTH            = *PGAPS;
-    BG_COLOR             = CHyprColor(*PCOL);
-    showWorkspaceNumbers = *PSHOWNUM;
+    SIDE_LENGTH          = *PCOLUMNS();
+    GAP_WIDTH            = *PGAPS();
+    BG_COLOR             = CHyprColor(*PCOL());
+    showWorkspaceNumbers = *PSHOWNUM();
 
     // process the method
     bool     methodCenter  = true;
     int      methodStartID = pMonitor->activeWorkspaceID();
-    CVarList method{*PMETHOD, 0, 's', true};
+    CVarList method{*PMETHOD(), 0, 's', true};
     if (method.size() < 2)
         Log::logger->log(Log::ERR, "[he] invalid workspace_method");
     else {
@@ -165,7 +196,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
     // r includes empty workspaces; m skips over them
-    std::string selector = *PSKIP ? "m" : "r";
+    std::string selector = *PSKIP() ? "m" : "r";
 
     if (methodCenter) {
         int currentID = methodStartID;
@@ -236,7 +267,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
     if (showWorkspaceNumbers) {
-        const CHyprColor numberColor = CHyprColor(*PNUMCOL);
+        const CHyprColor numberColor = CHyprColor(*PNUMCOL());
         const int        fontSizePx  = std::max(12, (int)std::round(tileRenderSize.y * pMonitor->m_scale * 0.22));
         for (auto& image : images) {
             if (image.workspaceID == WORKSPACE_INVALID)
@@ -361,9 +392,9 @@ void COverview::selectHoveredWorkspace() {
         return;
 
     // get tile x,y
-    int x     = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-    int y     = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
-    closeOnID = x + y * SIDE_LENGTH;
+    int x     = std::clamp((int)(lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    int y     = std::clamp((int)(lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    closeOnID = std::clamp(x + y * SIDE_LENGTH, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
@@ -379,7 +410,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     Render::GL::g_pHyprOpenGL->makeEGLCurrent();
 
-    id = std::clamp(id, 0, SIDE_LENGTH * SIDE_LENGTH);
+    id = std::clamp(id, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 
     Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
     Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
@@ -483,9 +514,10 @@ void COverview::close(bool switchToSelection) {
     if (closing)
         return;
 
-    const int   ID = closeOnID == -1 ? openedID : closeOnID;
+    const int   ID     = closeOnID == -1 ? openedID : closeOnID;
+    const int   SAFEID = std::clamp(ID, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 
-    const auto& TILE = images[std::clamp(ID, 0, SIDE_LENGTH * SIDE_LENGTH)];
+    const auto& TILE = images[SAFEID];
 
     Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
@@ -493,7 +525,7 @@ void COverview::close(bool switchToSelection) {
     pos->warp();
 
     *size = pMonitor->m_size * pMonitor->m_size / tileSize;
-    *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{SAFEID % SIDE_LENGTH, SAFEID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
 
     closing = true;
 
@@ -610,7 +642,7 @@ void COverview::resetSwipe() {
 void COverview::onSwipeUpdate(double delta) {
     m_isSwiping = true;
 
-    const float PERC               = closing ? std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0);
+    const float PERC               = closing ? std::clamp(delta / (double)*PDISTANCE(), 0.0, 1.0) : 1.0 - std::clamp(delta / (double)*PDISTANCE(), 0.0, 1.0);
     const auto  WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
     Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
