@@ -12,6 +12,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/actions/ConfigActions.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
+#include <hyprland/src/helpers/Format.hpp>
 #include <hyprland/src/managers/animation/AnimationManager.hpp>
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
@@ -64,6 +65,11 @@ static const CConfigValue<Config::STRING>& PMETHOD() {
 static const CConfigValue<Config::INTEGER>& PDISTANCE() {
     static const CConfigValue<Config::INTEGER> VALUE("plugin:hyprexpo:gesture_distance");
     return VALUE;
+}
+
+static uint32_t framebufferFormatWithAlpha(uint32_t drmFormat) {
+    const auto alphaFormat = NFormatUtils::alphaFormat(drmFormat);
+    return alphaFormat == 0 ? DRM_FORMAT_ABGR8888 : alphaFormat;
 }
 
 static void                                clearWithColor(const CHyprColor& color) {
@@ -292,7 +298,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
-        ensureFramebuffer(image, monbox, PMONITOR->m_output->state->state().drmFormat);
+        ensureFramebuffer(image, monbox, framebufferFormatWithAlpha(PMONITOR->m_output->state->state().drmFormat));
 
         CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
         g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, Render::RENDER_MODE_FULL_FAKE, nullptr, image.fb);
@@ -424,7 +430,7 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     auto& image = images[id];
 
-    ensureFramebuffer(image, monbox, pMonitor->m_output->state->state().drmFormat);
+    ensureFramebuffer(image, monbox, framebufferFormatWithAlpha(pMonitor->m_output->state->state().drmFormat));
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
     g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, Render::RENDER_MODE_FULL_FAKE, nullptr, image.fb);
