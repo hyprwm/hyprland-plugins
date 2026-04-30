@@ -30,6 +30,7 @@ static const CConfigValue<Config::INTEGER> PCOLUMNS("plugin:hyprexpo:columns");
 static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
 static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
 static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
+static const CConfigValue<Config::INTEGER> PMAXWS("plugin:hyprexpo:max_workspace");
 static const CConfigValue<Config::INTEGER> PSHOWNUM("plugin:hyprexpo:show_workspace_numbers");
 static const CConfigValue<Config::INTEGER> PNUMCOL("plugin:hyprexpo:workspace_number_color");
 static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
@@ -92,9 +93,20 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
     // r includes empty workspaces; m skips over them
-    std::string selector = *PSKIP ? "m" : "r";
+    const bool    skipEmpty    = *PSKIP;
+    const int64_t maxWorkspace = *PMAXWS;
+    std::string   selector     = skipEmpty ? "m" : "r";
 
-    if (methodCenter) {
+    if (!skipEmpty && maxWorkspace > 0) {
+        const int64_t tileCount = SIDE_LENGTH * SIDE_LENGTH;
+        const int64_t maxStart  = std::max<int64_t>(1, maxWorkspace - tileCount + 1);
+        const int64_t startID   = methodCenter ? std::clamp<int64_t>(methodStartID - tileCount / 2, 1, maxStart) : std::clamp<int64_t>(methodStartID, 1, maxStart);
+
+        for (size_t i = 0; i < images.size(); ++i) {
+            const int64_t workspaceID = startID + i;
+            images[i].workspaceID     = workspaceID <= maxWorkspace ? workspaceID : WORKSPACE_INVALID;
+        }
+    } else if (methodCenter) {
         int currentID = methodStartID;
         int firstID   = currentID;
 
