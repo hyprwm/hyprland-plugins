@@ -26,22 +26,12 @@
 
 using namespace Hyprutils::String;
 
-static const CConfigValue<Config::INTEGER> PCOLUMNS("plugin:hyprexpo:columns");
-static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
-static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
-static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
-static const CConfigValue<Config::INTEGER> PMAXWS("plugin:hyprexpo:max_workspace");
-static const CConfigValue<Config::INTEGER> PSHOWNUM("plugin:hyprexpo:show_workspace_numbers");
-static const CConfigValue<Config::INTEGER> PNUMCOL("plugin:hyprexpo:workspace_number_color");
-static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
-static const CConfigValue<Config::INTEGER> PDISTANCE("plugin:hyprexpo:gesture_distance");
-
 static uint32_t framebufferFormatWithAlpha(uint32_t drmFormat) {
     const auto alphaFormat = NFormatUtils::alphaFormat(drmFormat);
     return alphaFormat == 0 ? DRM_FORMAT_ABGR8888 : alphaFormat;
 }
 
-static void                                clearWithColor(const CHyprColor& color) {
+static void clearWithColor(const CHyprColor& color) {
     glClearColor(color.r, color.g, color.b, color.a);
     glClear(GL_COLOR_BUFFER_BIT);
 }
@@ -71,6 +61,15 @@ COverview::~COverview() {
 COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
     const auto PMONITOR = Desktop::focusState()->monitor();
     pMonitor            = PMONITOR;
+
+    static const CConfigValue<Config::INTEGER> PCOLUMNS("plugin:hyprexpo:columns");
+    static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
+    static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
+    static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
+    static const CConfigValue<Config::INTEGER> PMAXWS("plugin:hyprexpo:max_workspace");
+    static const CConfigValue<Config::INTEGER> PSHOWNUM("plugin:hyprexpo:show_workspace_numbers");
+    static const CConfigValue<Config::INTEGER> PNUMCOL("plugin:hyprexpo:workspace_number_color");
+    static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
 
     SIDE_LENGTH          = *PCOLUMNS;
     GAP_WIDTH            = *PGAPS;
@@ -549,13 +548,15 @@ void COverview::resetSwipe() {
 void COverview::onSwipeUpdate(double delta) {
     m_isSwiping = true;
 
-    const float PERC               = closing ? std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0);
-    const auto  WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
+    static const CConfigValue<Config::INTEGER> PDISTANCE("plugin:hyprexpo:gesture_distance");
 
-    Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
+    const float                                PERC = closing ? std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0);
+    const auto                                 WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
-    const auto  SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto  POSMAX  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
+    Vector2D                                   tileSize = (pMonitor->m_size / SIDE_LENGTH);
+
+    const auto                                 SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
+    const auto POSMAX = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
         (pMonitor->m_size / tileSize);
 
     const auto SIZEMIN = pMonitor->m_size;
