@@ -117,6 +117,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gap_size")->getDataStaticPtr();
     static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
     static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
+    static auto* const* PMAXWS   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:max_workspace")->getDataStaticPtr();
     static auto* const* PSHOWNUM = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:show_workspace_numbers")->getDataStaticPtr();
     static auto* const* PNUMCOL  = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_number_color")->getDataStaticPtr();
     static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
@@ -142,9 +143,20 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
     // r includes empty workspaces; m skips over them
-    std::string selector = **PSKIP ? "m" : "r";
+    const bool    skipEmpty    = **PSKIP;
+    const int64_t maxWorkspace = **PMAXWS;
+    std::string   selector     = skipEmpty ? "m" : "r";
 
-    if (methodCenter) {
+    if (!skipEmpty && maxWorkspace > 0) {
+        const int64_t tileCount = SIDE_LENGTH * SIDE_LENGTH;
+        const int64_t maxStart  = std::max<int64_t>(1, maxWorkspace - tileCount + 1);
+        const int64_t startID   = methodCenter ? std::clamp<int64_t>(methodStartID - tileCount / 2, 1, maxStart) : std::clamp<int64_t>(methodStartID, 1, maxStart);
+
+        for (size_t i = 0; i < images.size(); ++i) {
+            const int64_t workspaceID = startID + i;
+            images[i].workspaceID     = workspaceID <= maxWorkspace ? workspaceID : WORKSPACE_INVALID;
+        }
+    } else if (methodCenter) {
         int currentID = methodStartID;
         int firstID   = currentID;
 
