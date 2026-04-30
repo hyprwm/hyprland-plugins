@@ -9,6 +9,8 @@
 #include <hyprland/src/render/shaders/Shaders.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/event/EventBus.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopTimer.hpp>
 
 #include "globals.hpp"
 #include "shaders.hpp"
@@ -23,11 +25,21 @@ void onNewWindow(PHLWINDOW PWINDOW) {
     HyprlandAPI::addWindowDecoration(PHANDLE, PWINDOW, makeUnique<CTrail>(PWINDOW));
 }
 
+static void onTick(SP<CEventLoopTimer> self, void* data) {
+    tickTrails();
+
+    const int timeoutMs = g_pHyprRenderer->m_mostHzMonitor ? 1000.0 / g_pHyprRenderer->m_mostHzMonitor->m_refreshRate : 16;
+    self->updateTimeout(std::chrono::milliseconds(timeoutMs));
+}
+
 void initGlobal() {
     Render::GL::g_pHyprOpenGL->makeEGLCurrent();
 
     if (!g_pGlobalState->trailShader.createProgram(QUADTRAIL, FRAGTRAIL, true, false))
         throw std::runtime_error("[ht] Failed to create trail shader");
+
+    g_pGlobalState->tick = makeShared<CEventLoopTimer>(std::chrono::milliseconds(1), onTick, nullptr);
+    g_pEventLoopManager->addTimer(g_pGlobalState->tick);
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -69,5 +81,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    if (g_pGlobalState && g_pGlobalState->tick) {
+        g_pGlobalState->tick->cancel();
+        g_pEventLoopManager->removeTimer(g_pGlobalState->tick);
+    }
+
     g_pHyprRenderer->m_renderPass.removeAllOfType("CTrailPassElement");
 }

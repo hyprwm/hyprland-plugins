@@ -12,6 +12,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/desktop/rule/Engine.hpp>
+#include <hyprland/src/desktop/rule/windowRule/WindowRule.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
@@ -37,6 +39,23 @@ typedef void (*origCommitSubsurface)(Desktop::View::CSubsurface* thisptr);
 typedef void (*origCommit)(void* owner, void* data);
 
 std::vector<PHLWINDOWREF> bgWindows;
+std::vector<SP<Desktop::Rule::IRule>> bgRules;
+
+static SP<Desktop::Rule::CWindowRule> makeWindowRule(const std::string& name, const Desktop::Rule::eRuleProperty prop, const std::string& match) {
+    auto rule = makeShared<Desktop::Rule::CWindowRule>(name);
+    rule->registerMatch(prop, "^(" + match + ")$");
+    rule->addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_FLOAT, "1");
+    rule->addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_SIZE, "100% 100%");
+    return rule;
+}
+
+static void clearWindowRules() {
+    for (auto& rule : bgRules) {
+        if (rule)
+            Desktop::Rule::ruleEngine()->unregisterRule(rule);
+    }
+    bgRules.clear();
+}
 
 void                      onNewWindow(PHLWINDOW pWindow) {
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
@@ -175,19 +194,25 @@ void onCommit(void* owner, void* data) {
 }
 
 void onConfigReloaded() {
+    clearWindowRules();
+
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
     const std::string  classRule(*PCLASS);
     if (!classRule.empty()) {
-        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 float, class:^("} + classRule + ")$");
-        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 size 100% 100%, class:^("} + classRule + ")$");
+        auto rule = makeWindowRule("hyprwinwrap-class", Desktop::Rule::RULE_PROP_CLASS, classRule);
+        bgRules.emplace_back(rule);
+        Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{rule});
     }
 
     static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
     const std::string  titleRule(*PTITLE);
     if (!titleRule.empty()) {
-        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 float, title:^("} + titleRule + ")$");
-        HyprlandAPI::invokeHyprctlCommand("keyword", std::string{"windowrulev2 size 100% 100%, title:^("} + titleRule + ")$");
+        auto rule = makeWindowRule("hyprwinwrap-title", Desktop::Rule::RULE_PROP_TITLE, titleRule);
+        bgRules.emplace_back(rule);
+        Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{rule});
     }
+
+    Desktop::Rule::ruleEngine()->updateAllRules();
 }
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
@@ -231,11 +256,13 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_x", Hyprlang::STRING{"0"});
     HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprwinwrap:pos_y", Hyprlang::STRING{"0"});
 
+    onConfigReloaded();
+
     HyprlandAPI::addNotification(PHANDLE, "[hyprwinwrap] Initialized successfully!", CHyprColor{0.2, 1.0, 0.2, 1.0}, 5000);
 
     return {"hyprwinwrap", "A clone of xwinwrap for Hyprland", "Vaxry", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    ;
+    clearWindowRules();
 }

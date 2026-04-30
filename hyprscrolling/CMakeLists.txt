@@ -7,7 +7,9 @@ project(hyprscrolling
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_library(hyprscrolling SHARED main.cpp)
+file(GLOB_RECURSE SRC "*.cpp")
+
+add_library(hyprscrolling SHARED ${SRC})
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET

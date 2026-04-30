@@ -49,7 +49,6 @@ class COverview {
         PHLWORKSPACE             pWorkspace;
         CBox                     box;
         SP<Render::ITexture>     labelTex;
-        Vector2D                 labelSizePx;
     };
 
   private:

@@ -64,4 +64,7 @@ class CTrail : public IHyprWindowDecoration {
     bool                                                              m_bNeedsDamage = false;
 
     friend class CTrailPassElement;
+    friend void tickTrails();
 };
+
+void tickTrails();

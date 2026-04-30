@@ -1,5 +1,6 @@
 #include "trail.hpp"
 
+#include <algorithm>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -12,6 +13,9 @@ using namespace Render::GL;
 void CTrail::onTick() {
     static auto* const PHISTORYSTEP   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_step")->getDataStaticPtr();
     static auto* const PHISTORYPOINTS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprtrails:history_points")->getDataStaticPtr();
+
+    if (!validMapped(m_pWindow))
+        return;
 
     m_iTimer++;
 
@@ -36,10 +40,16 @@ void CTrail::onTick() {
 CTrail::CTrail(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     m_lastWindowPos  = pWindow->m_realPosition->value();
     m_lastWindowSize = pWindow->m_realSize->value();
+
+    if (g_pGlobalState)
+        g_pGlobalState->trails.push_back(this);
 }
 
 CTrail::~CTrail() {
     damageEntire();
+
+    if (g_pGlobalState)
+        std::erase(g_pGlobalState->trails, this);
 }
 
 SDecorationPositioningInfo CTrail::getPositioningInfo() {
@@ -82,8 +92,6 @@ Vector2D vecForBezierT(const float& t, const std::vector<Vector2D>& verts) {
 void CTrail::draw(PHLMONITOR pMonitor, const float& a) {
     if (!validMapped(m_pWindow))
         return;
-
-    onTick();
 
     const auto PWINDOW = m_pWindow.lock();
 
@@ -334,4 +342,14 @@ void CTrail::damageEntire() {
     CBox dm = {sc<double>(m_lastWindowPos.x - m_seExtents.topLeft.x), sc<double>(m_lastWindowPos.y - m_seExtents.topLeft.y),
                sc<double>(m_lastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x), sc<double>(m_seExtents.topLeft.y)};
     g_pHyprRenderer->damageBox(dm);
+}
+
+void tickTrails() {
+    if (!g_pGlobalState)
+        return;
+
+    for (auto* const trail : g_pGlobalState->trails) {
+        if (trail)
+            trail->onTick();
+    }
 }

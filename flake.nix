@@ -34,7 +34,6 @@
         hyprbars
         hyprexpo
         hyprfocus
-        hyprscrolling
         hyprtrails
         hyprwinwrap
         xtra-dispatchers
