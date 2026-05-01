@@ -28,9 +28,6 @@ gap_size | number | gap between desktops | `5`
 bg_col | color | color in gaps (between desktops) | `rgb(000000)`
 workspace_method | [center/first] [workspace] | position of the desktops | `center current`
 skip_empty | boolean | whether the grid displays workspaces sequentially by id using selector "r" (`false`) or skips empty workspaces using selector "m" (`true`) | `false`
-max_workspace | number | highest normal workspace to show when `skip_empty` is `false`; `0` disables the limit | `0`
-show_workspace_numbers | boolean | show numeric labels for workspaces | `false`
-workspace_number_color | color | color of workspace number labels | `rgb(ffffff)`
 gesture_distance | number | how far is the max for the gesture | `300`
 
 ### Keywords
@@ -61,8 +58,6 @@ hl.config({
             bg_col = "rgb(111111)",
             workspace_method = "center current",
             skip_empty = false,
-            show_workspace_numbers = false,
-            workspace_number_color = "rgb(ffffff)",
             gesture_distance = 300,
         },
     },

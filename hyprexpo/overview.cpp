@@ -66,15 +66,11 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
     static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
     static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
-    static const CConfigValue<Config::INTEGER> PMAXWS("plugin:hyprexpo:max_workspace");
-    static const CConfigValue<Config::INTEGER> PSHOWNUM("plugin:hyprexpo:show_workspace_numbers");
-    static const CConfigValue<Config::INTEGER> PNUMCOL("plugin:hyprexpo:workspace_number_color");
     static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
 
-    SIDE_LENGTH          = *PCOLUMNS;
-    GAP_WIDTH            = *PGAPS;
-    BG_COLOR             = CHyprColor(*PCOL);
-    showWorkspaceNumbers = *PSHOWNUM;
+    SIDE_LENGTH = *PCOLUMNS;
+    GAP_WIDTH   = *PGAPS;
+    BG_COLOR    = CHyprColor(*PCOL);
 
     // process the method
     bool     methodCenter  = true;
@@ -92,20 +88,9 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
     // r includes empty workspaces; m skips over them
-    const bool    skipEmpty    = *PSKIP;
-    const int64_t maxWorkspace = *PMAXWS;
-    std::string   selector     = skipEmpty ? "m" : "r";
+    std::string selector = *PSKIP ? "m" : "r";
 
-    if (!skipEmpty && maxWorkspace > 0) {
-        const int64_t tileCount = SIDE_LENGTH * SIDE_LENGTH;
-        const int64_t maxStart  = std::max<int64_t>(1, maxWorkspace - tileCount + 1);
-        const int64_t startID   = methodCenter ? std::clamp<int64_t>(methodStartID - tileCount / 2, 1, maxStart) : std::clamp<int64_t>(methodStartID, 1, maxStart);
-
-        for (size_t i = 0; i < images.size(); ++i) {
-            const int64_t workspaceID = startID + i;
-            images[i].workspaceID     = workspaceID <= maxWorkspace ? workspaceID : WORKSPACE_INVALID;
-        }
-    } else if (methodCenter) {
+    if (methodCenter) {
         int currentID = methodStartID;
         int firstID   = currentID;
 
@@ -172,16 +157,6 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
     Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH * pMonitor->m_scale, GAP_WIDTH * pMonitor->m_scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
     CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
-
-    if (showWorkspaceNumbers) {
-        const CHyprColor numberColor = CHyprColor(*PNUMCOL);
-        const int        fontSizePx  = std::max(12, (int)std::round(tileRenderSize.y * pMonitor->m_scale * 0.22));
-        for (auto& image : images) {
-            if (image.workspaceID == WORKSPACE_INVALID)
-                continue;
-            image.labelTex = g_pHyprRenderer->renderText(std::to_string(image.workspaceID), numberColor, fontSizePx, false, "Sans Bold", tileRenderSize.x * pMonitor->m_scale);
-        }
-    }
 
     if (!ENABLE_LOWRES)
         monbox = {{0, 0}, pMonitor->m_pixelSize};
@@ -516,15 +491,6 @@ void COverview::fullRender() {
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
             auto&   image = images[x + y * SIDE_LENGTH];
             Render::GL::g_pHyprOpenGL->renderTextureInternal(image.fb->getTexture(), texbox, {.damage = &damage, .a = 1.0});
-
-            if (showWorkspaceNumbers && image.workspaceID != WORKSPACE_INVALID && image.labelTex && image.labelTex->ok()) {
-                const Vector2D labelSize = image.labelTex->m_size / pMonitor->m_scale;
-                const float    margin    = std::max(4.0, tileRenderSize.y * 0.05);
-                CBox           labelBox  = {x * tileRenderSize.x + x * GAPSIZE + margin, y * tileRenderSize.y + y * GAPSIZE + margin, labelSize.x, labelSize.y};
-                labelBox.scale(pMonitor->m_scale).translate(pos->value());
-                labelBox.round();
-                Render::GL::g_pHyprOpenGL->renderTexture(image.labelTex, labelBox, {.a = 1.0});
-            }
         }
     }
 }

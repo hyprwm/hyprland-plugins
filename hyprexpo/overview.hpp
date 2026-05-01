@@ -5,7 +5,6 @@
 #include "globals.hpp"
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 #include <hyprland/src/render/Framebuffer.hpp>
-#include <hyprland/src/render/Texture.hpp>
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <vector>
@@ -48,7 +47,6 @@ class COverview {
         int64_t                  workspaceID = -1;
         PHLWORKSPACE             pWorkspace;
         CBox                     box;
-        SP<Render::ITexture>     labelTex;
     };
 
   private:
@@ -82,9 +80,8 @@ class COverview {
     CHyprSignalListener          touchMoveHook;
     CHyprSignalListener          touchDownHook;
 
-    bool                         swipe                = false;
-    bool                         swipeWasCommenced    = false;
-    bool                         showWorkspaceNumbers = false;
+    bool                         swipe             = false;
+    bool                         swipeWasCommenced = false;
 
     friend class COverviewPassElement;
 };
