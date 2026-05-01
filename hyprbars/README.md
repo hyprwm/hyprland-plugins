@@ -55,6 +55,36 @@ hyprbars-button = bgcolor, size, icon, on-click, fgcolor
 
 Please note it _has_ to be inside `plugin { hyprbars { } }`.
 
+For Lua config, use `hl.config` for plugin options and
+`hl.plugin.hyprbars.add_button` for buttons:
+
+```lua
+hl.config({
+    plugin = {
+        hyprbars = {
+            bar_height = 20,
+            on_double_click = "hyprctl dispatch fullscreen 1",
+        },
+    },
+})
+
+hl.plugin.hyprbars.add_button({
+    bg_color = "rgb(ff4040)",
+    fg_color = "rgb(ffffff)",
+    size = 10,
+    icon = "X",
+    action = "hyprctl dispatch killactive",
+})
+
+hl.plugin.hyprbars.add_button({
+    bg_color = "rgb(eeee11)",
+    fg_color = "rgb(000000)",
+    size = 10,
+    icon = "_",
+    action = "hyprctl dispatch fullscreen 1",
+})
+```
+
 ## Window rules
 
 Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/Configuring/Window-Rules/):
