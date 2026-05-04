@@ -46,7 +46,6 @@ class CTrail : public IHyprWindowDecoration {
     virtual void                       damageEntire();
 
   private:
-    SP<HOOK_CALLBACK_FN>                                              pTickCb;
     void                                                              onTick();
     void                                                              renderPass(PHLMONITOR pMonitor, const float& a);
 
@@ -65,4 +64,7 @@ class CTrail : public IHyprWindowDecoration {
     bool                                                              m_bNeedsDamage = false;
 
     friend class CTrailPassElement;
+    friend void tickTrails();
 };
+
+void tickTrails();

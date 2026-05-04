@@ -18,9 +18,9 @@ CS2 launch options:
 ```
 
 example plugin config:
-```
+```ini
 plugin {
-    csgo-vulkan-fix {
+    csgo_vulkan_fix {
         # Whether to fix the mouse position. A select few apps might be wonky with this.
         fix_mouse = true
 
@@ -29,6 +29,20 @@ plugin {
         vkfix-app = myapp, 1920, 1080
     }
 }
+```
+
+Lua config:
+```lua
+hl.config({
+    plugin = {
+        csgo_vulkan_fix = {
+            fix_mouse = true,
+        },
+    },
+})
+
+hl.plugin.csgo_vulkan_fix.vkfix_app({ app = "cs2", w = 1650, h = 1050 })
+hl.plugin.csgo_vulkan_fix.vkfix_app({ app = "myapp", w = 1920, h = 1080 })
 ```
 
 fullscreen the game manually and enjoy.

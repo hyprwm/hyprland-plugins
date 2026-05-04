@@ -32,8 +32,9 @@ class COverview {
     void onSwipeEnd();
 
     // close without a selection
-    void          close();
+    void          close(bool switchToSelection = true);
     void          selectHoveredWorkspace();
+    int64_t       selectedWorkspaceID() const;
 
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
@@ -41,24 +42,24 @@ class COverview {
     PHLMONITORREF pMonitor;
     bool          m_isSwiping = false;
 
-  private:
-    void       redrawID(int id, bool forcelowres = false);
-    void       redrawAll(bool forcelowres = false);
-    void       onWorkspaceChange();
-    void       fullRender();
-
-    int        SIDE_LENGTH = 3;
-    int        GAP_WIDTH   = 5;
-    CHyprColor BG_COLOR    = CHyprColor{0.1, 0.1, 0.1, 1.0};
-
-    bool       damageDirty = false;
-
     struct SWorkspaceImage {
-        CFramebuffer fb;
-        int64_t      workspaceID = -1;
-        PHLWORKSPACE pWorkspace;
-        CBox         box;
+        SP<Render::IFramebuffer> fb;
+        int64_t                  workspaceID = -1;
+        PHLWORKSPACE             pWorkspace;
+        CBox                     box;
     };
+
+  private:
+    void                         redrawID(int id, bool forcelowres = false);
+    void                         redrawAll(bool forcelowres = false);
+    void                         onWorkspaceChange();
+    void                         fullRender();
+
+    int                          SIDE_LENGTH = 3;
+    int                          GAP_WIDTH   = 5;
+    CHyprColor                   BG_COLOR    = CHyprColor{0.1, 0.1, 0.1, 1.0};
+
+    bool                         damageDirty = false;
 
     Vector2D                     lastMousePosLocal = Vector2D{};
 

@@ -5,6 +5,7 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;
+using namespace Render::GL;
 #include "BorderppPassElement.hpp"
 #include "globals.hpp"
 

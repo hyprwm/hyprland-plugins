@@ -1,44 +1,76 @@
 #include "overview.hpp"
+#include <algorithm>
 #include <any>
-#define private public
+#include <cmath>
+#define private   public
+#define protected public
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/config/ConfigValue.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/shared/actions/ConfigActions.hpp>
+#include <hyprland/src/config/shared/animation/AnimationTree.hpp>
+#include <hyprland/src/helpers/Format.hpp>
 #include <hyprland/src/managers/animation/AnimationManager.hpp>
 #include <hyprland/src/managers/animation/DesktopAnimationManager.hpp>
 #include <hyprland/src/managers/cursor/CursorShapeOverrideController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
+#include <hyprland/src/helpers/varlist/VarList.hpp>
+#include <hyprland/src/render/OpenGL.hpp>
 #undef private
+#undef protected
 #include "OverviewPassElement.hpp"
+
+using namespace Hyprutils::String;
+
+static uint32_t framebufferFormatWithAlpha(uint32_t drmFormat) {
+    const auto alphaFormat = NFormatUtils::alphaFormat(drmFormat);
+    return alphaFormat == 0 ? DRM_FORMAT_ABGR8888 : alphaFormat;
+}
+
+static void clearWithColor(const CHyprColor& color) {
+    glClearColor(color.r, color.g, color.b, color.a);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+static void ensureFramebuffer(COverview::SWorkspaceImage& image, const CBox& monbox, uint32_t drmFormat) {
+    if (!image.fb)
+        image.fb = g_pHyprRenderer->createFB("hyprexpo");
+
+    if (image.fb->m_size != monbox.size()) {
+        image.fb->release();
+        image.fb->alloc(monbox.w, monbox.h, drmFormat);
+    }
+}
 
 static void damageMonitor(WP<Hyprutils::Animation::CBaseAnimatedVariable> thisptr) {
     g_pOverview->damage();
 }
 
 COverview::~COverview() {
-    g_pHyprRenderer->makeEGLCurrent();
+    Render::GL::g_pHyprOpenGL->makeEGLCurrent();
     images.clear(); // otherwise we get a vram leak
     Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_UNKNOWN);
-    g_pHyprOpenGL->markBlurDirtyForMonitor(pMonitor.lock());
+    if (pMonitor)
+        pMonitor->m_blurFBDirty = true;
 }
 
 COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn_), swipe(swipe_) {
     const auto PMONITOR = Desktop::focusState()->monitor();
     pMonitor            = PMONITOR;
 
-    static auto* const* PCOLUMNS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:columns")->getDataStaticPtr();
-    static auto* const* PGAPS    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gap_size")->getDataStaticPtr();
-    static auto* const* PCOL     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:bg_col")->getDataStaticPtr();
-    static auto* const* PSKIP    = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty")->getDataStaticPtr();
-    static auto const*  PMETHOD  = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method")->getDataStaticPtr();
+    static const CConfigValue<Config::INTEGER> PCOLUMNS("plugin:hyprexpo:columns");
+    static const CConfigValue<Config::INTEGER> PGAPS("plugin:hyprexpo:gap_size");
+    static const CConfigValue<Config::INTEGER> PCOL("plugin:hyprexpo:bg_col");
+    static const CConfigValue<Config::INTEGER> PSKIP("plugin:hyprexpo:skip_empty");
+    static const CConfigValue<Config::STRING>  PMETHOD("plugin:hyprexpo:workspace_method");
 
-    SIDE_LENGTH = **PCOLUMNS;
-    GAP_WIDTH   = **PGAPS;
-    BG_COLOR    = **PCOL;
+    SIDE_LENGTH = *PCOLUMNS;
+    GAP_WIDTH   = *PGAPS;
+    BG_COLOR    = CHyprColor(*PCOL);
 
     // process the method
     bool     methodCenter  = true;
@@ -56,7 +88,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     images.resize(SIDE_LENGTH * SIDE_LENGTH);
 
     // r includes empty workspaces; m skips over them
-    std::string selector = **PSKIP ? "m" : "r";
+    std::string selector = *PSKIP ? "m" : "r";
 
     if (methodCenter) {
         int currentID = methodStartID;
@@ -120,7 +152,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         pMonitor->m_activeWorkspace = startedOn;
     }
 
-    g_pHyprRenderer->makeEGLCurrent();
+    Render::GL::g_pHyprOpenGL->makeEGLCurrent();
 
     Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
     Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH * pMonitor->m_scale, GAP_WIDTH * pMonitor->m_scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
@@ -141,12 +173,12 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
-        image.fb.alloc(monbox.w, monbox.h, PMONITOR->m_output->state->state().drmFormat);
+        ensureFramebuffer(image, monbox, framebufferFormatWithAlpha(PMONITOR->m_output->state->state().drmFormat));
 
         CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-        g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
+        g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, Render::RENDER_MODE_FULL_FAKE, nullptr, image.fb);
 
-        g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 1.0});
+        clearWithColor(CHyprColor{0, 0, 0, 1.0});
 
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(image.workspaceID);
 
@@ -175,7 +207,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH, (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH, tileRenderSize.x,
                      tileRenderSize.y};
 
-        g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+        g_pHyprRenderer->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
     }
 
@@ -189,10 +221,10 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     // zoom on the current workspace.
     // const auto& TILE = images[std::clamp(currentid, 0, SIDE_LENGTH * SIDE_LENGTH)];
 
-    g_pAnimationManager->createAnimation(pMonitor->m_size * pMonitor->m_size / tileSize, size, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(pMonitor->m_size * pMonitor->m_size / tileSize, size, Config::animationTree()->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
     g_pAnimationManager->createAnimation((-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{currentid % SIDE_LENGTH, currentid / SIDE_LENGTH}) * pMonitor->m_scale) *
                                              (pMonitor->m_size / tileSize),
-                                         pos, g_pConfigManager->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
+                                         pos, Config::animationTree()->getAnimationPropertyConfig("windowsMove"), AVARDAMAGE_NONE);
 
     size->setUpdateCallback(damageMonitor);
     pos->setUpdateCallback(damageMonitor);
@@ -241,9 +273,9 @@ void COverview::selectHoveredWorkspace() {
         return;
 
     // get tile x,y
-    int x     = lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH;
-    int y     = lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH;
-    closeOnID = x + y * SIDE_LENGTH;
+    int x     = std::clamp((int)(lastMousePosLocal.x / pMonitor->m_size.x * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    int y     = std::clamp((int)(lastMousePosLocal.y / pMonitor->m_size.y * SIDE_LENGTH), 0, SIDE_LENGTH - 1);
+    closeOnID = std::clamp(x + y * SIDE_LENGTH, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 }
 
 void COverview::redrawID(int id, bool forcelowres) {
@@ -257,9 +289,9 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     blockOverviewRendering = true;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    Render::GL::g_pHyprOpenGL->makeEGLCurrent();
 
-    id = std::clamp(id, 0, SIDE_LENGTH * SIDE_LENGTH);
+    id = std::clamp(id, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 
     Vector2D tileSize       = pMonitor->m_size / SIDE_LENGTH;
     Vector2D tileRenderSize = (pMonitor->m_size - Vector2D{GAP_WIDTH, GAP_WIDTH} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
@@ -273,15 +305,12 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     auto& image = images[id];
 
-    if (image.fb.m_size != monbox.size()) {
-        image.fb.release();
-        image.fb.alloc(monbox.w, monbox.h, pMonitor->m_output->state->state().drmFormat);
-    }
+    ensureFramebuffer(image, monbox, framebufferFormatWithAlpha(pMonitor->m_output->state->state().drmFormat));
 
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-    g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
+    g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, Render::RENDER_MODE_FULL_FAKE, nullptr, image.fb);
 
-    g_pHyprOpenGL->clear(CHyprColor{0, 0, 0, 1.0});
+    clearWithColor(CHyprColor{0, 0, 0, 1.0});
 
     const auto   PWORKSPACE = image.pWorkspace;
 
@@ -309,7 +338,7 @@ void COverview::redrawID(int id, bool forcelowres) {
     } else
         g_pHyprRenderer->renderWorkspace(pMonitor.lock(), PWORKSPACE, Time::steadyNow(), monbox);
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     pMonitor->m_activeSpecialWorkspace = openSpecial;
@@ -354,13 +383,22 @@ void COverview::onDamageReported() {
     g_pCompositor->scheduleFrameForMonitor(pMonitor.lock());
 }
 
-void COverview::close() {
+int64_t COverview::selectedWorkspaceID() const {
+    const int ID = closeOnID == -1 ? openedID : closeOnID;
+    if (ID < 0 || ID >= (int)images.size())
+        return WORKSPACE_INVALID;
+
+    return images[ID].workspaceID;
+}
+
+void COverview::close(bool switchToSelection) {
     if (closing)
         return;
 
-    const int   ID = closeOnID == -1 ? openedID : closeOnID;
+    const int   ID     = closeOnID == -1 ? openedID : closeOnID;
+    const int   SAFEID = std::clamp(ID, 0, SIDE_LENGTH * SIDE_LENGTH - 1);
 
-    const auto& TILE = images[std::clamp(ID, 0, SIDE_LENGTH * SIDE_LENGTH)];
+    const auto& TILE = images[SAFEID];
 
     Vector2D    tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
@@ -368,13 +406,13 @@ void COverview::close() {
     pos->warp();
 
     *size = pMonitor->m_size * pMonitor->m_size / tileSize;
-    *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{ID % SIDE_LENGTH, ID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
+    *pos  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{SAFEID % SIDE_LENGTH, SAFEID / SIDE_LENGTH}) * pMonitor->m_scale) * (pMonitor->m_size / tileSize);
 
     closing = true;
 
     redrawAll();
 
-    if (TILE.workspaceID != pMonitor->activeWorkspaceID()) {
+    if (switchToSelection && TILE.workspaceID != pMonitor->activeWorkspaceID()) {
         pMonitor->setSpecialWorkspace(0);
 
         // If this tile's workspace was WORKSPACE_INVALID, move to the next
@@ -387,9 +425,9 @@ void COverview::close() {
         const auto OLDWS = pMonitor->m_activeWorkspace;
 
         if (!NEWIDWS)
-            g_pKeybindManager->changeworkspace(std::to_string(NEWID));
+            Config::Actions::changeWorkspace(std::to_string(NEWID));
         else
-            g_pKeybindManager->changeworkspace(NEWIDWS->getConfigName());
+            Config::Actions::changeWorkspace(NEWIDWS->getConfigName());
 
         g_pDesktopAnimationManager->startAnimation(pMonitor->m_activeWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         g_pDesktopAnimationManager->startAnimation(OLDWS, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false, true);
@@ -443,7 +481,7 @@ void COverview::fullRender() {
     Vector2D tileSize       = (SIZE / SIDE_LENGTH);
     Vector2D tileRenderSize = (SIZE - Vector2D{GAPSIZE, GAPSIZE} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
 
-    g_pHyprOpenGL->clear(BG_COLOR.stripA());
+    clearWithColor(BG_COLOR.stripA());
 
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
@@ -451,7 +489,8 @@ void COverview::fullRender() {
             texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderTextureInternal(images[x + y * SIDE_LENGTH].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
+            auto&   image = images[x + y * SIDE_LENGTH];
+            Render::GL::g_pHyprOpenGL->renderTextureInternal(image.fb->getTexture(), texbox, {.damage = &damage, .a = 1.0});
         }
     }
 }
@@ -475,15 +514,15 @@ void COverview::resetSwipe() {
 void COverview::onSwipeUpdate(double delta) {
     m_isSwiping = true;
 
-    static auto* const* PDISTANCE = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance")->getDataStaticPtr();
+    static const CConfigValue<Config::INTEGER> PDISTANCE("plugin:hyprexpo:gesture_distance");
 
-    const float         PERC               = closing ? std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)**PDISTANCE, 0.0, 1.0);
-    const auto          WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
+    const float                                PERC = closing ? std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0) : 1.0 - std::clamp(delta / (double)*PDISTANCE, 0.0, 1.0);
+    const auto                                 WORKSPACE_FOCUS_ID = closing && closeOnID != -1 ? closeOnID : openedID;
 
-    Vector2D            tileSize = (pMonitor->m_size / SIDE_LENGTH);
+    Vector2D                                   tileSize = (pMonitor->m_size / SIDE_LENGTH);
 
-    const auto          SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
-    const auto          POSMAX  = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
+    const auto                                 SIZEMAX = pMonitor->m_size * pMonitor->m_size / tileSize;
+    const auto POSMAX = (-((pMonitor->m_size / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
         (pMonitor->m_size / tileSize);
 
     const auto SIZEMIN = pMonitor->m_size;

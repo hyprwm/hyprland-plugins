@@ -6,12 +6,18 @@
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/shared/actions/ConfigActions.hpp>
+#include <hyprland/src/config/values/types/ColorValue.hpp>
+#include <hyprland/src/config/values/types/IntValue.hpp>
+#include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/helpers/time/Time.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/trackpad/GestureTypes.hpp>
 #include <hyprland/src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 
+#include <lua.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
 using namespace Hyprutils::String;
 
@@ -23,7 +29,7 @@ using namespace Hyprutils::String;
 inline CFunctionHook* g_pRenderWorkspaceHook = nullptr;
 inline CFunctionHook* g_pAddDamageHookA      = nullptr;
 inline CFunctionHook* g_pAddDamageHookB      = nullptr;
-typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, const CBox&);
+typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, const CBox&);
 typedef void (*origAddDamageA)(void*, const CBox&);
 typedef void (*origAddDamageB)(void*, const pixman_region32_t*);
 
@@ -39,7 +45,7 @@ static bool       renderingOverview = false;
 const std::string KEYWORD_EXPO_GESTURE = "hyprexpo-gesture";
 
 //
-static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
+static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     if (!g_pOverview || renderingOverview || g_pOverview->blockOverviewRendering || g_pOverview->pMonitor != pMonitor)
         ((origRenderWorkspace)(g_pRenderWorkspaceHook->m_original))(thisptr, pMonitor, pWorkspace, now, geometry);
     else
@@ -68,6 +74,47 @@ static void hkAddDamageB(void* thisptr, const pixman_region32_t* rg) {
     g_pOverview->onDamageReported();
 }
 
+static PHLWINDOW windowToBringFromWorkspace(const PHLWORKSPACE& workspace) {
+    if (!workspace)
+        return nullptr;
+
+    for (auto it = g_pCompositor->m_windows.rbegin(); it != g_pCompositor->m_windows.rend(); ++it) {
+        const auto& w = *it;
+        if (!w || w->m_workspace != workspace || !w->m_isMapped || w->isHidden())
+            continue;
+
+        return w;
+    }
+
+    return nullptr;
+}
+
+static SDispatchResult bringWindowFromWorkspace(int64_t sourceWorkspaceID) {
+    if (sourceWorkspaceID == WORKSPACE_INVALID)
+        return {.success = false, .error = "selected workspace is empty"};
+
+    const auto FOCUSSTATE = Desktop::focusState();
+    const auto MONITOR    = FOCUSSTATE->monitor();
+    if (!MONITOR || !MONITOR->m_activeWorkspace)
+        return {.success = false, .error = "no active monitor/workspace"};
+
+    if (sourceWorkspaceID == MONITOR->activeWorkspaceID())
+        return {};
+
+    const auto SOURCEWORKSPACE = g_pCompositor->getWorkspaceByID(sourceWorkspaceID);
+    if (!SOURCEWORKSPACE)
+        return {.success = false, .error = "selected workspace is not open"};
+
+    const auto WINDOW = windowToBringFromWorkspace(SOURCEWORKSPACE);
+    if (!WINDOW)
+        return {.success = false, .error = "selected workspace has no mapped windows"};
+
+    g_pCompositor->moveWindowToWorkspaceSafe(WINDOW, MONITOR->m_activeWorkspace);
+    FOCUSSTATE->fullWindowFocus(WINDOW, Desktop::FOCUS_REASON_KEYBIND);
+    g_pCompositor->warpCursorTo(WINDOW->middle());
+    return {};
+}
+
 static SDispatchResult onExpoDispatcher(std::string arg) {
 
     if (g_pOverview && g_pOverview->m_isSwiping)
@@ -77,6 +124,15 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
         if (g_pOverview) {
             g_pOverview->selectHoveredWorkspace();
             g_pOverview->close();
+        }
+        return {};
+    }
+    if (arg == "bring") {
+        if (g_pOverview) {
+            g_pOverview->selectHoveredWorkspace();
+            const auto BRINGRESULT = bringWindowFromWorkspace(g_pOverview->selectedWorkspaceID());
+            g_pOverview->close(false);
+            return BRINGRESULT;
         }
         return {};
     }
@@ -106,8 +162,25 @@ static SDispatchResult onExpoDispatcher(std::string arg) {
     return {};
 }
 
+static int luaExpo(lua_State* L) {
+    const auto RESULT = onExpoDispatcher(luaL_optstring(L, 1, "toggle"));
+    if (!RESULT.success)
+        return luaL_error(L, "%s", RESULT.error.c_str());
+    return 0;
+}
+
 static void failNotif(const std::string& reason) {
     HyprlandAPI::addNotification(PHANDLE, "[hyprexpo] Failure in initialization: " + reason, CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
+}
+
+static bool addConfigValue(SP<Config::Values::IValue> value) {
+    const auto RET = Config::mgr()->registerPluginValue(PHANDLE, value);
+    if (!RET) {
+        Log::logger->log(Log::ERR, "[hyprexpo] failed to register plugin value \"{}\": {}", value->name(), RET.error());
+        return false;
+    }
+
+    return true;
 }
 
 static Hyprlang::CParseResult expoGestureKeyword(const char* LHS, const char* RHS) {
@@ -242,18 +315,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     });
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "hyprexpo:expo", ::onExpoDispatcher);
+    HyprlandAPI::addLuaFunction(PHANDLE, "hyprexpo", "expo", ::luaExpo);
 
     HyprlandAPI::addConfigKeyword(PHANDLE, KEYWORD_EXPO_GESTURE, ::expoGestureKeyword, {true});
 
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:columns", Hyprlang::INT{3});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gap_size", Hyprlang::INT{5});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:bg_col", Hyprlang::INT{0xFF111111});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:workspace_method", Hyprlang::STRING{"center current"});
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:skip_empty", Hyprlang::INT{0});
-
-    HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprexpo:gesture_distance", Hyprlang::INT{200});
-
-    HyprlandAPI::reloadConfig();
+    addConfigValue(makeShared<Config::Values::CIntValue>("plugin:hyprexpo:columns", "columns", 3));
+    addConfigValue(makeShared<Config::Values::CIntValue>("plugin:hyprexpo:gap_size", "gap size", 5));
+    addConfigValue(makeShared<Config::Values::CColorValue>("plugin:hyprexpo:bg_col", "background color", 0xFF111111));
+    addConfigValue(makeShared<Config::Values::CStringValue>("plugin:hyprexpo:workspace_method", "workspace method", "center current"));
+    addConfigValue(makeShared<Config::Values::CIntValue>("plugin:hyprexpo:skip_empty", "skip empty workspaces", 0));
+    addConfigValue(makeShared<Config::Values::CIntValue>("plugin:hyprexpo:gesture_distance", "gesture distance", 200));
 
     return {"hyprexpo", "A plugin for an overview", "Vaxry", "1.0"};
 }
@@ -263,5 +334,5 @@ APICALL EXPORT void PLUGIN_EXIT() {
 
     g_unloading = true;
 
-    g_pConfigManager->reload(); // we need to reload now to clear all the gestures
+    Config::mgr()->reload(); // we need to reload now to clear all the gestures
 }

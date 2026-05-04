@@ -48,13 +48,33 @@ Example:
 bind = SUPER, g, hyprexpo:expo, toggle
 ```
 
+Lua config:
+```lua
+hl.config({
+    plugin = {
+        hyprexpo = {
+            columns = 3,
+            gap_size = 5,
+            bg_col = "rgb(111111)",
+            workspace_method = "center current",
+            skip_empty = false,
+            gesture_distance = 300,
+        },
+    },
+})
+
+hl.bind("SUPER + g", function()
+    hl.plugin.hyprexpo.expo("toggle")
+end)
+```
+
 Here are a list of options you can use:  
 | option | description |
 | --- | --- |
 toggle | displays if hidden, hide if displayed
 select | selects the hovered desktop
+bring | brings a window from the hovered desktop to the current desktop
 off | hides the overview
 disable | same as `off`
 on | displays the overview
 enable | same as `on`
-
