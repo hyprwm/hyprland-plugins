@@ -7,17 +7,20 @@
 #include <any>
 #include <sstream>
 
+#define protected public
 #define private public
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
-#include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/legacy/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #undef private
+#undef protected
 
+#include <hyprland/src/layout/space/Space.hpp>
 #include "globals.hpp"
 
 // Do NOT change this function
@@ -94,6 +97,9 @@ void                      onNewWindow(PHLWINDOW pWindow) {
 
     const Vector2D newPos = {static_cast<int>(monitorPos.x + (monitorSize.x * (px / 100.f))), static_cast<int>(monitorPos.y + (monitorSize.y * (py / 100.f)))};
 
+    const CBox b(newPos.x, newPos.y, newSize.x, newSize.y);
+
+    pWindow->layoutTarget()->space()->setTargetGeom(b, pWindow->layoutTarget());
     pWindow->m_realSize->setValueAndWarp(newSize);
     pWindow->m_realPosition->setValueAndWarp(newPos);
     pWindow->m_size     = newSize;
@@ -121,13 +127,13 @@ void onRenderStage(eRenderStage stage) {
     for (auto& bg : bgWindows) {
         const auto bgw = bg.lock();
 
-        if (bgw->m_monitor != g_pHyprOpenGL->m_renderData.pMonitor)
+        if (bgw->m_monitor != g_pHyprRenderer->renderData().pMonitor)
             continue;
 
         // cant use setHidden cuz that sends suspended and shit too that would be laggy
         bgw->m_hidden = false;
 
-        g_pHyprRenderer->renderWindow(bgw, g_pHyprOpenGL->m_renderData.pMonitor.lock(), Time::steadyNow(), false, RENDER_PASS_ALL, false, true);
+        g_pHyprRenderer->renderWindow(bgw, g_pHyprRenderer->renderData().pMonitor.lock(), Time::steadyNow(), false, Render::RENDER_PASS_ALL, false, true);
 
         bgw->m_hidden = true;
     }
@@ -146,7 +152,7 @@ void onCommitSubsurface(Desktop::View::CSubsurface* thisptr) {
 
     ((origCommitSubsurface)subsurfaceHook->m_original)(thisptr);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
+        MON->m_blurFBDirty = true;
 
     PWINDOW->m_hidden = true;
 }
@@ -164,24 +170,25 @@ void onCommit(void* owner, void* data) {
 
     ((origCommit)commitHook->m_original)(owner, data);
     if (const auto MON = PWINDOW->m_monitor.lock(); MON)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(MON);
+        MON->m_blurFBDirty = true;
 
     PWINDOW->m_hidden = true;
 }
 
 void onConfigReloaded() {
+    WP<Config::Legacy::CConfigManager> mgr = dynamicPointerCast<Config::Legacy::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
     static auto* const PCLASS = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:class")->getDataStaticPtr();
     const std::string  classRule(*PCLASS);
     if (!classRule.empty()) {
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, class:^("} + classRule + ")$");
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + classRule + ")$");
+        mgr->parseKeyword("windowrulev2", std::string{"float, class:^("} + classRule + ")$");
+        mgr->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, class:^("} + classRule + ")$");
     }
 
     static auto* const PTITLE = (Hyprlang::STRING const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:hyprwinwrap:title")->getDataStaticPtr();
     const std::string  titleRule(*PTITLE);
     if (!titleRule.empty()) {
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"float, title:^("} + titleRule + ")$");
-        g_pConfigManager->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, title:^("} + titleRule + ")$");
+        mgr->parseKeyword("windowrulev2", std::string{"float, title:^("} + titleRule + ")$");
+        mgr->parseKeyword("windowrulev2", std::string{"size 100\% 100\%, title:^("} + titleRule + ")$");
     }
 }
 
