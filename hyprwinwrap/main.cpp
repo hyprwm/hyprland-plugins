@@ -25,6 +25,7 @@
 using namespace Render;
 using namespace Render::GL;
 
+#include <hyprland/src/layout/space/Space.hpp>
 #include "globals.hpp"
 
 // Do NOT change this function
@@ -118,6 +119,9 @@ void                      onNewWindow(PHLWINDOW pWindow) {
 
     const Vector2D newPos = {static_cast<int>(monitorPos.x + (monitorSize.x * (px / 100.f))), static_cast<int>(monitorPos.y + (monitorSize.y * (py / 100.f)))};
 
+    const CBox b(newPos.x, newPos.y, newSize.x, newSize.y);
+
+    pWindow->layoutTarget()->space()->setTargetGeom(b, pWindow->layoutTarget());
     pWindow->m_realSize->setValueAndWarp(newSize);
     pWindow->m_realPosition->setValueAndWarp(newPos);
     pWindow->m_size     = newSize;
