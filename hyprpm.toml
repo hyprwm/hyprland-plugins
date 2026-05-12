@@ -73,49 +73,6 @@ build = [
     "make -C hyprbars all",
 ]
 
-[hyprtrails]
-description = "A plugin to add trails behind moving windows"
-authors = ["Vaxry"]
-output = "hyprtrails/hyprtrails.so"
-build = [
-    "make -C hyprtrails all",
-]
-
-[hyprwinwrap]
-description = "A clone of xwinwrap for Hyprland"
-authors = ["Vaxry"]
-output = "hyprwinwrap/hyprwinwrap.so"
-build = [
-    "make -C hyprwinwrap all",
-]
-
-[hyprexpo]
-description = "A plugin to add expo (overlay) for workspaces"
-authors = ["Vaxry"]
-output = "hyprexpo/hyprexpo.so"
-build = [
-    "make -C hyprexpo all",
-]
-since_hyprland = 4364
-
-[xtra-dispatchers]
-description = "A plugin to add some extra dispatchers"
-authors = ["Vaxry"]
-output = "xtra-dispatchers/xtra-dispatchers.so"
-build = [
-    "make -C xtra-dispatchers all",
-]
-since_hyprland = 5573
-
-[hyprscrolling]
-description = "A plugin to add a scrolling layout"
-authors = ["Vaxry"]
-output = "hyprscrolling/hyprscrolling.so"
-build = [
-    "make -C hyprscrolling all",
-]
-since_hyprland = 6066
-
 [hyprfocus]
 description = "Flashfocus for Hyprland"
 authors = ["Vaxry"]
