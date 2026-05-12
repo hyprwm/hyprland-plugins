@@ -57,17 +57,17 @@ static void onFocusChange(PHLWINDOW window) {
     const auto        POUT     = Config::animationTree()->getAnimationPropertyConfig("hyprfocusOut");
 
     if (configValues.mode->value() == "flash") {
-        const auto ORIGINAL = window->m_activeInactiveAlpha->goal();
-        window->m_activeInactiveAlpha->setConfig(PIN);
-        *window->m_activeInactiveAlpha = configValues.fadeOpacity->value();
+        const auto ORIGINAL = window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->goal();
+        window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setConfig(PIN);
+        *window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE) = configValues.fadeOpacity->value();
 
-        window->m_activeInactiveAlpha->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
-            w->m_activeInactiveAlpha->setConfig(POUT);
-            *w->m_activeInactiveAlpha = ORIGINAL;
+            w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setConfig(POUT);
+            *w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE) = ORIGINAL;
 
-            w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
+            w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
         });
     } else if (configValues.mode->value() == "bounce") {
         const auto ORIGINAL = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
@@ -158,6 +158,6 @@ APICALL EXPORT void PLUGIN_EXIT() {
 
         w->m_realSize->setCallbackOnEnd(nullptr);
         w->m_realPosition->setCallbackOnEnd(nullptr);
-        w->m_activeInactiveAlpha->setCallbackOnEnd(nullptr);
+        w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
     }
 }

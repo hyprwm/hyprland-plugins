@@ -15,11 +15,11 @@ std::vector<UP<IPassElement>> CBarPassElement::draw() {
 }
 
 bool CBarPassElement::needsLiveBlur() {
-    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
+    static auto PENABLEBLURGLOBAL = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
-    CHyprColor         color = data.deco->m_bForcedBarColor.value_or(CHyprColor{static_cast<uint64_t>(g_pGlobalState->config.barColor->value())});
+    CHyprColor  color = data.deco->m_bForcedBarColor.value_or(CHyprColor{static_cast<uint64_t>(g_pGlobalState->config.barColor->value())});
     color.a *= data.a;
-    const bool SHOULDBLUR = g_pGlobalState->config.barBlur->value() && **PENABLEBLURGLOBAL && color.a < 1.F;
+    const bool SHOULDBLUR = g_pGlobalState->config.barBlur->value() && *PENABLEBLURGLOBAL && color.a < 1.F;
 
     return SHOULDBLUR;
 }

@@ -9,6 +9,7 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
+#include <hyprland/src/config/shared/parserUtils/ParserUtils.hpp>
 #include <hyprland/src/config/supplementary/executor/Executor.hpp>
 #include <hyprland/src/config/shared/actions/ConfigActions.hpp>
 #include <hyprland/src/managers/animation/AnimationManager.hpp>
@@ -435,16 +436,16 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 }
 
 void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
-    const auto         PWINDOW = m_pWindow.lock();
+    const auto  PWINDOW = m_pWindow.lock();
 
-    static auto* const PENABLEBLURGLOBAL = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:blur:enabled")->getDataStaticPtr();
-    const auto         BARCOLOR          = g_pGlobalState->config.barColor->value();
-    const auto         HEIGHT            = g_pGlobalState->config.barHeight->value();
-    const auto         PRECEDENCE        = g_pGlobalState->config.barPrecedenceOverBorder->value();
-    const auto         ALIGNBUTTONS      = g_pGlobalState->config.barButtonsAlignment->value();
-    const auto         ENABLETITLE       = g_pGlobalState->config.barTitleEnabled->value();
-    const auto         ENABLEBLUR        = g_pGlobalState->config.barBlur->value();
-    const auto         INACTIVECOLOR     = g_pGlobalState->config.inactiveButtonColor->value();
+    static auto PENABLEBLURGLOBAL = CConfigValue<Config::BOOL>("decoration:blur:enabled");
+    const auto  BARCOLOR          = g_pGlobalState->config.barColor->value();
+    const auto  HEIGHT            = g_pGlobalState->config.barHeight->value();
+    const auto  PRECEDENCE        = g_pGlobalState->config.barPrecedenceOverBorder->value();
+    const auto  ALIGNBUTTONS      = g_pGlobalState->config.barButtonsAlignment->value();
+    const auto  ENABLETITLE       = g_pGlobalState->config.barTitleEnabled->value();
+    const auto  ENABLEBLUR        = g_pGlobalState->config.barBlur->value();
+    const auto  INACTIVECOLOR     = g_pGlobalState->config.inactiveButtonColor->value();
 
     if (INACTIVECOLOR > 0) {
         bool currentWindowFocus = PWINDOW == Desktop::focusState()->window();
@@ -462,7 +463,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     color.a *= a;
     const bool BUTTONSRIGHT = ALIGNBUTTONS != "left";
-    const bool SHOULDBLUR   = ENABLEBLUR && **PENABLEBLURGLOBAL && color.a < 1.F;
+    const bool SHOULDBLUR   = ENABLEBLUR && *PENABLEBLURGLOBAL && color.a < 1.F;
 
     if (HEIGHT < 1) {
         m_iLastHeight = HEIGHT;
@@ -640,9 +641,9 @@ void CHyprBar::updateRules() {
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
         m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))
-        m_bForcedBarColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
+        m_bForcedBarColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
-        m_bForcedTitleColor = CHyprColor(configStringToInt(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
+        m_bForcedTitleColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
 
     if (prevHidden != m_hidden)
         g_pDecorationPositioner->repositionDeco(this);

@@ -6,6 +6,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
+#include <hyprland/src/config/shared/parserUtils/ParserUtils.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
@@ -86,8 +87,8 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
     }
 
     bool userfg  = false;
-    auto fgcolor = configStringToInt("rgb(ffffff)");
-    auto bgcolor = configStringToInt(vars[0]);
+    auto fgcolor = Config::ParserUtils::parseColor("rgb(ffffff)");
+    auto bgcolor = Config::ParserUtils::parseColor(vars[0]);
 
     if (!bgcolor) {
         result.setError("invalid bgcolor");
@@ -96,7 +97,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
     if (vars.size() == 5) {
         userfg  = true;
-        fgcolor = configStringToInt(vars[4]);
+        fgcolor = Config::ParserUtils::parseColor(vars[4]);
     }
 
     if (!fgcolor) {
@@ -207,10 +208,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P  = Event::bus()->m_events.window.open.listen([&](PHLWINDOW w) { onNewWindow(w); });
     static auto P3 = Event::bus()->m_events.window.updateRules.listen([&](PHLWINDOW w) { onUpdateWindowRules(w); });
 
-    g_pGlobalState->config.barColor            = makeShared<Config::Values::CColorValue>("plugin:hyprbars:bar_color", "Change the bar color", *configStringToInt("rgba(33333388)"));
-    g_pGlobalState->config.textColor           = makeShared<Config::Values::CColorValue>("plugin:hyprbars:col.text", "Change the text color", *configStringToInt("rgba(ffffffff)"));
+    g_pGlobalState->config.barColor            = makeShared<Config::Values::CColorValue>("plugin:hyprbars:bar_color", "Change the bar color", 0x88333333);
+    g_pGlobalState->config.textColor           = makeShared<Config::Values::CColorValue>("plugin:hyprbars:col.text", "Change the text color", 0xffffffff);
     g_pGlobalState->config.inactiveButtonColor = makeShared<Config::Values::CColorValue>(
-        "plugin:hyprbars:inactive_button_color", "Change the inactive button's color. 0x00000000 means unset", *configStringToInt("rgba(00000000)"));
+        "plugin:hyprbars:inactive_button_color", "Change the inactive button's color. 0x00000000 means unset", 0x00000000);
     g_pGlobalState->config.barHeight       = makeShared<Config::Values::CIntValue>("plugin:hyprbars:bar_height", "Change the bar's height", 15);
     g_pGlobalState->config.barTextSize     = makeShared<Config::Values::CIntValue>("plugin:hyprbars:bar_text_size", "Change the bar's text size", 10);
     g_pGlobalState->config.barTitleEnabled = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:bar_title_enabled", "Whether to enable titles in the bar", true);

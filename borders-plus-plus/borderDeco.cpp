@@ -1,5 +1,7 @@
 #include "borderDeco.hpp"
 
+#include <algorithm>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -8,6 +10,10 @@ using namespace Hyprutils::Memory;
 using namespace Render::GL;
 #include "BorderppPassElement.hpp"
 #include "globals.hpp"
+
+static size_t borderCount() {
+    return std::clamp<Config::INTEGER>(vars.addBorders->value(), 0, static_cast<Config::INTEGER>(vars.borderSizes.size()));
+}
 
 CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     m_lastWindowPos  = pWindow->m_realPosition->value();
@@ -19,13 +25,6 @@ CBordersPlusPlus::~CBordersPlusPlus() {
 }
 
 SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
-    static auto* const                        PBORDERS = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->getDataStaticPtr();
-
-    static std::vector<Hyprlang::INT* const*> PSIZES;
-    for (size_t i = 0; i < 9; ++i) {
-        PSIZES.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->getDataStaticPtr());
-    }
-
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
     info.reserved = true;
@@ -35,8 +34,8 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
     if (m_fLastThickness == 0) {
         double size = 0;
 
-        for (size_t i = 0; i < **PBORDERS; ++i) {
-            size += **PSIZES[i];
+        for (size_t i = 0; i < borderCount(); ++i) {
+            size += vars.borderSizes[i]->value();
         }
 
         info.desiredExtents = {{size, size}, {size, size}};
@@ -79,20 +78,15 @@ void CBordersPlusPlus::draw(PHLMONITOR pMonitor, const float& a) {
 }
 
 void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
-    const auto PWINDOW = m_pWindow.lock();
+    const auto  PWINDOW = m_pWindow.lock();
 
-    static std::vector<Hyprlang::INT* const*> PCOLORS;
-    static std::vector<Hyprlang::INT* const*> PSIZES;
-    for (size_t i = 0; i < 9; ++i) {
-        PCOLORS.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:col.border_" + std::to_string(i + 1))->getDataStaticPtr());
-        PSIZES.push_back((Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:border_size_" + std::to_string(i + 1))->getDataStaticPtr());
-    }
-    static auto* const PBORDERS      = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:add_borders")->getDataStaticPtr();
-    static auto* const PNATURALROUND = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "plugin:borders-plus-plus:natural_rounding")->getDataStaticPtr();
-    static auto* const PROUNDING     = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "decoration:rounding")->getDataStaticPtr();
-    static auto* const PBORDERSIZE   = (Hyprlang::INT* const*)HyprlandAPI::getConfigValue(PHANDLE, "general:border_size")->getDataStaticPtr();
+    static auto PROUNDING   = CConfigValue<Config::INTEGER>("decoration:rounding");
+    static auto PBORDERSIZE = CConfigValue<Config::INTEGER>("general:border_size");
 
-    if (**PBORDERS < 1)
+    const auto  BORDERS      = borderCount();
+    const auto  NATURALROUND = vars.naturalRounding->value();
+
+    if (BORDERS < 1)
         return;
 
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
@@ -101,9 +95,9 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
     const auto PWORKSPACE      = PWINDOW->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->m_scale;
+    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + *PBORDERSIZE) * pMonitor->m_scale;
     const auto ROUNDINGPOWER = PWINDOW->roundingPower();
-    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + **PBORDERSIZE) * pMonitor->m_scale;
+    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + *PBORDERSIZE) * pMonitor->m_scale;
 
     CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
@@ -115,16 +109,16 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
 
     double fullThickness = 0;
 
-    for (size_t i = 0; i < **PBORDERS; ++i) {
-        const int THISBORDERSIZE = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
+    for (size_t i = 0; i < BORDERS; ++i) {
+        const int THISBORDERSIZE = vars.borderSizes[i]->value() == -1 ? *PBORDERSIZE : vars.borderSizes[i]->value();
         fullThickness += THISBORDERSIZE;
     }
 
     fullBox.expand(-fullThickness).scale(pMonitor->m_scale).round();
 
-    for (size_t i = 0; i < **PBORDERS; ++i) {
-        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (**PSIZES[i - 1] == -1 ? **PBORDERSIZE : **(PSIZES[i - 1])) * pMonitor->m_scale;
-        const int THISBORDERSIZE       = **(PSIZES[i]) == -1 ? **PBORDERSIZE : (**PSIZES[i]);
+    for (size_t i = 0; i < BORDERS; ++i) {
+        const int PREVBORDERSIZESCALED = i == 0 ? 0 : (vars.borderSizes[i - 1]->value() == -1 ? *PBORDERSIZE : vars.borderSizes[i - 1]->value()) * pMonitor->m_scale;
+        const int THISBORDERSIZE       = vars.borderSizes[i]->value() == -1 ? *PBORDERSIZE : vars.borderSizes[i]->value();
 
         if (i != 0) {
             rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED;
@@ -139,12 +133,12 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
 
         g_pHyprOpenGL->scissor(nullptr);
 
-        g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{(uint64_t)**PCOLORS[i]},
-                                    {.round         = **PNATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
+        g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{static_cast<uint64_t>(vars.borderColors[i]->value())},
+                                    {.round         = NATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
                                      .roundingPower = ROUNDINGPOWER,
                                      .borderSize    = THISBORDERSIZE,
                                      .a             = a,
-                                     .outerRound    = **PNATURALROUND ? sc<int>(ORIGINALROUND) : -1});
+                                     .outerRound    = NATURALROUND ? sc<int>(ORIGINALROUND) : -1});
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
