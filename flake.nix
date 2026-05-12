@@ -32,11 +32,7 @@
         borders-plus-plus
         csgo-vulkan-fix
         hyprbars
-        hyprexpo
         hyprfocus
-        hyprtrails
-        hyprwinwrap
-        xtra-dispatchers
         ;
     });
 
@@ -53,12 +49,7 @@
             borders-plus-plus = callPackage ./borders-plus-plus {};
             csgo-vulkan-fix = callPackage ./csgo-vulkan-fix {};
             hyprbars = callPackage ./hyprbars {};
-            hyprexpo = callPackage ./hyprexpo {};
             hyprfocus = callPackage ./hyprfocus {};
-            hyprscrolling = callPackage ./hyprscrolling {};
-            hyprtrails = callPackage ./hyprtrails {};
-            hyprwinwrap = callPackage ./hyprwinwrap {};
-            xtra-dispatchers = callPackage ./xtra-dispatchers {};
           };
       };
     };
