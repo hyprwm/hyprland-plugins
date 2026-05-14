@@ -16,6 +16,7 @@
 #include <hyprutils/string/VarList.hpp>
 
 #include <algorithm>
+#include <fstream>
 
 #include "barDeco.hpp"
 #include "globals.hpp"
@@ -247,9 +248,33 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.iconOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
 
-    if (Config::mgr()->type() == Config::CONFIG_LEGACY)
+    if (Config::mgr()->type() == Config::CONFIG_LEGACY) {
         HyprlandAPI::addConfigKeyword(PHANDLE, "plugin:hyprbars:hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
-    else
+        // Workaround: load buttons from file since addConfigKeyword handler
+        // may not be invoked by the parser on some Hyprlang versions
+        static auto LOADBUTTONS = [&]() {
+            onPreConfigReload();
+            const char* home = getenv("HOME");
+            if (home) {
+                std::string path = std::string(home) + "/.config/hypr/hyprbars-buttons.conf";
+                std::ifstream buttonFile(path);
+                if (buttonFile.is_open()) {
+                    std::string line;
+                    while (std::getline(buttonFile, line)) {
+                        if (line.empty() || line[0] == '#')
+                            continue;
+                        onNewButton("plugin:hyprbars:hyprbars-button", line.c_str());
+                    }
+                }
+            }
+            for (auto& b : g_pGlobalState->bars) {
+                if (b)
+                    b->m_bButtonsDirty = true;
+            }
+        };
+        static auto P6 = Event::bus()->m_events.config.reloaded.listen(LOADBUTTONS);
+        LOADBUTTONS();
+    } else
         HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
     static auto P4 = Event::bus()->m_events.config.preReload.listen([&] { onPreConfigReload(); });
     static auto P5 = Event::bus()->m_events.config.reloaded.listen([&] { onConfigReloaded(); });
