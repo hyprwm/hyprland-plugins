@@ -143,6 +143,7 @@ int newLuaButton(lua_State* L) {
         if (err.errorCode != Config::Lua::PARSE_ERROR_OK)
             return Config::Lua::Bindings::Internal::configError(L, "add_button: failed to parse fg_color");
 
+        button.userfg = true;
         button.fgcol = parser.parsed();
     }
 
