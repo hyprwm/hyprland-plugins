@@ -22,6 +22,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server
     xkbcommon
 )
+target_compile_options(csgo-vulkan-fix PRIVATE -Wno-deprecated-declarations)
 target_link_libraries(csgo-vulkan-fix PRIVATE rt PkgConfig::deps)
 
 install(TARGETS csgo-vulkan-fix)
