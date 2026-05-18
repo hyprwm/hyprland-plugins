@@ -82,7 +82,8 @@ class CHyprBar : public IHyprWindowDecoration {
     void renderBarButtons(CBox* barBox, const float scale, const float a);
     void renderBarButtonsText(CBox* barBox, const float scale, const float a);
     void damageOnButtonHover();
-
+    SP<Render::ITexture> loadAnyAsset(const std::string& fullPath, const float targetSize);
+    cairo_surface_t* trimTransparentEdges(cairo_surface_t* surface);
     bool inputIsValid();
     void onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e);
     void onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e);

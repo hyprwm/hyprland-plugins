@@ -327,6 +327,111 @@ size_t CHyprBar::getVisibleButtonCount(Config::INTEGER barButtonPadding, Config:
     return count;
 }
 
+// AI Generated function from Gemini
+cairo_surface_t* CHyprBar::trimTransparentEdges(cairo_surface_t* surface) {
+    if (cairo_image_surface_get_format(surface) != CAIRO_FORMAT_ARGB32)
+        return surface; // Trimming only makes sense if there's an alpha channel
+
+    const int width  = cairo_image_surface_get_width(surface);
+    const int height = cairo_image_surface_get_height(surface);
+    unsigned char* data = cairo_image_surface_get_data(surface);
+    const int stride = cairo_image_surface_get_stride(surface);
+
+    int minX = width, maxX = -1;
+    int minY = height, maxY = -1;
+
+    // Flush surface to ensure CPU read reads updated data
+    cairo_surface_flush(surface);
+
+    // Scan pixels to find the bounding box of non-transparent elements
+    for (int y = 0; y < height; ++y) {
+        uint32_t* row = reinterpret_cast<uint32_t*>(data + y * stride);
+        for (int x = 0; x < width; ++x) {
+            // Cairo ARGB32 stores alpha in the most significant byte (host-endian)
+            uint8_t alpha = (row[x] >> 24) & 0xFF;
+
+            // Using a threshold of 2 to ignore minor compression/export artifacts
+            if (alpha > 2) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    // If the image is completely transparent, return a tiny placeholder or the original
+    if (maxX == -1)
+        return surface;
+
+    const int trimmedWidth  = maxX - minX + 1;
+    const int trimmedHeight = maxY - minY + 1;
+
+    // If no trimming is actually required, avoid overhead
+    if (trimmedWidth == width && trimmedHeight == height)
+        return surface;
+
+    // Create a new, perfectly fitted surface
+    cairo_surface_t* trimmedSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, trimmedWidth, trimmedHeight);
+    cairo_t* cr = cairo_create(trimmedSurface);
+
+    // Shift the source surface backwards so the bounded area hits (0,0)
+    cairo_set_source_surface(cr, surface, -minX, -minY);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+
+    // Free the old un-cropped surface
+    cairo_surface_destroy(surface);
+
+    return trimmedSurface;
+}
+
+SP<Render::ITexture> CHyprBar::loadAnyAsset(const std::string& fullPath, const float targetSize) {
+    const auto CAIROSURFACEUNTRIM = cairo_image_surface_create_from_png(fullPath.c_str());
+
+    if (!CAIROSURFACEUNTRIM || cairo_surface_status(CAIROSURFACEUNTRIM) != CAIRO_STATUS_SUCCESS) {
+        Log::logger->log(Log::ERR, "loadAnyAsset: failed to load untrimmed Cairo Surface {} (corrupt / inaccessible / not png)", fullPath);
+        throw std::runtime_error("Unable to load CAIRO TRIMMED surface");
+    }
+
+    const auto CAIROSURFACE = trimTransparentEdges(CAIROSURFACEUNTRIM);
+
+    if (!CAIROSURFACE || cairo_surface_status(CAIROSURFACE) != CAIRO_STATUS_SUCCESS) {
+        Log::logger->log(Log::ERR, "loadAnyAsset: failed to load trimmed Cairo Surface {} (corrupt / inaccessible / not png)", fullPath);
+        throw std::runtime_error("Unable to load CAIRO surface");
+    }
+
+    const int origWidth  = cairo_image_surface_get_width(CAIROSURFACE);
+    const int origHeight = cairo_image_surface_get_height(CAIROSURFACE);
+
+    if (origWidth <= 0 || origHeight <= 0) {
+        cairo_surface_destroy(CAIROSURFACE);
+        throw std::runtime_error("Invalid image dimensions");
+    }
+
+
+    const float scaleFactor = std::min(targetSize / origWidth, targetSize / origHeight);
+    const int   scaledWidth  = std::max(1, static_cast<int>(std::round(origWidth * scaleFactor)));
+    const int   scaledHeight = std::max(1, static_cast<int>(std::round(origHeight * scaleFactor)));
+
+    const auto SCALEDSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, scaledWidth, scaledHeight);
+    const auto cr            = cairo_create(SCALEDSURFACE);
+
+
+    cairo_scale(cr, scaleFactor, scaleFactor);
+    cairo_set_source_surface(cr, CAIROSURFACE, 0, 0);
+    cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_GOOD);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+
+    auto tex = g_pHyprRenderer->createTexture(SCALEDSURFACE);
+
+    cairo_surface_destroy(CAIROSURFACE);
+    cairo_surface_destroy(SCALEDSURFACE);
+
+    return tex;
+}
+
 void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) {
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
@@ -391,8 +496,12 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         if ((!button.iconTex || button.iconTex->m_texID == 0) && !button.icon.empty()) {
             // render icon
             auto fgcol = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
+            if (button.icon.starts_with("file://")) {
+                button.iconTex = loadAnyAsset(button.icon.substr(6), scaledButtonSize);
+            } else {
+                button.iconTex = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, "sans", scaledButtonSize);
+            }
 
-            button.iconTex = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, "sans", scaledButtonSize);
         }
 
         if (!button.iconTex || button.iconTex->m_texID == 0)
