@@ -6,6 +6,7 @@
 #include <hyprland/src/config/values/types/IntValue.hpp>
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
+#include <hyprland/src/config/values/types/FontWeightValue.hpp>
 
 inline HANDLE PHANDLE = nullptr;
 
@@ -29,13 +30,14 @@ struct SGlobalState {
     uint32_t                  titleColorRuleIdx = 0;
 
     struct {
-        SP<Config::Values::CColorValue>  barColor, textColor, inactiveButtonColor;
-        SP<Config::Values::CIntValue>    barHeight;
-        SP<Config::Values::CIntValue>    barTextSize;
-        SP<Config::Values::CIntValue>    barPadding;
-        SP<Config::Values::CIntValue>    barButtonPadding;
-        SP<Config::Values::CBoolValue>   barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover;
-        SP<Config::Values::CStringValue> barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;
+        SP<Config::Values::CColorValue>      barColor, textColor, inactiveButtonColor;
+        SP<Config::Values::CIntValue>        barHeight;
+        SP<Config::Values::CIntValue>        barTextSize;
+        SP<Config::Values::CFontWeightValue> barTextWeight;
+        SP<Config::Values::CIntValue>        barPadding;
+        SP<Config::Values::CIntValue>        barButtonPadding;
+        SP<Config::Values::CBoolValue>       barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover;
+        SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;
     } config;
 };
 

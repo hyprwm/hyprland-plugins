@@ -34,6 +34,7 @@ plugin {
 `col.text` | color | bar's title text color
 `bar_title_enabled` | bool | whether to render the title | `true`
 `bar_text_size` | int | bar's title text font size | `10`
+`bar_text_weight` | font weight | bar's title text weight. Named (`thin`, `light`, `normal`, `medium`, `semibold`, `bold`, `ultrabold`, `heavy`, ...) or integer 100-1000 | `400`
 `bar_text_font` | str | bar's title text font | `Sans`
 `bar_text_align` | left, center | bar's title text alignment | `center`
 `bar_buttons_alignment` | right, left | bar's buttons alignment | `right`
