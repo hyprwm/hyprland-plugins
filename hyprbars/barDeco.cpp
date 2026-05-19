@@ -286,6 +286,7 @@ bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButt
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     const auto COLORVAL         = g_pGlobalState->config.textColor->value();
     const auto SIZE             = g_pGlobalState->config.barTextSize->value();
+    const auto WEIGHT           = g_pGlobalState->config.barTextWeight->value();
     const auto FONT             = g_pGlobalState->config.barTextFont->value();
     const auto ALIGN            = g_pGlobalState->config.barTextAlign->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
@@ -308,7 +309,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     }
 
     const CHyprColor COLOR = m_bForcedTitleColor.value_or(configColor(COLORVAL));
-    m_pTextTex             = g_pHyprRenderer->renderText(m_szLastTitle, COLOR, scaledSize, false, FONT, maxWidth);
+    m_pTextTex             = g_pHyprRenderer->renderText(m_szLastTitle, COLOR, scaledSize, false, FONT, maxWidth, WEIGHT.m_value);
 }
 
 size_t CHyprBar::getVisibleButtonCount(Config::INTEGER barButtonPadding, Config::INTEGER barPadding, const Vector2D& bufferSize, const float scale) {
