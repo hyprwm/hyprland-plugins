@@ -266,11 +266,19 @@ void CHyprBar::handleMovement() {
 
 bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
     //check if on a button
-    float offset = barPadding;
+    float offsetL = barPadding;
+    float offsetR = barPadding;
 
     for (auto& b : g_pGlobalState->buttons) {
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, barHeight};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+        bool isRightButton = false;
+        if (b.align == "") {
+			isRightButton = BUTTONSRIGHT;
+		} else
+		{
+			isRightButton = (b.align != "left");
+		}
+        Vector2D   currentPos = Vector2D{(isRightButton ? BARBUF.x - barButtonPadding - b.size - offsetR : offsetL), (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size)) {
             // hit on close
@@ -278,7 +286,12 @@ bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButt
             return true;
         }
 
-        offset += barButtonPadding + b.size;
+		if (isRightButton) {
+        	offsetR += barButtonPadding + b.size;
+        } else {
+        	offsetL += barButtonPadding + b.size;
+        }
+
     }
     return false;
 }
@@ -438,15 +451,22 @@ void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) 
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
     const auto INACTIVECOLOR    = g_pGlobalState->config.inactiveButtonColor->value();
 
-    const bool BUTTONSRIGHT    = ALIGNBUTTONS != "left";
+
     const auto visibleCount    = getVisibleButtonCount(BARBUTTONPADDING, BARPADDING, Vector2D{barBox->w, barBox->h}, scale);
     const bool INVALIDATEICONS = m_bButtonsDirty || m_bWindowSizeChanged;
 
-    int        offset = BARPADDING * scale;
+    int        offsetL = BARPADDING * scale;
+    int        offsetR = BARPADDING * scale;
     for (size_t i = 0; i < visibleCount; ++i) {
         auto&      button           = g_pGlobalState->buttons[i];
         const auto scaledButtonSize = button.size * scale;
         const auto scaledButtonsPad = BARBUTTONPADDING * scale;
+        bool BUTTONSRIGHT           = false;
+        if (button.align == "") {
+        	BUTTONSRIGHT = ALIGNBUTTONS != "left";
+        } else {
+        	BUTTONSRIGHT = button.align != "left";
+        }
 
         auto       color = button.bgcol;
 
@@ -458,13 +478,18 @@ void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) 
 
         color.a *= a;
 
-        CBox buttonBox = {barBox->x + (BUTTONSRIGHT ? barBox->w - offset - scaledButtonSize : offset), barBox->y + (barBox->h - scaledButtonSize) / 2.0, scaledButtonSize,
+        CBox buttonBox = {barBox->x + (BUTTONSRIGHT ? barBox->w - offsetR - scaledButtonSize : offsetL), barBox->y + (barBox->h - scaledButtonSize) / 2.0, scaledButtonSize,
                           scaledButtonSize};
         buttonBox.round();
 
         g_pHyprOpenGL->renderRect(buttonBox, color, {.round = static_cast<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F});
 
-        offset += scaledButtonsPad + scaledButtonSize;
+        if (BUTTONSRIGHT) {
+        	offsetR += scaledButtonsPad + scaledButtonSize;
+		} else {
+			offsetL += scaledButtonsPad + scaledButtonSize;
+		}
+
     }
 }
 
@@ -475,23 +500,37 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
     const auto ICONONHOVER      = g_pGlobalState->config.iconOnHover->value();
 
-    const bool BUTTONSRIGHT = ALIGNBUTTONS != "left";
+
     const auto visibleCount = getVisibleButtonCount(BARBUTTONPADDING, BARPADDING, Vector2D{barBox->w, barBox->h}, scale);
     const auto COORDS       = cursorRelativeToBar();
 
-    int        offset        = BARPADDING * scale;
-    float      noScaleOffset = BARPADDING;
+    int        offsetL        = BARPADDING * scale;
+    int        offsetR        = BARPADDING * scale;
+    float      noScaleOffsetL = BARPADDING;
+    float      noScaleOffsetR = BARPADDING;
 
     for (size_t i = 0; i < visibleCount; ++i) {
         auto&      button           = g_pGlobalState->buttons[i];
         const auto scaledButtonSize = button.size * scale;
         const auto scaledButtonsPad = BARBUTTONPADDING * scale;
+        bool BUTTONSRIGHT           = false;
+        if (button.align == "") {
+        	BUTTONSRIGHT = ALIGNBUTTONS != "left";
+        } else {
+        	BUTTONSRIGHT = button.align != "left";
+        }
+
 
         // check if hovering here
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, HEIGHT};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - button.size - noScaleOffsetR : noScaleOffsetL), (BARBUF.y - button.size) / 2.0}.floor();
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
-        noScaleOffset += BARBUTTONPADDING + button.size;
+        if (BUTTONSRIGHT) {
+			noScaleOffsetR += BARBUTTONPADDING + button.size;
+		} else {
+			noScaleOffsetL += BARBUTTONPADDING + button.size;
+		}
+
 
         if ((!button.iconTex || button.iconTex->m_texID == 0) && !button.icon.empty()) {
             // render icon
@@ -507,13 +546,19 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         if (!button.iconTex || button.iconTex->m_texID == 0)
             continue;
 
-        const auto iconX = barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0) - button.iconTex->m_size.x / 2.0;
+        const auto iconX = barBox->x + (BUTTONSRIGHT ? barBox->width - offsetR - scaledButtonSize / 2.0 : offsetL + scaledButtonSize / 2.0) - button.iconTex->m_size.x / 2.0;
         const auto iconY = barBox->y + barBox->height / 2.0 - button.iconTex->m_size.y / 2.0;
         CBox       pos   = {iconX, iconY, button.iconTex->m_size.x, button.iconTex->m_size.y};
 
         if (!ICONONHOVER || (ICONONHOVER && m_iButtonHoverState > 0))
             g_pHyprOpenGL->renderTexture(button.iconTex, pos, {.a = a});
-        offset += scaledButtonsPad + scaledButtonSize;
+
+        if (BUTTONSRIGHT) {
+			offsetR += scaledButtonsPad + scaledButtonSize;
+		} else {
+			offsetL += scaledButtonsPad + scaledButtonSize;
+		}
+
 
         bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
         if (hovering != currentBit) {
@@ -765,15 +810,24 @@ void CHyprBar::damageOnButtonHover() {
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
-    const bool BUTTONSRIGHT     = ALIGNBUTTONS != "left";
 
-    float      offset = BARPADDING;
+    float      offsetL = BARPADDING;
+    float      offsetR = BARPADDING;
 
     const auto COORDS = cursorRelativeToBar();
 
     for (auto& b : g_pGlobalState->buttons) {
+
+        bool BUTTONSRIGHT           = false;
+
+        if (b.align == "") {
+            BUTTONSRIGHT = ALIGNBUTTONS != "left";
+        } else {
+            BUTTONSRIGHT = b.align != "left";
+        }
+
         const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, HEIGHT};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offsetR : offsetL), (BARBUF.y - b.size) / 2.0}.floor();
 
         bool       hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size);
 
@@ -782,6 +836,10 @@ void CHyprBar::damageOnButtonHover() {
             damageEntire();
         }
 
-        offset += BARBUTTONPADDING + b.size;
+        if (BUTTONSRIGHT) {
+			offsetR += BARBUTTONPADDING + b.size;
+		} else {
+			offsetL += BARBUTTONPADDING + b.size;
+		}
     }
 }
