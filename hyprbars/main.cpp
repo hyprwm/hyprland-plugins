@@ -184,6 +184,20 @@ int newLuaButton(lua_State* L) {
 
         button.cmd = lua_tostring(L, -1);
     }
+{
+    Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+    lua_getfield(L, 1, "align");
+
+    if (!lua_isnil(L, -1)) {
+        if (!lua_isstring(L, -1))
+            return Config::Lua::Bindings::Internal::configError(L, "add_button: align must be a string");
+
+        button.align = lua_tostring(L, -1);
+    } else {
+		button.align = "";
+	}
+}
 
     g_pGlobalState->buttons.push_back(std::move(button));
 
