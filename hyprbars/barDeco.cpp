@@ -17,6 +17,7 @@
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
+#include <hyprland/src/state/MonitorState.hpp>
 
 #include "globals.hpp"
 #include "BarPassElement.hpp"
@@ -184,7 +185,13 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     auto       COORDS = cursorRelativeToBar();
     if (m_bTouchEv) {
         ITouch::SDownEvent e        = touchEvent.value();
-        auto               PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
+        PHLMONITOR PMONITOR = nullptr;
+        for(auto& m : State::monitorState()->monitors()) {
+            if(m->m_name == (!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "")) {
+                PMONITOR = m;
+                break;
+            }
+        }
         PMONITOR                    = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
         COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
     }
@@ -247,7 +254,7 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         m_bDraggingThis = false;
         if (m_bTouchEv)
-            Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
+            (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
 
         Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
     }
