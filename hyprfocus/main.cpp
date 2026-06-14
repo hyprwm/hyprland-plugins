@@ -20,6 +20,7 @@
 #include <hyprland/src/config/values/types/FloatValue.hpp>
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/event/EventBus.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
 #undef private
 
 #include "globals.hpp"
@@ -30,9 +31,14 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
 
 static struct {
-    SP<Config::Values::CBoolValue> onlyOnMonitorChange;
-    SP<Config::Values::CFloatValue> fadeOpacity, slideHeight, bounceStrength;
-    SP<Config::Values::CStringValue> mode;
+    SP<Config::Values::CBoolValue>   enable;
+    SP<Config::Values::CBoolValue>   animateFloating;
+    SP<Config::Values::CBoolValue>   onlyOnMonitorChange;
+    SP<Config::Values::CStringValue> keyboardFocusAnimation;
+    SP<Config::Values::CStringValue> mouseFocusAnimation;
+    SP<Config::Values::CFloatValue>  fadeOpacity;
+    SP<Config::Values::CFloatValue>  shrinkPercentage;
+    SP<Config::Values::CFloatValue>  slideHeight;
 } configValues;
 
 // Do NOT change this function.
@@ -40,8 +46,18 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
-static void onFocusChange(PHLWINDOW window) {
+static bool isMouseReason(Desktop::eFocusReason r) {
+    return r == Desktop::FOCUS_REASON_CLICK || r == Desktop::FOCUS_REASON_FFM;
+}
+
+static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
     if (!window)
+        return;
+
+    if (!configValues.enable->value())
+        return;
+
+    if (!configValues.animateFloating->value() && window->m_isFloating)
         return;
 
     static PHLWINDOWREF lastWindow;
@@ -53,10 +69,18 @@ static void onFocusChange(PHLWINDOW window) {
         return;
 
     lastWindow = window;
-    const auto        PIN      = Config::animationTree()->getAnimationPropertyConfig("hyprfocusIn");
-    const auto        POUT     = Config::animationTree()->getAnimationPropertyConfig("hyprfocusOut");
 
-    if (configValues.mode->value() == "flash") {
+    const auto mode = isMouseReason(reason)
+        ? configValues.mouseFocusAnimation->value()
+        : configValues.keyboardFocusAnimation->value();
+
+    if (mode == "none")
+        return;
+
+    const auto PIN  = Config::animationTree()->getAnimationPropertyConfig("hyprfocusIn");
+    const auto POUT = Config::animationTree()->getAnimationPropertyConfig("hyprfocusOut");
+
+    if (mode == "flash") {
         const auto ORIGINAL = window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->goal();
         window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setConfig(PIN);
         *window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE) = configValues.fadeOpacity->value();
@@ -69,13 +93,13 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
         });
-    } else if (configValues.mode->value() == "bounce") {
+    } else if (mode == "shrink") {
         const auto ORIGINAL = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
 
         window->m_realPosition->setConfig(PIN);
         window->m_realSize->setConfig(PIN);
 
-        auto box = ORIGINAL.copy().scaleFromCenter(configValues.bounceStrength->value());
+        auto box = ORIGINAL.copy().scaleFromCenter(configValues.shrinkPercentage->value());
 
         *window->m_realPosition = box.pos();
         *window->m_realSize     = box.size();
@@ -94,7 +118,7 @@ static void onFocusChange(PHLWINDOW window) {
 
             w->m_realSize->setCallbackOnEnd(nullptr);
         });
-    } else if (configValues.mode->value() == "slide") {
+    } else if (mode == "slide") {
         const auto ORIGINAL = window->m_realPosition->goal();
 
         window->m_realPosition->setConfig(PIN);
@@ -128,19 +152,25 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[hww] Version mismatch");
     }
 
-    static auto P = Event::bus()->m_events.window.active.listen([&](PHLWINDOW w, Desktop::eFocusReason r) { onFocusChange(w); });
+    static auto P = Event::bus()->m_events.window.active.listen([&](PHLWINDOW w, Desktop::eFocusReason r) { onFocusChange(w, r); });
 
-    configValues.mode = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:mode", "mode to use", "flash");
+    configValues.enable = makeShared<Config::Values::CBoolValue>("plugin:hyprfocus:enable", "enable or disable the plugin", true);
+    configValues.animateFloating = makeShared<Config::Values::CBoolValue>("plugin:hyprfocus:animate_floating", "animate floating windows", true);
     configValues.onlyOnMonitorChange = makeShared<Config::Values::CBoolValue>("plugin:hyprfocus:only_on_monitor_change", "whether to fire the animation only on monitor change", false);
-    configValues.fadeOpacity = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:fade_opacity", "fade opacity", 0.8F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F} );
-    configValues.slideHeight = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:slide_height", "slide height", 20.F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 150.F} );
-    configValues.bounceStrength = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:bounce_strength", "bounce strength", 0.95F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F} );
+    configValues.keyboardFocusAnimation = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:keyboard_focus_animation", "animation for keyboard focus changes", "flash");
+    configValues.mouseFocusAnimation = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:mouse_focus_animation", "animation for mouse focus changes", "none");
+    configValues.fadeOpacity = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:fade_opacity", "fade opacity", 0.8F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F});
+    configValues.shrinkPercentage = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:shrink_percentage", "shrink percentage", 0.95F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F});
+    configValues.slideHeight = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:slide_height", "slide height", 20.F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 150.F});
 
-    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.mode);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.enable);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.animateFloating);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.onlyOnMonitorChange);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.keyboardFocusAnimation);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.mouseFocusAnimation);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.fadeOpacity);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.shrinkPercentage);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.slideHeight);
-    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.bounceStrength);
 
     // this will not be cleaned up after we are unloaded but it doesn't really matter,
     // as if we create this again it will just overwrite the old one.
