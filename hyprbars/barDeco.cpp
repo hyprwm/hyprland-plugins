@@ -90,7 +90,7 @@ bool CHyprBar::inputIsValid() {
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource()))
         return false;
 
-    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    const auto MOUSE    = g_pInputManager->getMouseCoordsInternal();
     auto       PMONITOR = Desktop::focusState()->monitor();
 
     if (!PMONITOR)
@@ -98,13 +98,10 @@ bool CHyprBar::inputIsValid() {
 
     Desktop::CViewHitTester hitTester{*Desktop::viewState()};
 
-    const auto WINDOWATCURSOR = hitTester.windowAt(
-        MOUSE,
-        Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING
-    );
+    const auto              WINDOWATCURSOR = hitTester.windowAt(MOUSE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
-    auto focusState = Desktop::focusState();
-    auto window     = focusState->window();
+    auto                    focusState = Desktop::focusState();
+    auto                    window     = focusState->window();
 
     if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
         return false;
@@ -113,22 +110,14 @@ bool CHyprBar::inputIsValid() {
     Vector2D surfaceCoords;
 
     // Check Top Layer
-    hitTester.layerSurfaceAt(
-        MOUSE,
-        &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], 
-        &surfaceCoords,
-        &foundSurface
-    );
-    if (foundSurface) return false;
+    hitTester.layerSurfaceAt(MOUSE, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &foundSurface);
+    if (foundSurface)
+        return false;
 
     // Check Overlay Layer
-    hitTester.layerSurfaceAt(
-        MOUSE,
-        &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], 
-        &surfaceCoords,
-        &foundSurface
-    );
-    if (foundSurface) return false;
+    hitTester.layerSurfaceAt(MOUSE, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &foundSurface);
+    if (foundSurface)
+        return false;
 
     return true;
 }
@@ -201,15 +190,15 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     auto       COORDS = cursorRelativeToBar();
     if (m_bTouchEv) {
         ITouch::SDownEvent e        = touchEvent.value();
-        PHLMONITOR PMONITOR = nullptr;
-        for(auto& m : State::monitorState()->monitors()) {
-            if(m->m_name == (!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "")) {
+        PHLMONITOR         PMONITOR = nullptr;
+        for (auto& m : State::monitorState()->monitors()) {
+            if (m->m_name == (!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "")) {
                 PMONITOR = m;
                 break;
             }
         }
-        PMONITOR                    = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
-        COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
+        PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
+        COORDS   = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
     }
 
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
