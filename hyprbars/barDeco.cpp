@@ -90,6 +90,46 @@ bool CHyprBar::inputIsValid() {
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource()))
         return false;
 
+    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    auto       PMONITOR = Desktop::focusState()->monitor();
+
+    if (!PMONITOR)
+        return false;
+
+    Desktop::CViewHitTester hitTester{*Desktop::viewState()};
+
+    const auto WINDOWATCURSOR = hitTester.windowAt(
+        MOUSE,
+        Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING
+    );
+
+    auto focusState = Desktop::focusState();
+    auto window     = focusState->window();
+
+    if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
+        return false;
+
+    PHLLS    foundSurface = nullptr;
+    Vector2D surfaceCoords;
+
+    // Check Top Layer
+    hitTester.layerSurfaceAt(
+        MOUSE,
+        &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], 
+        &surfaceCoords,
+        &foundSurface
+    );
+    if (foundSurface) return false;
+
+    // Check Overlay Layer
+    hitTester.layerSurfaceAt(
+        MOUSE,
+        &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], 
+        &surfaceCoords,
+        &foundSurface
+    );
+    if (foundSurface) return false;
+
     return true;
 }
 
