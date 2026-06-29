@@ -21,6 +21,7 @@
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
 #undef private
 
 #include "globals.hpp"
@@ -182,8 +183,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     // reset the callbacks to avoid crashes
-    for (const auto& w : g_pCompositor->m_windows) {
-        if (!validMapped(w))
+    for (const auto& w : Desktop::windowState()->windows()) {
+        if (!Desktop::View::validMapped(w))
             continue;
 
         w->m_realSize->setCallbackOnEnd(nullptr);
