@@ -4,6 +4,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/WindowQuery.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
@@ -80,7 +81,8 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
     }
 
     const auto SURF    = surface->m_surface.lock();
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(SURF);
+    const auto CWLSURF = Desktop::View::CWLSurface::fromResource(SURF);
+    const auto PWINDOW = CWLSURF ? Desktop::View::CWindow::fromView(CWLSURF->view()) : nullptr;
 
     CBox       newBox = box;
 
