@@ -4,6 +4,7 @@
 
 #include <any>
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/parserUtils/ParserUtils.hpp>
@@ -259,7 +260,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P5 = Event::bus()->m_events.config.reloaded.listen([&] { onConfigReloaded(); });
 
     // add deco to existing windows
-    for (auto& w : g_pCompositor->m_windows) {
+    for (auto& w : Desktop::windowState()->windows()) {
         if (w->isHidden() || !w->m_isMapped)
             continue;
 
