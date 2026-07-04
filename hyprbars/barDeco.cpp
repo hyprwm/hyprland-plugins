@@ -50,7 +50,7 @@ CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pMouseMoveCallback = Event::bus()->m_events.input.mouse.move.listen([&](Vector2D c, Event::SCallbackInfo& info) { onMouseMove(c); });
 
     Animation::mgr()->createAnimation(configColor(g_pGlobalState->config.barColor->value()), m_cRealBarColor, Config::animationTree()->getAnimationPropertyConfig("border"),
-                                         pWindow, AVARDAMAGE_NONE);
+                                      pWindow, AVARDAMAGE_NONE);
     m_cRealBarColor->setUpdateCallback([&](auto) { damageEntire(); });
 }
 
