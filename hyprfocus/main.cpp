@@ -14,6 +14,7 @@
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/animation/AnimationManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
+#include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/values/types/BoolValue.hpp>
@@ -111,7 +112,7 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
             w->m_realSize->setConfig(POUT);
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating || w->isFullscreen()) {
+            if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock())) {
                 *w->m_realPosition = ORIGINAL.pos();
                 *w->m_realSize     = ORIGINAL.size();
             } else
@@ -131,7 +132,7 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
                 return;
             w->m_realPosition->setConfig(POUT);
 
-            if (w->m_isFloating || w->isFullscreen())
+            if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock()))
                 *w->m_realPosition = ORIGINAL;
             else
                 w->layoutTarget()->recalc();
