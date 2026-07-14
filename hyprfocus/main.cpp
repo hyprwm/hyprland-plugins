@@ -96,48 +96,48 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
             w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
         });
     } else if (mode == "shrink") {
-        const auto ORIGINAL = CBox{window->m_realPosition->goal(), window->m_realSize->goal()};
+        const auto ORIGINAL = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
 
-        window->m_realPosition->setConfig(PIN);
-        window->m_realSize->setConfig(PIN);
+        window->positionAnimation()->setConfig(PIN);
+        window->sizeAnimation()->setConfig(PIN);
 
         auto box = ORIGINAL.copy().scaleFromCenter(configValues.shrinkPercentage->value());
 
-        *window->m_realPosition = box.pos();
-        *window->m_realSize     = box.size();
+        *window->positionAnimation() = box.pos();
+        *window->sizeAnimation()     = box.size();
 
-        window->m_realSize->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        window->sizeAnimation()->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
-            w->m_realSize->setConfig(POUT);
-            w->m_realPosition->setConfig(POUT);
+            w->sizeAnimation()->setConfig(POUT);
+            w->positionAnimation()->setConfig(POUT);
 
             if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock())) {
-                *w->m_realPosition = ORIGINAL.pos();
-                *w->m_realSize     = ORIGINAL.size();
+                *w->positionAnimation() = ORIGINAL.pos();
+                *w->sizeAnimation()     = ORIGINAL.size();
             } else
                 w->layoutTarget()->recalc();
 
-            w->m_realSize->setCallbackOnEnd(nullptr);
+            w->sizeAnimation()->setCallbackOnEnd(nullptr);
         });
     } else if (mode == "slide") {
-        const auto ORIGINAL = window->m_realPosition->goal();
+        const auto ORIGINAL = window->positionAnimation()->goal();
 
-        window->m_realPosition->setConfig(PIN);
+        window->positionAnimation()->setConfig(PIN);
 
-        *window->m_realPosition = ORIGINAL - Vector2D{0.F, configValues.slideHeight->value()};
+        *window->positionAnimation() = ORIGINAL - Vector2D{0.F, configValues.slideHeight->value()};
 
-        window->m_realPosition->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        window->positionAnimation()->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
-            w->m_realPosition->setConfig(POUT);
+            w->positionAnimation()->setConfig(POUT);
 
             if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock()))
-                *w->m_realPosition = ORIGINAL;
+                *w->positionAnimation() = ORIGINAL;
             else
                 w->layoutTarget()->recalc();
 
-            w->m_realPosition->setCallbackOnEnd(nullptr);
+            w->positionAnimation()->setCallbackOnEnd(nullptr);
         });
     }
 }
@@ -188,8 +188,8 @@ APICALL EXPORT void PLUGIN_EXIT() {
         if (!Desktop::View::validMapped(w))
             continue;
 
-        w->m_realSize->setCallbackOnEnd(nullptr);
-        w->m_realPosition->setCallbackOnEnd(nullptr);
+        w->sizeAnimation()->setCallbackOnEnd(nullptr);
+        w->positionAnimation()->setCallbackOnEnd(nullptr);
         w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
     }
 }
