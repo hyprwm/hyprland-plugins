@@ -16,8 +16,8 @@ static size_t borderCount() {
 }
 
 CBordersPlusPlus::CBordersPlusPlus(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
-    m_lastWindowPos  = pWindow->m_realPosition->value();
-    m_lastWindowSize = pWindow->m_realSize->value();
+    m_lastWindowPos  = pWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    m_lastWindowSize = pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 }
 
 CBordersPlusPlus::~CBordersPlusPlus() {
@@ -156,8 +156,8 @@ eDecorationType CBordersPlusPlus::getDecorationType() {
 }
 
 void CBordersPlusPlus::updateWindow(PHLWINDOW pWindow) {
-    m_lastWindowPos  = pWindow->m_realPosition->value();
-    m_lastWindowSize = pWindow->m_realSize->value();
+    m_lastWindowPos  = pWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    m_lastWindowSize = pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     damageEntire();
 }
