@@ -73,7 +73,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
 
     Hyprlang::CParseResult      result;
 
-    // hyprbars-button = bgcolor, size, icon, action, fgcolor
+    // hyprbars-button = bgcolor, size, icon, action, fgcolor, align
 
     if (vars[0].empty() || vars[1].empty()) {
         result.setError("bgcolor and size cannot be empty");
@@ -91,6 +91,7 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
     bool userfg  = false;
     auto fgcolor = Config::ParserUtils::parseColor("rgb(ffffff)");
     auto bgcolor = Config::ParserUtils::parseColor(vars[0]);
+    std::string align = "";
 
     if (!bgcolor) {
         result.setError("invalid bgcolor");
@@ -107,7 +108,11 @@ Hyprlang::CParseResult onNewButton(const char* K, const char* V) {
         return result;
     }
 
-    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], userfg, *fgcolor, *bgcolor, size, vars[2]});
+    if (vars.size() == 6 || (vars.size() == 5 && !fgcolor)) {
+    	align = vars[5];
+    }
+
+    g_pGlobalState->buttons.push_back(SHyprButton{vars[3], userfg, *fgcolor, *bgcolor, size, vars[2], align});
 
     for (auto& b : g_pGlobalState->bars) {
         b->m_bButtonsDirty = true;
@@ -181,6 +186,20 @@ int newLuaButton(lua_State* L) {
 
         button.cmd = lua_tostring(L, -1);
     }
+{
+    Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+    lua_getfield(L, 1, "align");
+
+    if (!lua_isnil(L, -1)) {
+        if (!lua_isstring(L, -1))
+            return Config::Lua::Bindings::Internal::configError(L, "add_button: align must be a string");
+
+        button.align = lua_tostring(L, -1);
+    } else {
+		button.align = "";
+	}
+}
 
     g_pGlobalState->buttons.push_back(std::move(button));
 
