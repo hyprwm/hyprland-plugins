@@ -10,6 +10,7 @@
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/KeybindManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
@@ -68,7 +69,7 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = PRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
-    info.desiredExtents = {{0, m_hidden || !ENABLED ? 0 : HEIGHT}, {0, 0}};
+    info.desiredExtents = {{0, static_cast<int>(m_hidden || !ENABLED ? 0 : HEIGHT)}, {0, 0}};
     return info;
 }
 
@@ -165,19 +166,15 @@ void CHyprBar::onTouchMove(Event::SCallbackInfo& info, ITouch::SMotionEvent e) {
     if (!m_bDragPending || !m_bTouchEv || !validMapped(m_pWindow) || e.touchID != m_touchId)
         return;
 
-    auto PMONITOR     = m_pWindow->m_monitor.lock();
-    PMONITOR          = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
-    const auto COORDS = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y);
-
     if (!m_bDraggingThis) {
         // Initial setup for dragging a window.
-        g_pKeybindManager->m_dispatchers["setfloating"]("activewindow");
-        g_pKeybindManager->m_dispatchers["resizewindowpixel"]("exact 50% 50%,activewindow");
-        // pin it so you can change workspaces while dragging a window
-        g_pKeybindManager->m_dispatchers["pin"]("activewindow");
+        (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, m_pWindow.lock());
+        // Pin it so you can change workspaces while dragging a window
+        (void)Config::Actions::pinWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, m_pWindow.lock());
+        
+        g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
+        m_bDraggingThis = true;
     }
-    g_pKeybindManager->m_dispatchers["movewindowpixel"](std::format("exact {} {},activewindow", (int)(COORDS.x - (assignedBoxGlobal().w / 2)), (int)COORDS.y));
-    m_bDraggingThis = true;
 }
 
 void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch::SDownEvent> touchEvent) {
@@ -213,8 +210,8 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 
         if (m_bDraggingThis) {
             if (m_bTouchEv)
-                g_pKeybindManager->m_dispatchers["settiled"]("activewindow");
-            g_pKeybindManager->m_dispatchers["mouse"]("0movewindow");
+                (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
+            g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
             Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
         }
 
@@ -281,12 +278,12 @@ bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButt
     float offset = barPadding;
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, barHeight};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(barHeight)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size)) {
             // hit on close
-            g_pKeybindManager->m_dispatchers["exec"](b.cmd);
+            Config::Supplementary::executor()->spawn(b.cmd);
             return true;
         }
 
@@ -396,7 +393,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         const auto scaledButtonsPad = BARBUTTONPADDING * scale;
 
         // check if hovering here
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, HEIGHT};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(HEIGHT)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
         noScaleOffset += BARBUTTONPADDING + button.size;
@@ -490,7 +487,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
-    m_seExtents = {{0, HEIGHT}, {}};
+    m_seExtents = {{0, static_cast<int>(HEIGHT)}, {}};
 
     const auto DECOBOX = assignedBoxGlobal();
 
@@ -526,7 +523,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->m_scale).round();
-        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower()});
+        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -534,9 +531,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower(), .blur = true, .blurA = a});
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower(), .blur = true, .blurA = a});
     else
-        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = scaledRounding, .roundingPower = m_pWindow->roundingPower()});
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
 
     // render title
     if (ENABLETITLE && (m_szLastTitle != PWINDOW->m_title || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
@@ -553,7 +550,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
     }
 
-    CBox textBox = {titleBarBox.x, titleBarBox.y, (int)BARBUF.x, (int)BARBUF.y};
+    CBox textBox = {titleBarBox.x, titleBarBox.y, BARBUF.x, BARBUF.y};
     if (ENABLETITLE && m_pTextTex) {
         const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
         const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
@@ -676,7 +673,7 @@ void CHyprBar::damageOnButtonHover() {
     const auto COORDS = cursorRelativeToBar();
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{(int)assignedBoxGlobal().w, HEIGHT};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(HEIGHT)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         bool       hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size);
