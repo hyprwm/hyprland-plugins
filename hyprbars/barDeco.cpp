@@ -171,7 +171,7 @@ void CHyprBar::onTouchMove(Event::SCallbackInfo& info, ITouch::SMotionEvent e) {
         (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, m_pWindow.lock());
         // Pin it so you can change workspaces while dragging a window
         (void)Config::Actions::pinWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, m_pWindow.lock());
-        
+
         g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
         m_bDraggingThis = true;
     }
