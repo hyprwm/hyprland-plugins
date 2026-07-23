@@ -32,7 +32,7 @@
 using namespace Render::GL;
 
 static CHyprColor configColor(Config::INTEGER color) {
-    return CHyprColor{static_cast<uint64_t>(color)};
+    return CHyprColor{sc<uint64_t>(color)};
 }
 
 CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
@@ -69,7 +69,7 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = PRECEDENCE ? 10005 : 5000;
     info.reserved       = true;
-    info.desiredExtents = {{0, static_cast<int>(m_hidden || !ENABLED ? 0 : HEIGHT)}, {0, 0}};
+    info.desiredExtents = {{0, sc<int>(m_hidden || !ENABLED ? 0 : HEIGHT)}, {0, 0}};
     return info;
 }
 
@@ -278,7 +278,7 @@ bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButt
     float offset = barPadding;
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(barHeight)};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(barHeight)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size)) {
@@ -310,7 +310,7 @@ void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
     const auto scaledButtonsSize = buttonSizes * scale;
     const auto scaledBarPadding  = BARPADDING * scale;
     const int  paddingTotal      = scaledBarPadding * 2 + scaledButtonsSize + (ALIGN != "left" ? scaledButtonsSize : 0);
-    const int  maxWidth          = std::clamp(static_cast<int>(bufferSize.x - paddingTotal), 0, INT_MAX);
+    const int  maxWidth          = std::clamp(sc<int>(bufferSize.x - paddingTotal), 0, INT_MAX);
 
     if (m_szLastTitle.empty() || maxWidth < 1) {
         m_pTextTex = nullptr;
@@ -367,7 +367,7 @@ void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) 
                           scaledButtonSize};
         buttonBox.round();
 
-        g_pHyprOpenGL->renderRect(buttonBox, color, {.round = static_cast<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F});
+        g_pHyprOpenGL->renderRect(buttonBox, color, {.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F});
 
         offset += scaledButtonsPad + scaledButtonSize;
     }
@@ -393,7 +393,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         const auto scaledButtonsPad = BARBUTTONPADDING * scale;
 
         // check if hovering here
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(HEIGHT)};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(HEIGHT)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
         noScaleOffset += BARBUTTONPADDING + button.size;
@@ -487,7 +487,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
-    m_seExtents = {{0, static_cast<int>(HEIGHT)}, {}};
+    m_seExtents = {{0, sc<int>(HEIGHT)}, {}};
 
     const auto DECOBOX = assignedBoxGlobal();
 
@@ -523,7 +523,7 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->m_scale).round();
-        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
+        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 0), {.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -531,9 +531,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower(), .blur = true, .blurA = a});
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower(), .blur = true, .blurA = a});
     else
-        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = static_cast<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
+        g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->roundingPower()});
 
     // render title
     if (ENABLETITLE && (m_szLastTitle != PWINDOW->m_title || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
@@ -673,7 +673,7 @@ void CHyprBar::damageOnButtonHover() {
     const auto COORDS = cursorRelativeToBar();
 
     for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, static_cast<double>(HEIGHT)};
+        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(HEIGHT)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         bool       hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size);
