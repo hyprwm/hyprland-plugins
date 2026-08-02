@@ -25,6 +25,8 @@ CBordersPlusPlus::~CBordersPlusPlus() {
 }
 
 SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
+    const auto                 PWINDOW = m_pWindow.lock();
+
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
     info.reserved = true;
@@ -40,6 +42,8 @@ SDecorationPositioningInfo CBordersPlusPlus::getPositioningInfo() {
 
         info.desiredExtents = {{size, size}, {size, size}};
         m_fLastThickness    = size;
+    } else if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault()) {
+        info.desiredExtents = {{0, 0}, {0, 0}};
     } else
         info.desiredExtents = {{m_fLastThickness, m_fLastThickness}, {m_fLastThickness, m_fLastThickness}};
 
