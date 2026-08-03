@@ -74,7 +74,7 @@ hl.plugin.hyprbars.add_button({
     fg_color = "rgb(ffffff)",
     size = 10,
     icon = "X",
-    action = "hyprctl dispatch killactive",
+    action = "hyprctl dispatch 'hl.dsp.window.close()'",
 })
 
 hl.plugin.hyprbars.add_button({
@@ -82,7 +82,7 @@ hl.plugin.hyprbars.add_button({
     fg_color = "rgb(000000)",
     size = 10,
     icon = "_",
-    action = "hyprctl dispatch fullscreen 1",
+    action = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
 })
 ```
 
