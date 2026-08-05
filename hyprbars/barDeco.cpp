@@ -8,9 +8,9 @@
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/desktop/view/LayerSurface.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
+#include <hyprland/src/keybinds/Manager.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
-#include <hyprland/src/managers/KeybindManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
@@ -172,7 +172,7 @@ void CHyprBar::onTouchMove(Event::SCallbackInfo& info, ITouch::SMotionEvent e) {
         // Pin it so you can change workspaces while dragging a window
         (void)Config::Actions::pinWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, m_pWindow.lock());
 
-        g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
+        g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
         m_bDraggingThis = true;
     }
 }
@@ -211,7 +211,7 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
         if (m_bDraggingThis) {
             if (m_bTouchEv)
                 (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
-            g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+            g_layoutManager->endDragTarget();
             Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)PWINDOW.get());
         }
 
@@ -253,7 +253,7 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
     m_bCancelledDown = false;
 
     if (m_bDraggingThis) {
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+        g_layoutManager->endDragTarget();
         m_bDraggingThis = false;
         if (m_bTouchEv)
             (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
@@ -267,7 +267,7 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
 }
 
 void CHyprBar::handleMovement() {
-    g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
+    g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
     m_bDraggingThis = true;
     Log::logger->log(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
     return;
