@@ -5,7 +5,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowQuery.hpp>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/xwayland/XSurface.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
@@ -60,12 +60,12 @@ void hkNotifyMotion(CSeatManager* thisptr, uint32_t time_msec, const Vector2D& l
     auto               window     = focusState->window();
     auto               monitor    = focusState->monitor();
 
-    const auto         CONFIG = window && monitor ? getAppConfig(window->m_initialClass) : nullptr;
+    const auto         CONFIG = window && monitor ? getAppConfig(window->metadata().initialAppID()) : nullptr;
 
     if (configValues.fixMouse->value() && CONFIG) {
         // fix the coords
-        newCoords.x *= (CONFIG->res.x / monitor->m_size.x) / window->m_X11SurfaceScaledBy;
-        newCoords.y *= (CONFIG->res.y / monitor->m_size.y) / window->m_X11SurfaceScaledBy;
+        newCoords.x *= (CONFIG->res.x / monitor->m_size.x) / window->backend().surfaceScale();
+        newCoords.y *= (CONFIG->res.y / monitor->m_size.y) / window->backend().surfaceScale();
     }
 
     (*(origMotion)g_pMouseMotionHook->m_original)(thisptr, time_msec, newCoords);
@@ -88,7 +88,7 @@ void hkSetWindowSize(CXWaylandSurface* surface, const CBox& box) {
         return;
     }
 
-    if (const auto CONFIG = getAppConfig(PWINDOW->m_initialClass); CONFIG) {
+    if (const auto CONFIG = getAppConfig(PWINDOW->metadata().initialAppID()); CONFIG) {
         newBox.w = CONFIG->res.x;
         newBox.h = CONFIG->res.y;
 
@@ -103,7 +103,7 @@ CRegion hkWLSurfaceDamage(Desktop::View::CWLSurface* thisptr) {
 
     if (thisptr->exists() && Desktop::View::CWindow::fromView(thisptr->view())) {
         const auto WINDOW = Desktop::View::CWindow::fromView(thisptr->view());
-        const auto CONFIG = getAppConfig(WINDOW->m_initialClass);
+        const auto CONFIG = getAppConfig(WINDOW->metadata().initialAppID());
 
         if (CONFIG) {
             const auto PMONITOR = WINDOW->m_monitor.lock();
@@ -127,7 +127,7 @@ int vkfixAppLua(lua_State* L) {
         Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
 
         lua_getfield(L, 1, "app");
-        
+
         if (!lua_isstring(L, -1))
             return Config::Lua::Bindings::Internal::configError(L, "vkfix_app: app must be a class string");
 
@@ -138,7 +138,7 @@ int vkfixAppLua(lua_State* L) {
         Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
 
         lua_getfield(L, 1, "w");
-        
+
         if (!lua_isinteger(L, -1))
             return Config::Lua::Bindings::Internal::configError(L, "vkfix_app: w must be an integer");
 
@@ -149,7 +149,7 @@ int vkfixAppLua(lua_State* L) {
         Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
 
         lua_getfield(L, 1, "h");
-        
+
         if (!lua_isinteger(L, -1))
             return Config::Lua::Bindings::Internal::configError(L, "vkfix_app: h must be an integer");
 

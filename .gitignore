@@ -40,3 +40,6 @@ result-man
 
 build/
 .cache/
+
+.direnv/
+.envrc
