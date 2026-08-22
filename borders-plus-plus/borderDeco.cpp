@@ -3,7 +3,8 @@
 #include <algorithm>
 
 #include <hyprland/src/Compositor.hpp>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
+#include <hyprland/src/desktop/view/window/WindowPresentation.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;
@@ -97,16 +98,16 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
         return;
 
     const auto PWORKSPACE      = PWINDOW->m_workspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    auto       rounding      = PWINDOW->rounding() == 0 ? 0 : (PWINDOW->rounding() + *PBORDERSIZE) * pMonitor->m_scale;
-    const auto ROUNDINGPOWER = PWINDOW->roundingPower();
-    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->rounding() + *PBORDERSIZE) * pMonitor->m_scale;
+    auto       rounding      = PWINDOW->presentation().rounding() == 0 ? 0 : (PWINDOW->presentation().rounding() + *PBORDERSIZE) * pMonitor->m_scale;
+    const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
+    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->presentation().rounding() + *PBORDERSIZE) * pMonitor->m_scale;
 
     CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
-    fullBox.translate(PWINDOW->m_floatingOffset - pMonitor->m_position + WORKSPACEOFFSET);
+    fullBox.translate(PWINDOW->presentation().floatingOffset() - pMonitor->m_position + WORKSPACEOFFSET);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return;
@@ -137,12 +138,12 @@ void CBordersPlusPlus::drawPass(PHLMONITOR pMonitor, const float& a) {
 
         g_pHyprOpenGL->scissor(nullptr);
 
-        g_pHyprOpenGL->renderBorder(fullBox, CHyprColor{static_cast<uint64_t>(vars.borderColors[i]->value())},
-                                    {.round         = NATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
-                                     .roundingPower = ROUNDINGPOWER,
-                                     .borderSize    = THISBORDERSIZE,
-                                     .a             = a,
-                                     .outerRound    = NATURALROUND ? sc<int>(ORIGINALROUND) : -1});
+        g_pHyprOpenGL->renderBorder(fullBox, Config::CGradientValueData(CHyprColor{static_cast<uint64_t>(vars.borderColors[i]->value())}),
+                                    CHyprOpenGLImpl::SBorderRenderData{.round         = NATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
+                                                                       .roundingPower = ROUNDINGPOWER,
+                                                                       .borderSize    = THISBORDERSIZE,
+                                                                       .a             = a,
+                                                                       .outerRound    = NATURALROUND ? sc<int>(ORIGINALROUND) : -1});
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};

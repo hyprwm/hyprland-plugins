@@ -59,7 +59,7 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
     if (!configValues.enable->value())
         return;
 
-    if (!configValues.animateFloating->value() && window->m_isFloating)
+    if (!configValues.animateFloating->value() && window->isFloating())
         return;
 
     static PHLWINDOWREF lastWindow;
@@ -83,17 +83,17 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
     const auto POUT = Config::animationTree()->getAnimationPropertyConfig("hyprfocusOut");
 
     if (mode == "flash") {
-        const auto ORIGINAL = window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->goal();
-        window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setConfig(PIN);
-        *window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE) = configValues.fadeOpacity->value();
+        const auto ORIGINAL = window->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->goal();
+        window->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setConfig(PIN);
+        *window->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE] = configValues.fadeOpacity->value();
 
-        window->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        window->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
             if (!w)
                 return;
-            w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setConfig(POUT);
-            *w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE) = ORIGINAL;
+            w->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setConfig(POUT);
+            *w->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE] = ORIGINAL;
 
-            w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
+            w->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setCallbackOnEnd(nullptr);
         });
     } else if (mode == "shrink") {
         const auto ORIGINAL = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
@@ -112,7 +112,7 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
             w->sizeAnimation()->setConfig(POUT);
             w->positionAnimation()->setConfig(POUT);
 
-            if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock())) {
+            if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock())) {
                 *w->positionAnimation() = ORIGINAL.pos();
                 *w->sizeAnimation()     = ORIGINAL.size();
             } else
@@ -132,7 +132,7 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
                 return;
             w->positionAnimation()->setConfig(POUT);
 
-            if (w->m_isFloating || Fullscreen::controller()->isFullscreen(w.lock()))
+            if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock()))
                 *w->positionAnimation() = ORIGINAL;
             else
                 w->layoutTarget()->recalc();
@@ -190,6 +190,6 @@ APICALL EXPORT void PLUGIN_EXIT() {
 
         w->sizeAnimation()->setCallbackOnEnd(nullptr);
         w->positionAnimation()->setCallbackOnEnd(nullptr);
-        w->alpha(Desktop::View::WINDOW_ALPHA_ACTIVE)->setCallbackOnEnd(nullptr);
+        w->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setCallbackOnEnd(nullptr);
     }
 }
