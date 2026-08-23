@@ -221,6 +221,10 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
         return;
     }
 
+    // don't swallow clicks meant for xdg popups (e.g. context menus) overlapping the bar
+    if (PWINDOW->hasPopupAt(COORDS + assignedBoxGlobal().pos()))
+        return;
+
     if (Desktop::focusState()->window() != PWINDOW)
         Desktop::focusState()->fullWindowFocus(PWINDOW, Desktop::FOCUS_REASON_CLICK);
 
