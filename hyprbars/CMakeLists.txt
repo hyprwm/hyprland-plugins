@@ -21,6 +21,10 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server
     xkbcommon
 )
+
+pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5 lua<5.6)
+target_include_directories(hyprbars PUBLIC ${LUA_INCLUDE_DIRS})
+
 target_link_libraries(hyprbars PRIVATE rt PkgConfig::deps)
 
 install(TARGETS hyprbars)
