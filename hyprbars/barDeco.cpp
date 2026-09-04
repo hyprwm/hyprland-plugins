@@ -125,10 +125,25 @@ bool CHyprBar::inputIsValid() {
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
+    const bool RELEASE = e.state != WL_POINTER_BUTTON_STATE_PRESSED;
+
+    // A release that closes an interaction we swallowed has to be handled even when
+    // inputIsValid() would reject it now. Dragging a window by its bar takes the
+    // pointer wherever the user goes, and a top or overlay layer surface under it (a
+    // status bar, a dock) makes inputIsValid() false. Dropping the release there skips
+    // handleUpEvent(), the only caller of endDragTarget(): the drag stays alive and the
+    // window keeps following the pointer until the next click elsewhere. Hyprland
+    // cannot clean up after us either, since we cancelled the press and the button
+    // never reached m_currentlyHeldButtons, so its own release path returns early.
+    if (RELEASE && (m_bCancelledDown || m_bDraggingThis)) {
+        handleUpEvent(info);
+        return;
+    }
+
     if (!inputIsValid())
         return;
 
-    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
+    if (RELEASE) {
         handleUpEvent(info);
         return;
     }
@@ -249,7 +264,9 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 }
 
 void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
-    if (m_pWindow.lock() != Desktop::focusState()->window())
+    // A drag we started has to end no matter who holds focus now, or it outlives the
+    // button press.
+    if (m_pWindow.lock() != Desktop::focusState()->window() && !m_bDraggingThis)
         return;
 
     if (m_bCancelledDown)
