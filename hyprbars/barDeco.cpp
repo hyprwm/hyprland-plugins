@@ -403,11 +403,14 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
         noScaleOffset += BARBUTTONPADDING + button.size;
 
-        if ((!button.iconTex || button.iconTex->m_texID == 0) && !button.icon.empty()) {
+        const bool NEEDICON = !button.icon.empty() && (!button.iconTex || button.iconTex->m_texID == 0 || !button.m_fIconScale.has_value() ||
+                                                      std::abs(button.m_fIconScale.value_or(0.F) - scale) > 1e-6);
+        if (NEEDICON) {
             // render icon
             auto fgcol = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
-            button.iconTex = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, "sans", scaledButtonSize);
+            button.iconTex   = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, "sans", scaledButtonSize);
+            button.m_fIconScale = scale;
         }
 
         if (!button.iconTex || button.iconTex->m_texID == 0)
@@ -545,9 +548,12 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
                                   CHyprOpenGLImpl::SRectRenderData{.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->presentation().roundingPower()});
 
     // render title
-    if (ENABLETITLE && (m_szLastTitle != PWINDOW->metadata().title() || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
+    const int SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
+    if (ENABLETITLE && (m_szLastTitle != PWINDOW->metadata().title() || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged ||
+                        m_iLastScaledTextSize != SCALEDTEXTSIZE)) {
         m_szLastTitle = PWINDOW->metadata().title();
         renderBarTitle(BARBUF, pMonitor->m_scale);
+        m_iLastScaledTextSize = SCALEDTEXTSIZE;
     }
 
     if (ROUNDING) {

@@ -8,6 +8,8 @@
 #include <hyprland/src/config/values/types/ColorValue.hpp>
 #include <hyprland/src/config/values/types/FontWeightValue.hpp>
 
+#include <optional>
+
 inline HANDLE PHANDLE = nullptr;
 
 struct SHyprButton {
@@ -18,6 +20,7 @@ struct SHyprButton {
     float                size    = 10;
     std::string          icon    = "";
     SP<Render::ITexture> iconTex;
+    std::optional<float> m_fIconScale;
 };
 
 class CHyprBar;
