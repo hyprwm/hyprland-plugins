@@ -96,48 +96,58 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
             w->alpha()[Desktop::View::WINDOW_ALPHA_ACTIVE]->setCallbackOnEnd(nullptr);
         });
     } else if (mode == "shrink") {
-        const auto ORIGINAL = CBox{window->positionAnimation()->goal(), window->sizeAnimation()->goal()};
-
-        window->positionAnimation()->setConfig(PIN);
-        window->sizeAnimation()->setConfig(PIN);
-
-        auto box = ORIGINAL.copy().scaleFromCenter(configValues.shrinkPercentage->value());
-
-        *window->positionAnimation() = box.pos();
-        *window->sizeAnimation()     = box.size();
-
-        window->sizeAnimation()->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        g_pEventLoopManager->doLater([w = PHLWINDOWREF{window}, PIN, POUT, PERCENT = configValues.shrinkPercentage->value()] {
             if (!w)
                 return;
-            w->sizeAnimation()->setConfig(POUT);
-            w->positionAnimation()->setConfig(POUT);
 
-            if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock())) {
-                *w->positionAnimation() = ORIGINAL.pos();
-                *w->sizeAnimation()     = ORIGINAL.size();
-            } else
-                w->layoutTarget()->recalc();
+            const auto ORIGINAL = CBox{w->positionAnimation()->goal(), w->sizeAnimation()->goal()};
 
-            w->sizeAnimation()->setCallbackOnEnd(nullptr);
+            w->positionAnimation()->setConfig(PIN);
+            w->sizeAnimation()->setConfig(PIN);
+
+            auto box = ORIGINAL.copy().scaleFromCenter(PERCENT);
+
+            *w->positionAnimation() = box.pos();
+            *w->sizeAnimation()     = box.size();
+
+            w->sizeAnimation()->setCallbackOnEnd([w, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+                if (!w)
+                    return;
+                w->sizeAnimation()->setConfig(POUT);
+                w->positionAnimation()->setConfig(POUT);
+
+                if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock())) {
+                    *w->positionAnimation() = ORIGINAL.pos();
+                    *w->sizeAnimation()     = ORIGINAL.size();
+                } else
+                    w->layoutTarget()->recalc();
+
+                w->sizeAnimation()->setCallbackOnEnd(nullptr);
+            });
         });
     } else if (mode == "slide") {
-        const auto ORIGINAL = window->positionAnimation()->goal();
-
-        window->positionAnimation()->setConfig(PIN);
-
-        *window->positionAnimation() = ORIGINAL - Vector2D{0.F, configValues.slideHeight->value()};
-
-        window->positionAnimation()->setCallbackOnEnd([w = PHLWINDOWREF{window}, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+        g_pEventLoopManager->doLater([w = PHLWINDOWREF{window}, PIN, POUT, HEIGHT = configValues.slideHeight->value()] {
             if (!w)
                 return;
-            w->positionAnimation()->setConfig(POUT);
 
-            if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock()))
-                *w->positionAnimation() = ORIGINAL;
-            else
-                w->layoutTarget()->recalc();
+            const auto ORIGINAL = w->positionAnimation()->goal();
 
-            w->positionAnimation()->setCallbackOnEnd(nullptr);
+            w->positionAnimation()->setConfig(PIN);
+
+            *w->positionAnimation() = ORIGINAL - Vector2D{0.F, HEIGHT};
+
+            w->positionAnimation()->setCallbackOnEnd([w, POUT, ORIGINAL](WP<CBaseAnimatedVariable> pav) {
+                if (!w)
+                    return;
+                w->positionAnimation()->setConfig(POUT);
+
+                if (w->isFloating() || Fullscreen::controller()->isFullscreen(w.lock()))
+                    *w->positionAnimation() = ORIGINAL;
+                else
+                    w->layoutTarget()->recalc();
+
+                w->positionAnimation()->setCallbackOnEnd(nullptr);
+            });
         });
     }
 }
