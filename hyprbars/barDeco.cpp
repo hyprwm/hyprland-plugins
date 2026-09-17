@@ -10,6 +10,7 @@
 #include <hyprland/src/desktop/view/LayerSurface.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/keybinds/Manager.hpp>
+#include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -60,6 +61,25 @@ CHyprBar::~CHyprBar() {
     std::erase(g_pGlobalState->bars, m_self);
 }
 
+// bar_overlay: the bar reserves no space and is painted over the window's own
+// top rows instead of above them. Everything that differs between the two modes
+// hangs off this one question.
+static bool barIsOverlay() {
+    return g_pGlobalState->config.barOverlay->value();
+}
+
+// Hyprland keeps a normal bar off a fullscreen window, but that no longer holds
+// once bar_overlay changes this decoration's layer and flags: the bar is then
+// drawn against a window box the fullscreen path does not maintain, and the
+// compositor crashes in renderWindow. A fullscreen window wants no title bar
+// anyway, so skip it.
+static bool skipForFullscreen(PHLWINDOW pWindow) {
+    if (!pWindow)
+        return false;
+    const auto MODES = Fullscreen::controller()->getFullscreenModes(pWindow);
+    return MODES.internal == Fullscreen::FSMODE_FULLSCREEN || MODES.client == Fullscreen::FSMODE_FULLSCREEN;
+}
+
 SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     const auto                 HEIGHT     = g_pGlobalState->config.barHeight->value();
     const auto                 ENABLED    = g_pGlobalState->config.enabled->value();
@@ -69,7 +89,10 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     info.policy         = m_hidden ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = PRECEDENCE ? 10005 : 5000;
-    info.reserved       = true;
+    // An overlay bar is still laid out against the top edge -- that is what gives
+    // assignedBoxGlobal() a box the width of the window -- but its space is not
+    // reserved, so the window keeps its full size and the bar lands on top of it.
+    info.reserved       = !barIsOverlay();
     info.desiredExtents = {{0, sc<int>(m_hidden || !ENABLED ? 0 : HEIGHT)}, {0, 0}};
     return info;
 }
@@ -446,6 +469,9 @@ void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 
+    if (barIsOverlay() && skipForFullscreen(PWINDOW))
+        return;
+
     if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return;
 
@@ -617,6 +643,12 @@ void CHyprBar::onConfigReloaded() {
     m_bTitleColorChanged = true;
     m_pTextTex           = nullptr;
 
+    // repositionDeco reuses the cached positioning info, so it cannot see a
+    // changed bar_overlay (which flips info.reserved). Recalculate the window's
+    // layout so the option can be toggled at runtime.
+    if (validMapped(m_pWindow))
+        g_pDecorationPositioner->forceRecalcFor(m_pWindow.lock());
+
     g_pDecorationPositioner->repositionDeco(this);
     damageEntire();
 }
@@ -630,11 +662,14 @@ Vector2D CHyprBar::cursorRelativeToBar() {
 }
 
 eDecorationLayer CHyprBar::getDecorationLayer() {
-    return DECORATION_LAYER_UNDER;
+    // UNDER paints before the window, which is invisible once the bar overlaps it.
+    return barIsOverlay() ? DECORATION_LAYER_OVER : DECORATION_LAYER_UNDER;
 }
 
 uint64_t CHyprBar::getDecorationFlags() {
-    return DECORATION_ALLOWS_MOUSE_INPUT | (g_pGlobalState->config.barPartOfWindow->value() ? DECORATION_PART_OF_MAIN_WINDOW : 0);
+    // An overlay bar occupies no geometry of its own, so it is never a part of
+    // the main window, however bar_part_of_window is set.
+    return DECORATION_ALLOWS_MOUSE_INPUT | (!barIsOverlay() && g_pGlobalState->config.barPartOfWindow->value() ? DECORATION_PART_OF_MAIN_WINDOW : 0);
 }
 
 CBox CHyprBar::assignedBoxGlobal() {
@@ -643,6 +678,11 @@ CBox CHyprBar::assignedBoxGlobal() {
 
     CBox box = m_bAssignedBox;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow.lock()));
+
+    // The positioner places the bar directly ABOVE the window's top edge. Slide
+    // it down by its own height and it sits ON the window's first rows instead.
+    if (barIsOverlay())
+        box.translate(Vector2D{0.0, box.h});
 
     const auto PWORKSPACE      = m_pWindow->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !(m_pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
