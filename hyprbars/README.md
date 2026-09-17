@@ -39,6 +39,7 @@ plugin {
 `bar_text_align` | left, center | bar's title text alignment | `center`
 `bar_buttons_alignment` | right, left | bar's buttons alignment | `right`
 `bar_part_of_window` | bool | whether the bar is a part of the main window (if it is, stuff like shadows render around it)
+`bar_overlay` | bool | whether the bar is painted over the window's own top rows instead of reserving space above them. The window keeps its full size; a translucent `bar_color` lets its content show through. Fullscreen windows get no bar. | `false`
 `bar_precedence_over_border` | bool | whether the bar should have a higher priority than the border (border will be around the bar)
 `bar_padding` | int | left / right edge padding | `7`
 `bar_button_padding` | int | padding between the buttons | `5`
