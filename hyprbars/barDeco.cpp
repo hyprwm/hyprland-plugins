@@ -156,6 +156,18 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     if (g_pGlobalState->config.iconOnHover->value())
         damageOnButtonHover();
 
+    // buttons_on_hover: the buttons only exist while the cursor is over the bar,
+    // so the whole bar has to be redrawn as the cursor crosses its edge.
+    if (g_pGlobalState->config.buttonsOnHover->value()) {
+        const auto BOX     = assignedBoxGlobal();
+        const auto COORDS  = cursorRelativeToBar();
+        const bool HOVERED = VECINRECT(COORDS, 0, 0, BOX.w, BOX.h);
+        if (HOVERED != m_bBarHovered) {
+            m_bBarHovered = HOVERED;
+            damageEntire();
+        }
+    }
+
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
         return;
 
@@ -343,6 +355,9 @@ size_t CHyprBar::getVisibleButtonCount(Config::INTEGER barButtonPadding, Config:
 }
 
 void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) {
+    if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
+        return;
+
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
@@ -379,6 +394,9 @@ void CHyprBar::renderBarButtons(CBox* barBox, const float scale, const float a) 
 }
 
 void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float a) {
+    if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
+        return;
+
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();

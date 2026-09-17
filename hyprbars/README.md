@@ -43,6 +43,7 @@ plugin {
 `bar_padding` | int | left / right edge padding | `7`
 `bar_button_padding` | int | padding between the buttons | `5`
 `icon_on_hover` | bool | whether the icons show on mouse hovering over the buttons | `false`
+`buttons_on_hover` | bool | whether the buttons are only drawn while the cursor is over the bar | `false`
 `inactive_button_color` | col | buttons bg color when window isn't focused
 `on_double_click` | str | command to run on double click of the bar (not on a button)
 

@@ -180,6 +180,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->config.barButtonPadding    = makeShared<Config::Values::CIntValue>("plugin:hyprbars:bar_button_padding", "Padding of the bar buttons", 5);
     g_pGlobalState->config.enabled             = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:enabled", "Whether bars are enabled", true);
     g_pGlobalState->config.iconOnHover         = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:icon_on_hover", "Whether to use an icon on hover of the buttons", false);
+    g_pGlobalState->config.buttonsOnHover      = makeShared<Config::Values::CBoolValue>(
+        "plugin:hyprbars:buttons_on_hover", "Whether the buttons are only drawn while the cursor is over the bar", false);
     g_pGlobalState->config.onDoubleClick       = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_double_click", "Action to execute on double click of the bar", "");
 
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barColor);
@@ -199,6 +201,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barButtonPadding);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.enabled);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.iconOnHover);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
 
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
