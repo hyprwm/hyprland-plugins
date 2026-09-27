@@ -437,6 +437,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         const auto iconX = barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0) - button.iconTex->m_size.x / 2.0;
         const auto iconY = barBox->y + barBox->height / 2.0 - button.iconTex->m_size.y / 2.0;
         CBox       pos   = {iconX, iconY, button.iconTex->m_size.x, button.iconTex->m_size.y};
+        pos.round(); // snap to whole pixels, otherwise the icon is sampled at a half-pixel offset and blurs
 
         if (!ICONONHOVER || (ICONONHOVER && m_iButtonHoverState > 0))
             g_pHyprOpenGL->renderTexture(button.iconTex, pos, {.a = a});
