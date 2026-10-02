@@ -421,13 +421,14 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
         bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
         noScaleOffset += BARBUTTONPADDING + button.size;
 
-        const bool NEEDICON = !button.icon.empty() && (!button.iconTex || button.iconTex->m_texID == 0 || !button.m_fIconScale.has_value() ||
-                                                      std::abs(button.m_fIconScale.value_or(0.F) - scale) > 1e-6);
+        const bool NEEDICON = !button.icon.empty() &&
+            (!button.iconTex || button.iconTex->m_texID == 0 || !button.m_fIconScale.has_value() || std::abs(button.m_fIconScale.value_or(0.F) - scale) > 1e-6);
         if (NEEDICON) {
             // render icon
             auto fgcol = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
-            button.iconTex   = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, g_pGlobalState->config.barTextFont->value(), scaledButtonSize);
+            button.iconTex =
+                g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, g_pGlobalState->config.barTextFont->value(), scaledButtonSize);
             button.m_fIconScale = scale;
         }
 
@@ -452,7 +453,7 @@ void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float
     }
 }
 
-void CHyprBar::draw(PHLMONITOR pMonitor, const float& a) {
+void CHyprBar::draw(PHLMONITOR monitor, const float& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     const auto ENABLED = g_pGlobalState->config.enabled->value();
 
     if (m_bLastEnabledState != ENABLED) {
@@ -568,8 +569,9 @@ void CHyprBar::renderPass(PHLMONITOR pMonitor, const float& a) {
 
     // render title
     const int SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
-    if (ENABLETITLE && (m_szLastTitle != PWINDOW->metadata().title() || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged ||
-                        m_iLastScaledTextSize != SCALEDTEXTSIZE)) {
+    if (ENABLETITLE &&
+        (m_szLastTitle != PWINDOW->metadata().title() || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged ||
+         m_iLastScaledTextSize != SCALEDTEXTSIZE)) {
         m_szLastTitle = PWINDOW->metadata().title();
         renderBarTitle(BARBUF, pMonitor->m_scale);
         m_iLastScaledTextSize = SCALEDTEXTSIZE;
