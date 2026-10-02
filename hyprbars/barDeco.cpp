@@ -276,6 +276,10 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
             (void)Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
 
         LOG(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
+
+        const auto ON_DRAG_END = g_pGlobalState->config.onDragEnd->value();
+        if (!ON_DRAG_END.empty())
+            Config::Supplementary::executor()->spawn(ON_DRAG_END);
     }
 
     m_bDragPending = false;
@@ -287,6 +291,10 @@ void CHyprBar::handleMovement() {
     g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
     m_bDraggingThis = true;
     LOG(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
+
+    const auto ON_DRAG_START = g_pGlobalState->config.onDragStart->value();
+    if (!ON_DRAG_START.empty())
+        Config::Supplementary::executor()->spawn(ON_DRAG_START);
     return;
 }
 

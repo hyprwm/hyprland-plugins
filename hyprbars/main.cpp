@@ -183,6 +183,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->config.buttonsOnHover      = makeShared<Config::Values::CBoolValue>(
         "plugin:hyprbars:buttons_on_hover", "Whether the buttons are only drawn while the cursor is over the bar", false);
     g_pGlobalState->config.onDoubleClick       = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_double_click", "Action to execute on double click of the bar", "");
+    g_pGlobalState->config.onDragStart         = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_drag_start", "Action to execute when a bar drag starts", "");
+    g_pGlobalState->config.onDragEnd           = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_drag_end", "Action to execute when a bar drag ends", "");
 
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barColor);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.textColor);
@@ -203,6 +205,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.iconOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDragStart);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDragEnd);
 
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
 
