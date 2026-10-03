@@ -38,6 +38,7 @@ static struct {
     SP<Config::Values::CBoolValue>   onlyOnMonitorChange;
     SP<Config::Values::CStringValue> keyboardFocusAnimation;
     SP<Config::Values::CStringValue> mouseFocusAnimation;
+    SP<Config::Values::CStringValue> groupFocusAnimation;
     SP<Config::Values::CFloatValue>  fadeOpacity;
     SP<Config::Values::CFloatValue>  shrinkPercentage;
     SP<Config::Values::CFloatValue>  slideHeight;
@@ -50,6 +51,10 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 
 static bool isMouseReason(Desktop::eFocusReason r) {
     return r == Desktop::FOCUS_REASON_CLICK || r == Desktop::FOCUS_REASON_FFM;
+}
+
+static bool isGroupReason(Desktop::eFocusReason r) {
+    return r == Desktop::FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE;
 }
 
 static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
@@ -72,9 +77,9 @@ static void onFocusChange(PHLWINDOW window, Desktop::eFocusReason reason) {
 
     lastWindow = window;
 
-    const auto mode = isMouseReason(reason)
-        ? configValues.mouseFocusAnimation->value()
-        : configValues.keyboardFocusAnimation->value();
+    const auto mode = isGroupReason(reason) ? configValues.groupFocusAnimation->value()
+        : isMouseReason(reason)             ? configValues.mouseFocusAnimation->value()
+                                             : configValues.keyboardFocusAnimation->value();
 
     if (mode == "none")
         return;
@@ -171,6 +176,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     configValues.onlyOnMonitorChange = makeShared<Config::Values::CBoolValue>("plugin:hyprfocus:only_on_monitor_change", "whether to fire the animation only on monitor change", false);
     configValues.keyboardFocusAnimation = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:keyboard_focus_animation", "animation for keyboard focus changes", "flash");
     configValues.mouseFocusAnimation = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:mouse_focus_animation", "animation for mouse focus changes", "none");
+    configValues.groupFocusAnimation = makeShared<Config::Values::CStringValue>("plugin:hyprfocus:group_focus_animation", "animation for group active-window changes", "none");
     configValues.fadeOpacity = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:fade_opacity", "fade opacity", 0.8F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F});
     configValues.shrinkPercentage = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:shrink_percentage", "shrink percentage", 0.95F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 1.F});
     configValues.slideHeight = makeShared<Config::Values::CFloatValue>("plugin:hyprfocus:slide_height", "slide height", 20.F, Config::Values::SFloatValueOptions{.min = 0.F, .max = 150.F});
@@ -180,6 +186,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.onlyOnMonitorChange);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.keyboardFocusAnimation);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.mouseFocusAnimation);
+    HyprlandAPI::addConfigValueV2(PHANDLE, configValues.groupFocusAnimation);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.fadeOpacity);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.shrinkPercentage);
     HyprlandAPI::addConfigValueV2(PHANDLE, configValues.slideHeight);
