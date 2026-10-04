@@ -7,15 +7,15 @@ CBorderPPPassElement::CBorderPPPassElement(const CBorderPPPassElement::SBorderPP
     ;
 }
 
-std::vector<UP<IPassElement>> CBorderPPPassElement::draw() {
-    data.deco->drawPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), data.a);
+std::vector<UP<IPassElement>> CBorderPPPassElement::draw(Render::CRenderContext& ctx) {
+    data.deco->drawPass(ctx, ctx.m_data.pMonitor.lock(), data.a);
     return {};
 }
 
-bool CBorderPPPassElement::needsLiveBlur() {
+bool CBorderPPPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CBorderPPPassElement::needsPrecomputeBlur() {
+bool CBorderPPPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }
