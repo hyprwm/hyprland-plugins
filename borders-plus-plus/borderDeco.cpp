@@ -67,7 +67,7 @@ std::string CBordersPlusPlus::getDisplayName() {
     return "Borders++";
 }
 
-void CBordersPlusPlus::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CBordersPlusPlus::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     if (!validMapped(m_pWindow))
         return;
 

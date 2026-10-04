@@ -13,7 +13,7 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) override;
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) override;
 
     virtual eDecorationType            getDecorationType();
 

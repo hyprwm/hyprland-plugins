@@ -30,7 +30,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const Render::SWindowRenderPresentation& presentation);
 
     virtual eDecorationType            getDecorationType();
 

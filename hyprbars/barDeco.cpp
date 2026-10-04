@@ -453,7 +453,7 @@ void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, c
     }
 }
 
-void CHyprBar::draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprBar::draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const Render::SWindowRenderPresentation& presentation) {
     const auto ENABLED = g_pGlobalState->config.enabled->value();
 
     if (m_bLastEnabledState != ENABLED) {
