@@ -9,12 +9,12 @@ CBarPassElement::CBarPassElement(const CBarPassElement::SBarData& data_) : data(
     ;
 }
 
-std::vector<UP<IPassElement>> CBarPassElement::draw() {
-    data.deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), data.a);
+std::vector<UP<IPassElement>> CBarPassElement::draw(Render::CRenderContext& ctx) {
+    data.deco->renderPass(ctx, ctx.m_data.pMonitor.lock(), data.a);
     return {};
 }
 
-bool CBarPassElement::needsLiveBlur() {
+bool CBarPassElement::needsLiveBlur(Render::CRenderContext&) {
     static auto PENABLEBLURGLOBAL = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     CHyprColor  color = data.deco->m_bForcedBarColor.value_or(CHyprColor{static_cast<uint64_t>(g_pGlobalState->config.barColor->value())});
@@ -24,11 +24,11 @@ bool CBarPassElement::needsLiveBlur() {
     return SHOULDBLUR;
 }
 
-std::optional<CBox> CBarPassElement::boundingBox() {
+std::optional<CBox> CBarPassElement::boundingBox(Render::CRenderContext& ctx) {
     // Temporary fix: expand the bar bb a bit, otherwise occlusion gets too aggressive.
-    return data.deco->assignedBoxGlobal().translate(-g_pHyprRenderer->m_renderData.pMonitor->m_position).expand(10);
+    return data.deco->assignedBoxGlobal().translate(-ctx.m_data.pMonitor->m_position).expand(10);
 }
 
-bool CBarPassElement::needsPrecomputeBlur() {
+bool CBarPassElement::needsPrecomputeBlur(Render::CRenderContext&) {
     return false;
 }

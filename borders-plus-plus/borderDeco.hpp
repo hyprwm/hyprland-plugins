@@ -13,7 +13,7 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) override;
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) override;
 
     virtual eDecorationType            getDecorationType();
 
@@ -28,7 +28,7 @@ class CBordersPlusPlus : public IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
   private:
-    void         drawPass(PHLMONITOR, float const& a);
+    void         drawPass(Render::CRenderContext& ctx, PHLMONITOR, float const& a);
 
     SBoxExtents  m_seExtents;
 

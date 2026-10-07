@@ -13,9 +13,9 @@ class CBorderPPPassElement : public IPassElement {
     CBorderPPPassElement(const SBorderPPData& data_);
     virtual ~CBorderPPPassElement() = default;
 
-    virtual std::vector<UP<IPassElement>> draw() override;
-    virtual bool                          needsLiveBlur() override;
-    virtual bool                          needsPrecomputeBlur() override;
+    virtual std::vector<UP<IPassElement>> draw(Render::CRenderContext& ctx) override;
+    virtual bool                          needsLiveBlur(Render::CRenderContext& ctx) override;
+    virtual bool                          needsPrecomputeBlur(Render::CRenderContext& ctx) override;
 
     virtual const char*                   passName() override {
         return "CBorderPPPassElement";

@@ -30,7 +30,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR monitor, const float& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const Render::SWindowRenderPresentation& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -78,10 +78,10 @@ class CHyprBar : public IHyprWindowDecoration {
 
     Vector2D                   cursorRelativeToBar();
 
-    void                       renderPass(PHLMONITOR, float const& a);
+    void                       renderPass(Render::CRenderContext& ctx, PHLMONITOR, float const& a);
     void                       renderBarTitle(const Vector2D& bufferSize, const float scale);
-    void renderBarButtons(CBox* barBox, const float scale, const float a);
-    void renderBarButtonsText(CBox* barBox, const float scale, const float a);
+    void renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
+    void renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
     void damageOnButtonHover();
 
     bool inputIsValid();
