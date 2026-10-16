@@ -87,6 +87,16 @@ hl.plugin.hyprbars.add_button({
 })
 ```
 
+`hl.plugin.hyprbars.set_title` shows a title of your choosing in a window's bar
+in place of the window's own. It takes a window or a window selector, and the
+title; leaving the title out shows the window's own title again. From a script,
+call it through `hyprctl eval`:
+
+```bash
+hyprctl eval 'hl.plugin.hyprbars.set_title("address:0x55d1a2b3c4d0", "Notes")'
+hyprctl eval 'hl.plugin.hyprbars.set_title("address:0x55d1a2b3c4d0")'
+```
+
 ## Window rules
 
 Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/Configuring/Window-Rules/):

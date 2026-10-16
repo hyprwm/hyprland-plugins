@@ -568,11 +568,11 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
                                   CHyprOpenGLImpl::SRectRenderData{.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->presentation().roundingPower()});
 
     // render title
-    const int SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
+    const int  SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
+    const auto TITLE          = m_forcedTitle.value_or(PWINDOW->metadata().title());
     if (ENABLETITLE &&
-        (m_szLastTitle != PWINDOW->metadata().title() || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged ||
-         m_iLastScaledTextSize != SCALEDTEXTSIZE)) {
-        m_szLastTitle = PWINDOW->metadata().title();
+        (m_szLastTitle != TITLE || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged || m_iLastScaledTextSize != SCALEDTEXTSIZE)) {
+        m_szLastTitle = TITLE;
         renderBarTitle(BARBUF, pMonitor->m_scale);
         m_iLastScaledTextSize = SCALEDTEXTSIZE;
     }
@@ -673,6 +673,11 @@ CBox CHyprBar::assignedBoxGlobal() {
 
 PHLWINDOW CHyprBar::getOwner() {
     return m_pWindow.lock();
+}
+
+void CHyprBar::setTitle(std::optional<std::string> title) {
+    m_forcedTitle = std::move(title);
+    damageEntire();
 }
 
 void CHyprBar::updateRules() {
