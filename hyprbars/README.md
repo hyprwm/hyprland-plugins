@@ -46,6 +46,8 @@ plugin {
 `buttons_on_hover` | bool | whether the buttons are only drawn while the cursor is over the bar | `false`
 `inactive_button_color` | col | buttons bg color when window isn't focused
 `on_double_click` | str | command to run on double click of the bar (not on a button)
+`on_drag_start` | str | command to run when a window starts being dragged by its bar
+`on_drag_end` | str | command to run when a bar drag ends (the mouse button is released), e.g. to snap the window to a screen edge
 
 ## Buttons Config
 
