@@ -540,6 +540,9 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
         if (windowBox.w < 1 || windowBox.h < 1)
             return;
 
+        // the stencil write mask may have been left at 0 by an earlier pass (e.g. blur),
+        // which would make both the clear and the window cutout below silently do nothing
+        glStencilMask(0xFF);
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
 
