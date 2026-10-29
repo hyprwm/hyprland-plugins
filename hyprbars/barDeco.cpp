@@ -1,5 +1,12 @@
 #include "barDeco.hpp"
 
+// hide_on_csd: the decoration mode each client asked for is only kept in private members
+#define private public
+#include <hyprland/src/protocols/XDGShell.hpp>
+#include <hyprland/src/protocols/XDGDecoration.hpp>
+#undef private
+#include <hyprland/src/protocols/core/Compositor.hpp>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
@@ -64,13 +71,15 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     const auto                 HEIGHT     = g_pGlobalState->config.barHeight->value();
     const auto                 ENABLED    = g_pGlobalState->config.enabled->value();
     const auto                 PRECEDENCE = g_pGlobalState->config.barPrecedenceOverBorder->value();
+    const auto                 OVERLAY    = g_pGlobalState->config.barOverlay->value();
+    const auto                 HIDDEN     = isHidden();
 
     SDecorationPositioningInfo info;
-    info.policy         = m_hidden ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
+    info.policy         = HIDDEN || OVERLAY ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = PRECEDENCE ? 10005 : 5000;
-    info.reserved       = true;
-    info.desiredExtents = {{0, sc<int>(m_hidden || !ENABLED ? 0 : HEIGHT)}, {0, 0}};
+    info.reserved       = !OVERLAY; // overlay: drawn over the window's own top edge, see assignedBoxGlobal()
+    info.desiredExtents = {{0, sc<int>(HIDDEN || !ENABLED || OVERLAY ? 0 : HEIGHT)}, {0, 0}};
     return info;
 }
 
@@ -85,8 +94,44 @@ std::string CHyprBar::getDisplayName() {
     return "Hyprbar";
 }
 
+bool CHyprBar::appDrawsOwnDecorations() {
+    const auto PWINDOW = m_pWindow.lock();
+    if (!PWINDOW)
+        return false;
+
+    // X11 has no such request: follow Hyprland, which draws no border on menus, tooltips and the like
+    if (PWINDOW->backend().isX11())
+        return PWINDOW->backend().traits().suggestsNoBorder;
+
+    const auto SURFACE = PWINDOW->backend().surface();
+    if (!SURFACE || !SURFACE->m_role || SURFACE->m_role->role() != SURFACE_ROLE_XDG_SHELL || !PROTO::xdgDecoration)
+        return false;
+
+    const auto XDG      = sc<CXDGSurfaceRole*>(SURFACE->m_role.get())->m_xdgSurface.lock();
+    const auto TOPLEVEL = XDG ? XDG->m_toplevel.lock() : nullptr;
+    if (!TOPLEVEL || !TOPLEVEL->m_resource)
+        return false;
+
+    // Only clients that asked for server-side decorations through xdg-decoration leave them to the
+    // compositor. Those that asked for client-side ones, or never used the protocol (e.g. GTK), draw their own.
+    const auto& DECORATIONS = PROTO::xdgDecoration->m_decorations;
+    const auto  DECO        = DECORATIONS.find(TOPLEVEL->m_resource->resource());
+    if (DECO == DECORATIONS.end() || !DECO->second)
+        return true;
+
+    return DECO->second->mostRecentlyRequested == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE;
+}
+
+bool CHyprBar::buttonsOnSuper() {
+    return m_forcedButtonsOnSuper.value_or(g_pGlobalState->config.buttonsOnSuper->value());
+}
+
+bool CHyprBar::isHidden() {
+    return m_hidden || (g_pGlobalState->config.hideOnCsd->value() && appDrawsOwnDecorations());
+}
+
 bool CHyprBar::inputIsValid() {
-    if (!g_pGlobalState->config.enabled->value() || m_hidden)
+    if (!g_pGlobalState->config.enabled->value() || isHidden())
         return false;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource()))
@@ -238,6 +283,14 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     if (PWINDOW->hasPopupAt(COORDS + assignedBoxGlobal().pos()))
         return;
 
+    // overlay: the bar lies on the window's own content, so only a click on a button is ours.
+    // Anything else, including drags and double clicks, goes to the window.
+    if (g_pGlobalState->config.barOverlay->value() && !buttonAt(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT)) {
+        m_bDragPending = false;
+        m_bTouchEv     = false;
+        return;
+    }
+
     if (Desktop::focusState()->window() != PWINDOW)
         Desktop::focusState()->fullWindowFocus(PWINDOW, Desktop::FOCUS_REASON_CLICK);
 
@@ -290,23 +343,33 @@ void CHyprBar::handleMovement() {
     return;
 }
 
-bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
-    //check if on a button
+const SHyprButton* CHyprBar::buttonAt(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
+    // buttons_on_super: hidden buttons can't be clicked either
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
+        return nullptr;
+
     float offset = barPadding;
 
-    for (auto& b : g_pGlobalState->buttons) {
+    for (const auto& b : g_pGlobalState->buttons) {
         const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(barHeight)};
         Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
-        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size)) {
-            // hit on close
-            Config::Supplementary::executor()->spawn(b.cmd);
-            return true;
-        }
+        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size))
+            return &b;
 
         offset += barButtonPadding + b.size;
     }
-    return false;
+    return nullptr;
+}
+
+bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
+    //check if on a button
+    const auto BUTTON = buttonAt(barPadding, barButtonPadding, barHeight, COORDS, BUTTONSRIGHT);
+    if (!BUTTON)
+        return false;
+
+    Config::Supplementary::executor()->spawn(BUTTON->cmd);
+    return true;
 }
 
 void CHyprBar::renderBarTitle(const Vector2D& bufferSize, const float scale) {
@@ -358,6 +421,9 @@ void CHyprBar::renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const
     if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
         return;
 
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
+        return;
+
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
@@ -395,6 +461,9 @@ void CHyprBar::renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const
 
 void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a) {
     if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
+        return;
+
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
         return;
 
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
@@ -461,7 +530,14 @@ void CHyprBar::draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float
         g_pDecorationPositioner->repositionDeco(this);
     }
 
-    if (m_hidden || !validMapped(m_pWindow) || !ENABLED)
+    // hide_on_csd: a client can change its decoration mode after the bar was placed
+    const auto HIDDEN = isHidden();
+    if (m_bLastHiddenState != HIDDEN) {
+        m_bLastHiddenState = HIDDEN;
+        g_pDecorationPositioner->repositionDeco(this);
+    }
+
+    if (HIDDEN || !validMapped(m_pWindow) || !ENABLED)
         return;
 
     const auto PWINDOW = m_pWindow.lock();
@@ -511,9 +587,11 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     const auto PWORKSPACE      = PWINDOW->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    const auto ROUNDING = PWINDOW->presentation().rounding() + (PRECEDENCE ? 0 : PWINDOW->presentation().borderSize());
+    // overlay: the bar sits inside the window, so it follows the window's own corners
+    const auto OVERLAY  = g_pGlobalState->config.barOverlay->value();
+    const auto ROUNDING = PWINDOW->presentation().rounding() + (PRECEDENCE || OVERLAY ? 0 : PWINDOW->presentation().borderSize());
 
-    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
+    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - (OVERLAY ? 0 : 2) /* idk why but otherwise it looks bad due to the gaps */ : 0;
 
     m_seExtents = {{0, sc<int>(HEIGHT)}, {}};
 
@@ -529,9 +607,17 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     if (titleBarBox.w < 1 || titleBarBox.h < 1)
         return;
 
-    g_pHyprOpenGL->scissor(ctx, titleBarBox);
+    if (OVERLAY) {
+        // the box goes past the bar to square off its bottom corners; over the window that part
+        // would cover its content, so clip at the bar's own height
+        CBox barClip = titleBarBox;
+        barClip.h    = std::round(DECOBOX.h * pMonitor->m_scale);
+        g_pHyprOpenGL->scissor(ctx, barClip);
+    } else
+        g_pHyprOpenGL->scissor(ctx, titleBarBox);
 
-    if (ROUNDING) {
+    // overlay: nothing to mask out, the bar is meant to be drawn over the window
+    if (ROUNDING && !OVERLAY) {
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
         CBox windowBox = {PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x + PWINDOW->presentation().floatingOffset().x - pMonitor->m_position.x + 1,
                           PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT).y + PWINDOW->presentation().floatingOffset().y - pMonitor->m_position.y + 1,
@@ -577,7 +663,7 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
         m_iLastScaledTextSize = SCALEDTEXTSIZE;
     }
 
-    if (ROUNDING) {
+    if (ROUNDING && !OVERLAY) {
         // cleanup stencil
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
@@ -651,7 +737,8 @@ Vector2D CHyprBar::cursorRelativeToBar() {
 }
 
 eDecorationLayer CHyprBar::getDecorationLayer() {
-    return DECORATION_LAYER_UNDER;
+    // overlay: drawn on top of the window's contents
+    return g_pGlobalState->config.barOverlay->value() ? DECORATION_LAYER_OVER : DECORATION_LAYER_UNDER;
 }
 
 uint64_t CHyprBar::getDecorationFlags() {
@@ -663,7 +750,13 @@ CBox CHyprBar::assignedBoxGlobal() {
         return {};
 
     CBox box = m_bAssignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow.lock()));
+    if (g_pGlobalState->config.barOverlay->value()) {
+        // overlay: the bar is the top strip of the window itself
+        const auto PWINDOW = m_pWindow.lock();
+        box                = {PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT),
+                              {PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x, sc<double>(g_pGlobalState->config.barHeight->value())}};
+    } else
+        box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow.lock()));
 
     const auto PWORKSPACE      = m_pWindow->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !(m_pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
@@ -684,10 +777,12 @@ void CHyprBar::updateRules() {
     const auto PWINDOW              = m_pWindow.lock();
     auto       prevHidden           = m_hidden;
     auto       prevForcedTitleColor = m_bForcedTitleColor;
+    auto       prevButtonsOnSuper   = m_forcedButtonsOnSuper;
 
-    m_bForcedBarColor   = std::nullopt;
-    m_bForcedTitleColor = std::nullopt;
-    m_hidden            = false;
+    m_bForcedBarColor      = std::nullopt;
+    m_bForcedTitleColor    = std::nullopt;
+    m_forcedButtonsOnSuper = std::nullopt;
+    m_hidden               = false;
 
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
         m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
@@ -695,11 +790,15 @@ void CHyprBar::updateRules() {
         m_bForcedBarColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
         m_bForcedTitleColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->buttonsOnSuperRuleIdx))
+        m_forcedButtonsOnSuper = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->buttonsOnSuperRuleIdx)->effect);
 
     if (prevHidden != m_hidden)
         g_pDecorationPositioner->repositionDeco(this);
     if (prevForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
+    if (prevButtonsOnSuper != m_forcedButtonsOnSuper)
+        damageEntire();
 }
 
 void CHyprBar::damageOnButtonHover() {

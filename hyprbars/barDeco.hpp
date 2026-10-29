@@ -48,6 +48,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     PHLWINDOW                          getOwner();
 
+    bool                               buttonsOnSuper();
+
     void                               updateRules();
     void                               setTitle(std::optional<std::string> title);
     void                               onConfigReloaded();
@@ -65,6 +67,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     bool                       m_bWindowSizeChanged = false;
     bool                       m_hidden             = false;
+    bool                       m_bLastHiddenState   = false;
     bool                       m_bTitleColorChanged = false;
     bool                       m_bButtonHovered     = false;
     bool                       m_bBarHovered        = false;
@@ -73,6 +76,7 @@ class CHyprBar : public IHyprWindowDecoration {
     std::optional<CHyprColor>  m_bForcedBarColor;
     std::optional<CHyprColor>  m_bForcedTitleColor;
     std::optional<std::string> m_forcedTitle;
+    std::optional<bool>        m_forcedButtonsOnSuper;
 
     Time::steady_tp            m_lastMouseDown = Time::steadyNow();
 
@@ -87,6 +91,8 @@ class CHyprBar : public IHyprWindowDecoration {
     void damageOnButtonHover();
 
     bool inputIsValid();
+    bool appDrawsOwnDecorations();
+    bool isHidden();
     void onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e);
     void onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e);
     void onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e);
@@ -97,6 +103,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void handleUpEvent(Event::SCallbackInfo& info);
     void handleMovement();
     bool doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, bool BUTTONSRIGHT);
+    const SHyprButton*         buttonAt(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, bool BUTTONSRIGHT);
 
     CBox assignedBoxGlobal();
 
