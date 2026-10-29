@@ -97,6 +97,7 @@ class CHyprBar : public IHyprWindowDecoration {
     void handleUpEvent(Event::SCallbackInfo& info);
     void handleMovement();
     bool doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, bool BUTTONSRIGHT);
+    const SHyprButton*         buttonAt(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, bool BUTTONSRIGHT);
 
     CBox assignedBoxGlobal();
 

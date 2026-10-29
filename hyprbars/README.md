@@ -46,6 +46,7 @@ plugin {
 `buttons_on_hover` | bool | whether the buttons are only drawn while the cursor is over the bar | `false`
 `inactive_button_color` | col | buttons bg color when window isn't focused
 `on_double_click` | str | command to run on double click of the bar (not on a button)
+`bar_overlay` | bool | whether to draw the bar over the top edge of the window instead of reserving space above it. The window's content stays under the bar, so only clicks on a button are taken (no dragging or double click on the bar). Pair with a transparent `bar_color` and `bar_title_enabled = false` for buttons without a title bar | `false`
 
 ## Buttons Config
 
