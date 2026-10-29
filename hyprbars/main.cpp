@@ -198,6 +198,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->config.onDoubleClick       = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_double_click", "Action to execute on double click of the bar", "");
     g_pGlobalState->config.barOverlay =
         makeShared<Config::Values::CBoolValue>("plugin:hyprbars:bar_overlay", "Whether the bar is drawn over the top of the window instead of reserving space above it", false);
+    g_pGlobalState->config.hideOnCsd =
+        makeShared<Config::Values::CBoolValue>("plugin:hyprbars:hide_on_csd", "Whether to leave out windows that draw their own decorations (client-side)", false);
 
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barColor);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.textColor);
@@ -219,6 +221,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barOverlay);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.hideOnCsd);
 
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "set_title", ::setLuaTitle);

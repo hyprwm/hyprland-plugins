@@ -47,6 +47,7 @@ plugin {
 `inactive_button_color` | col | buttons bg color when window isn't focused
 `on_double_click` | str | command to run on double click of the bar (not on a button)
 `bar_overlay` | bool | whether to draw the bar over the top edge of the window instead of reserving space above it. The window's content stays under the bar, so only clicks on a button are taken (no dragging or double click on the bar). Pair with a transparent `bar_color` and `bar_title_enabled = false` for buttons without a title bar | `false`
+`hide_on_csd` | bool | whether to leave out windows that draw their own decorations: Wayland windows that asked for client-side decorations through xdg-decoration or never used it (e.g. GTK apps), and X11 windows Hyprland draws no border on. An app that asks for server-side decorations but still draws its own controls can't be told apart; use the `hyprbars:no_bar` rule for it | `false`
 
 ## Buttons Config
 

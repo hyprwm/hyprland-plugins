@@ -65,6 +65,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     bool                       m_bWindowSizeChanged = false;
     bool                       m_hidden             = false;
+    bool                       m_bLastHiddenState   = false;
     bool                       m_bTitleColorChanged = false;
     bool                       m_bButtonHovered     = false;
     bool                       m_bBarHovered        = false;
@@ -87,6 +88,8 @@ class CHyprBar : public IHyprWindowDecoration {
     void damageOnButtonHover();
 
     bool inputIsValid();
+    bool appDrawsOwnDecorations();
+    bool isHidden();
     void onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e);
     void onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e);
     void onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e);

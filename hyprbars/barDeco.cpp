@@ -1,5 +1,12 @@
 #include "barDeco.hpp"
 
+// hide_on_csd: the decoration mode each client asked for is only kept in private members
+#define private public
+#include <hyprland/src/protocols/XDGShell.hpp>
+#include <hyprland/src/protocols/XDGDecoration.hpp>
+#undef private
+#include <hyprland/src/protocols/core/Compositor.hpp>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
@@ -65,13 +72,14 @@ SDecorationPositioningInfo CHyprBar::getPositioningInfo() {
     const auto                 ENABLED    = g_pGlobalState->config.enabled->value();
     const auto                 PRECEDENCE = g_pGlobalState->config.barPrecedenceOverBorder->value();
     const auto                 OVERLAY    = g_pGlobalState->config.barOverlay->value();
+    const auto                 HIDDEN     = isHidden();
 
     SDecorationPositioningInfo info;
-    info.policy         = m_hidden || OVERLAY ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
+    info.policy         = HIDDEN || OVERLAY ? DECORATION_POSITION_ABSOLUTE : DECORATION_POSITION_STICKY;
     info.edges          = DECORATION_EDGE_TOP;
     info.priority       = PRECEDENCE ? 10005 : 5000;
     info.reserved       = !OVERLAY; // overlay: drawn over the window's own top edge, see assignedBoxGlobal()
-    info.desiredExtents = {{0, sc<int>(m_hidden || !ENABLED || OVERLAY ? 0 : HEIGHT)}, {0, 0}};
+    info.desiredExtents = {{0, sc<int>(HIDDEN || !ENABLED || OVERLAY ? 0 : HEIGHT)}, {0, 0}};
     return info;
 }
 
@@ -86,8 +94,40 @@ std::string CHyprBar::getDisplayName() {
     return "Hyprbar";
 }
 
+bool CHyprBar::appDrawsOwnDecorations() {
+    const auto PWINDOW = m_pWindow.lock();
+    if (!PWINDOW)
+        return false;
+
+    // X11 has no such request: follow Hyprland, which draws no border on menus, tooltips and the like
+    if (PWINDOW->backend().isX11())
+        return PWINDOW->backend().traits().suggestsNoBorder;
+
+    const auto SURFACE = PWINDOW->backend().surface();
+    if (!SURFACE || !SURFACE->m_role || SURFACE->m_role->role() != SURFACE_ROLE_XDG_SHELL || !PROTO::xdgDecoration)
+        return false;
+
+    const auto XDG      = sc<CXDGSurfaceRole*>(SURFACE->m_role.get())->m_xdgSurface.lock();
+    const auto TOPLEVEL = XDG ? XDG->m_toplevel.lock() : nullptr;
+    if (!TOPLEVEL || !TOPLEVEL->m_resource)
+        return false;
+
+    // Only clients that asked for server-side decorations through xdg-decoration leave them to the
+    // compositor. Those that asked for client-side ones, or never used the protocol (e.g. GTK), draw their own.
+    const auto& DECORATIONS = PROTO::xdgDecoration->m_decorations;
+    const auto  DECO        = DECORATIONS.find(TOPLEVEL->m_resource->resource());
+    if (DECO == DECORATIONS.end() || !DECO->second)
+        return true;
+
+    return DECO->second->mostRecentlyRequested == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE;
+}
+
+bool CHyprBar::isHidden() {
+    return m_hidden || (g_pGlobalState->config.hideOnCsd->value() && appDrawsOwnDecorations());
+}
+
 bool CHyprBar::inputIsValid() {
-    if (!g_pGlobalState->config.enabled->value() || m_hidden)
+    if (!g_pGlobalState->config.enabled->value() || isHidden())
         return false;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource()))
@@ -476,7 +516,14 @@ void CHyprBar::draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float
         g_pDecorationPositioner->repositionDeco(this);
     }
 
-    if (m_hidden || !validMapped(m_pWindow) || !ENABLED)
+    // hide_on_csd: a client can change its decoration mode after the bar was placed
+    const auto HIDDEN = isHidden();
+    if (m_bLastHiddenState != HIDDEN) {
+        m_bLastHiddenState = HIDDEN;
+        g_pDecorationPositioner->repositionDeco(this);
+    }
+
+    if (HIDDEN || !validMapped(m_pWindow) || !ENABLED)
         return;
 
     const auto PWINDOW = m_pWindow.lock();
