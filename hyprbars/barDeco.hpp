@@ -48,6 +48,8 @@ class CHyprBar : public IHyprWindowDecoration {
 
     PHLWINDOW                          getOwner();
 
+    bool                               buttonsOnSuper();
+
     void                               updateRules();
     void                               setTitle(std::optional<std::string> title);
     void                               onConfigReloaded();
@@ -74,6 +76,7 @@ class CHyprBar : public IHyprWindowDecoration {
     std::optional<CHyprColor>  m_bForcedBarColor;
     std::optional<CHyprColor>  m_bForcedTitleColor;
     std::optional<std::string> m_forcedTitle;
+    std::optional<bool>        m_forcedButtonsOnSuper;
 
     Time::steady_tp            m_lastMouseDown = Time::steadyNow();
 

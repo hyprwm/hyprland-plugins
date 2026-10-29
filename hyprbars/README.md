@@ -48,6 +48,8 @@ plugin {
 `on_double_click` | str | command to run on double click of the bar (not on a button)
 `bar_overlay` | bool | whether to draw the bar over the top edge of the window instead of reserving space above it. The window's content stays under the bar, so only clicks on a button are taken (no dragging or double click on the bar). Pair with a transparent `bar_color` and `bar_title_enabled = false` for buttons without a title bar | `false`
 `hide_on_csd` | bool | whether to leave out windows that draw their own decorations: Wayland windows that asked for client-side decorations through xdg-decoration or never used it (e.g. GTK apps), and X11 windows Hyprland draws no border on. An app that asks for server-side decorations but still draws its own controls can't be told apart; use the `hyprbars:no_bar` rule for it | `false`
+`buttons_on_super` | bool | whether the buttons are only drawn, and only take clicks, while Super is held. With `bar_overlay` this keeps them off an app's own controls the rest of the time. Can be set per window with the `hyprbars:buttons_on_super` rule | `false`
+`buttons_on_super_delay` | int | how long Super has to be held before the buttons show, in ms, so a quick Super shortcut doesn't flash them | `250`
 
 ## Buttons Config
 
@@ -99,6 +101,36 @@ hyprctl eval 'hl.plugin.hyprbars.set_title("address:0x55d1a2b3c4d0", "Notes")'
 hyprctl eval 'hl.plugin.hyprbars.set_title("address:0x55d1a2b3c4d0")'
 ```
 
+### Buttons without a title bar
+
+`bar_overlay` with a transparent bar and no title leaves just the buttons over
+the window's top corner. `hide_on_csd` keeps them off apps that draw their own
+title bar, and `buttons_on_super` shows them only while Super is held, except
+on windows that set the `hyprbars:buttons_on_super` rule to `false`:
+
+```lua
+hl.config({
+    plugin = {
+        hyprbars = {
+            bar_overlay = true,
+            bar_color = "rgba(00000000)",
+            bar_title_enabled = false,
+            bar_buttons_alignment = "left",
+            bar_height = 28,
+            hide_on_csd = true,
+            buttons_on_super = true,
+        },
+    },
+})
+
+-- terminals keep their top-left corner free: always show the buttons there
+hl.window_rule({
+    name = "hyprbars-terminals",
+    match = { class = "^(foot|kitty|Alacritty)$" },
+    ["hyprbars:buttons_on_super"] = false,
+})
+```
+
 ## Window rules
 
 Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/Configuring/Window-Rules/):
@@ -106,6 +138,7 @@ Hyprbars supports the following _dynamic_ [window rules](https://wiki.hypr.land/
 `hyprbars:no_bar` -> disables the bar on matching windows.  
 `hyprbars:bar_color` -> sets the bar background color on matching windows.  
 `hyprbars:title_color` -> sets the bar title color on matching windows.  
+`hyprbars:buttons_on_super` -> overrides `buttons_on_super` on matching windows.  
 
 Example:
 ```bash

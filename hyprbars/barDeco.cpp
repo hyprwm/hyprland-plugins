@@ -122,6 +122,10 @@ bool CHyprBar::appDrawsOwnDecorations() {
     return DECO->second->mostRecentlyRequested == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE;
 }
 
+bool CHyprBar::buttonsOnSuper() {
+    return m_forcedButtonsOnSuper.value_or(g_pGlobalState->config.buttonsOnSuper->value());
+}
+
 bool CHyprBar::isHidden() {
     return m_hidden || (g_pGlobalState->config.hideOnCsd->value() && appDrawsOwnDecorations());
 }
@@ -340,6 +344,10 @@ void CHyprBar::handleMovement() {
 }
 
 const SHyprButton* CHyprBar::buttonAt(Config::INTEGER barPadding, Config::INTEGER barButtonPadding, Config::INTEGER barHeight, Vector2D COORDS, const bool BUTTONSRIGHT) {
+    // buttons_on_super: hidden buttons can't be clicked either
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
+        return nullptr;
+
     float offset = barPadding;
 
     for (const auto& b : g_pGlobalState->buttons) {
@@ -413,6 +421,9 @@ void CHyprBar::renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const
     if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
         return;
 
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
+        return;
+
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
     const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
@@ -450,6 +461,9 @@ void CHyprBar::renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const
 
 void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a) {
     if (g_pGlobalState->config.buttonsOnHover->value() && !m_bBarHovered)
+        return;
+
+    if (buttonsOnSuper() && !g_pGlobalState->superRevealed)
         return;
 
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
@@ -763,10 +777,12 @@ void CHyprBar::updateRules() {
     const auto PWINDOW              = m_pWindow.lock();
     auto       prevHidden           = m_hidden;
     auto       prevForcedTitleColor = m_bForcedTitleColor;
+    auto       prevButtonsOnSuper   = m_forcedButtonsOnSuper;
 
-    m_bForcedBarColor   = std::nullopt;
-    m_bForcedTitleColor = std::nullopt;
-    m_hidden            = false;
+    m_bForcedBarColor      = std::nullopt;
+    m_bForcedTitleColor    = std::nullopt;
+    m_forcedButtonsOnSuper = std::nullopt;
+    m_hidden               = false;
 
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
         m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
@@ -774,11 +790,15 @@ void CHyprBar::updateRules() {
         m_bForcedBarColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
         m_bForcedTitleColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->titleColorRuleIdx)->effect).value_or(0));
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->buttonsOnSuperRuleIdx))
+        m_forcedButtonsOnSuper = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->buttonsOnSuperRuleIdx)->effect);
 
     if (prevHidden != m_hidden)
         g_pDecorationPositioner->repositionDeco(this);
     if (prevForcedTitleColor != m_bForcedTitleColor)
         m_bTitleColorChanged = true;
+    if (prevButtonsOnSuper != m_forcedButtonsOnSuper)
+        damageEntire();
 }
 
 void CHyprBar::damageOnButtonHover() {

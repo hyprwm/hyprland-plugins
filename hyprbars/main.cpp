@@ -14,8 +14,11 @@
 #include <hyprland/src/config/lua/bindings/LuaBindingsInternal.hpp>
 #include <hyprland/src/config/lua/types/LuaConfigColor.hpp>
 #include <hyprland/src/state/MonitorState.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
+#include <hyprland/src/devices/IKeyboard.hpp>
 
 #include <algorithm>
+#include <linux/input-event-codes.h>
 
 #include "barDeco.hpp"
 #include "globals.hpp"
@@ -53,6 +56,63 @@ static void onConfigReloaded() {
 
         b->onConfigReloaded();
     }
+}
+
+static void damageButtonsOnSuper() {
+    for (auto& b : g_pGlobalState->bars) {
+        if (b && b->buttonsOnSuper())
+            b->damageEntire();
+    }
+}
+
+// buttons_on_super: reveal the buttons once Super has been held for buttons_on_super_delay,
+// so a quick Super shortcut doesn't flash them on every window
+static void onKey(const IKeyboard::SKeyEvent& e) {
+    if (e.keycode != KEY_LEFTMETA && e.keycode != KEY_RIGHTMETA)
+        return;
+
+    const bool HELD = e.state == WL_KEYBOARD_KEY_STATE_PRESSED;
+    if (HELD == g_pGlobalState->superHeld)
+        return;
+
+    g_pGlobalState->superHeld = HELD;
+
+    if (!HELD) {
+        if (g_pGlobalState->superTimer)
+            g_pGlobalState->superTimer->updateTimeout(std::nullopt);
+
+        if (g_pGlobalState->superRevealed) {
+            g_pGlobalState->superRevealed = false;
+            damageButtonsOnSuper();
+        }
+        return;
+    }
+
+    if (std::ranges::none_of(g_pGlobalState->bars, [](const auto& b) { return b && b->buttonsOnSuper(); }))
+        return;
+
+    const auto DELAY = g_pGlobalState->config.buttonsOnSuperDelay->value();
+    if (DELAY <= 0) {
+        g_pGlobalState->superRevealed = true;
+        damageButtonsOnSuper();
+        return;
+    }
+
+    if (!g_pGlobalState->superTimer) {
+        g_pGlobalState->superTimer = makeShared<CEventLoopTimer>(
+            std::nullopt,
+            [](SP<CEventLoopTimer>, void*) {
+                if (!g_pGlobalState->superHeld)
+                    return;
+
+                g_pGlobalState->superRevealed = true;
+                damageButtonsOnSuper();
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(g_pGlobalState->superTimer);
+    }
+
+    g_pGlobalState->superTimer->updateTimeout(std::chrono::milliseconds(DELAY));
 }
 
 static void onUpdateWindowRules(PHLWINDOW window) {
@@ -165,13 +225,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("[hb] Version mismatch");
     }
 
-    g_pGlobalState                    = makeUnique<SGlobalState>();
-    g_pGlobalState->nobarRuleIdx      = Desktop::Rule::windowEffects()->registerEffect("hyprbars:no_bar");
-    g_pGlobalState->barColorRuleIdx   = Desktop::Rule::windowEffects()->registerEffect("hyprbars:bar_color");
-    g_pGlobalState->titleColorRuleIdx = Desktop::Rule::windowEffects()->registerEffect("hyprbars:title_color");
+    g_pGlobalState                        = makeUnique<SGlobalState>();
+    g_pGlobalState->nobarRuleIdx          = Desktop::Rule::windowEffects()->registerEffect("hyprbars:no_bar");
+    g_pGlobalState->barColorRuleIdx       = Desktop::Rule::windowEffects()->registerEffect("hyprbars:bar_color");
+    g_pGlobalState->titleColorRuleIdx     = Desktop::Rule::windowEffects()->registerEffect("hyprbars:title_color");
+    g_pGlobalState->buttonsOnSuperRuleIdx = Desktop::Rule::windowEffects()->registerEffect("hyprbars:buttons_on_super");
 
     static auto P  = Event::bus()->m_events.window.open.listen([&](PHLWINDOW w) { onNewWindow(w); });
     static auto P3 = Event::bus()->m_events.window.updateRules.listen([&](PHLWINDOW w) { onUpdateWindowRules(w); });
+    static auto P6 = Event::bus()->m_events.input.keyboard.key.listen([&](IKeyboard::SKeyEvent e, Event::SCallbackInfo& info) { onKey(e); });
 
     g_pGlobalState->config.barColor            = makeShared<Config::Values::CColorValue>("plugin:hyprbars:bar_color", "Change the bar color", 0x88333333);
     g_pGlobalState->config.textColor           = makeShared<Config::Values::CColorValue>("plugin:hyprbars:col.text", "Change the text color", 0xffffffff);
@@ -200,6 +262,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         makeShared<Config::Values::CBoolValue>("plugin:hyprbars:bar_overlay", "Whether the bar is drawn over the top of the window instead of reserving space above it", false);
     g_pGlobalState->config.hideOnCsd =
         makeShared<Config::Values::CBoolValue>("plugin:hyprbars:hide_on_csd", "Whether to leave out windows that draw their own decorations (client-side)", false);
+    g_pGlobalState->config.buttonsOnSuper =
+        makeShared<Config::Values::CBoolValue>("plugin:hyprbars:buttons_on_super", "Whether the buttons are only drawn while Super is held", false);
+    g_pGlobalState->config.buttonsOnSuperDelay =
+        makeShared<Config::Values::CIntValue>("plugin:hyprbars:buttons_on_super_delay", "How long Super has to be held before the buttons show, in ms", 250);
 
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barColor);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.textColor);
@@ -222,6 +288,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barOverlay);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.hideOnCsd);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnSuper);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnSuperDelay);
 
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "add_button", ::newLuaButton);
     HyprlandAPI::addLuaFunction(PHANDLE, "hyprbars", "set_title", ::setLuaTitle);
@@ -243,6 +311,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    // the timer's callback lives in this library
+    if (g_pGlobalState->superTimer) {
+        g_pEventLoopManager->removeTimer(g_pGlobalState->superTimer);
+        g_pGlobalState->superTimer.reset();
+    }
+
     for (auto& m : State::monitorState()->monitors())
         m->m_scheduledRecalc = true;
 
@@ -251,4 +325,5 @@ APICALL EXPORT void PLUGIN_EXIT() {
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->barColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->titleColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->nobarRuleIdx);
+    Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->buttonsOnSuperRuleIdx);
 }
