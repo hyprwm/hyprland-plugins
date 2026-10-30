@@ -131,6 +131,35 @@ int newLuaButton(lua_State* L) {
         button.cmd = lua_tostring(L, -1);
     }
 
+    // Optional: colors the button blends to while hovered.
+    for (const auto& [KEY, COLOR] : {std::pair{"hover_bg_color", &button.hoverBg}, std::pair{"hover_fg_color", &button.hoverFg}}) {
+        Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+        lua_getfield(L, 1, KEY);
+        if (lua_isnil(L, -1))
+            continue;
+
+        Config::Lua::CLuaConfigColor parser(0);
+        auto                         err = parser.parse(L);
+        if (err.errorCode != Config::Lua::PARSE_ERROR_OK)
+            return Config::Lua::Bindings::Internal::configError(L, std::format("add_button: failed to parse {}", KEY));
+
+        *COLOR          = parser.parsed();
+        button.hasHover = true;
+    }
+
+    // Optional: font for the icon, e.g. an icon font; defaults to bar_text_font.
+    {
+        Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+        lua_getfield(L, 1, "font");
+        if (!lua_isnil(L, -1)) {
+            if (!lua_isstring(L, -1))
+                return Config::Lua::Bindings::Internal::configError(L, "add_button: font must be a string");
+            button.font = lua_tostring(L, -1);
+        }
+    }
+
     g_pGlobalState->buttons.push_back(std::move(button));
 
     for (auto& b : g_pGlobalState->bars) {
@@ -191,6 +220,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->config.barButtonsAlignment = makeShared<Config::Values::CStringValue>("plugin:hyprbars:bar_buttons_alignment", "Alignment of the bar buttons", "right");
     g_pGlobalState->config.barPadding          = makeShared<Config::Values::CIntValue>("plugin:hyprbars:bar_padding", "Padding of the bar", 7);
     g_pGlobalState->config.barButtonPadding    = makeShared<Config::Values::CIntValue>("plugin:hyprbars:bar_button_padding", "Padding of the bar buttons", 5);
+    g_pGlobalState->config.buttonHoverGrow     = makeShared<Config::Values::CIntValue>("plugin:hyprbars:button_hover_grow", "Pixels a button grows by while hovered", 0);
+    g_pGlobalState->config.buttonPressedRadius =
+        makeShared<Config::Values::CIntValue>("plugin:hyprbars:button_pressed_radius", "Corner radius of a pressed button (-1: stays round)", -1);
     g_pGlobalState->config.enabled             = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:enabled", "Whether bars are enabled", true);
     g_pGlobalState->config.iconOnHover         = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:icon_on_hover", "Whether to use an icon on hover of the buttons", false);
     g_pGlobalState->config.buttonsOnHover      = makeShared<Config::Values::CBoolValue>(
@@ -212,6 +244,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barButtonsAlignment);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barPadding);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barButtonPadding);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonHoverGrow);
+    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonPressedRadius);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.enabled);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.iconOnHover);
     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.buttonsOnHover);
