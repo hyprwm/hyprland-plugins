@@ -19,7 +19,12 @@ struct SHyprButton {
     CHyprColor           bgcol   = CHyprColor(0, 0, 0, 0);
     float                size    = 10;
     std::string          icon    = "";
+    std::string          font     = ""; // empty: bar_text_font
+    bool                 hasHover = false;
+    CHyprColor           hoverBg  = CHyprColor(0, 0, 0, 0);
+    CHyprColor           hoverFg  = CHyprColor(0, 0, 0, 0);
     SP<Render::ITexture> iconTex;
+    SP<Render::ITexture> hoverIconTex;
     std::optional<float> m_fIconScale;
 };
 
@@ -39,6 +44,7 @@ struct SGlobalState {
         SP<Config::Values::CFontWeightValue> barTextWeight;
         SP<Config::Values::CIntValue>        barPadding;
         SP<Config::Values::CIntValue>        barButtonPadding;
+        SP<Config::Values::CIntValue>        buttonHoverGrow, buttonPressedRadius;
         SP<Config::Values::CBoolValue>       barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover, buttonsOnHover;
         SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;
     } config;

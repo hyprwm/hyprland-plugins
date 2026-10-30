@@ -36,6 +36,10 @@ static CHyprColor configColor(Config::INTEGER color) {
     return CHyprColor{sc<uint64_t>(color)};
 }
 
+static CHyprColor mixColor(const CHyprColor& from, const CHyprColor& to, float t) {
+    return CHyprColor(from.r + (to.r - from.r) * t, from.g + (to.g - from.g) * t, from.b + (to.b - from.b) * t, from.a + (to.a - from.a) * t);
+}
+
 CHyprBar::CHyprBar(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 
@@ -125,6 +129,12 @@ bool CHyprBar::inputIsValid() {
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
+    // A pressed button returns to its resting shape on any release, wherever it happens.
+    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED && m_pressedButton) {
+        m_pressedButton.reset();
+        syncButtonAnimations();
+    }
+
     if (!inputIsValid())
         return;
 
@@ -152,9 +162,12 @@ void CHyprBar::onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e) {
 }
 
 void CHyprBar::onMouseMove(Vector2D coords) {
-    // ensure proper redraws of button icons on hover when using hardware cursors
-    if (g_pGlobalState->config.iconOnHover->value())
-        damageOnButtonHover();
+    // Hover state drives icon_on_hover and the hover animations; also redraws with hardware cursors.
+    if (const auto BITS = buttonHoverBits(); BITS != m_iButtonHoverState) {
+        m_iButtonHoverState = BITS;
+        syncButtonAnimations();
+        damageEntire();
+    }
 
     // buttons_on_hover: the buttons only exist while the cursor is over the bar,
     // so the whole bar has to be redrawn as the cursor crosses its edge.
@@ -294,12 +307,14 @@ bool CHyprBar::doButtonPress(Config::INTEGER barPadding, Config::INTEGER barButt
     //check if on a button
     float offset = barPadding;
 
-    for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(barHeight)};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+    for (size_t i = 0; i < g_pGlobalState->buttons.size(); ++i) {
+        const auto& b          = g_pGlobalState->buttons[i];
+        const auto  BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(barHeight)};
+        Vector2D    currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - barButtonPadding - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
         if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + barButtonPadding, currentPos.y + b.size)) {
-            // hit on close
+            m_pressedButton = i;
+            syncButtonAnimations();
             Config::Supplementary::executor()->spawn(b.cmd);
             return true;
         }
@@ -367,27 +382,47 @@ void CHyprBar::renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const
     const auto visibleCount    = getVisibleButtonCount(BARBUTTONPADDING, BARPADDING, Vector2D{barBox->w, barBox->h}, scale);
     const bool INVALIDATEICONS = m_bButtonsDirty || m_bWindowSizeChanged;
 
-    int        offset = BARPADDING * scale;
-    for (size_t i = 0; i < visibleCount; ++i) {
-        auto&      button           = g_pGlobalState->buttons[i];
-        const auto scaledButtonSize = button.size * scale;
-        const auto scaledButtonsPad = BARBUTTONPADDING * scale;
+    const auto GROW          = g_pGlobalState->config.buttonHoverGrow->value();
+    const auto PRESSEDRADIUS = g_pGlobalState->config.buttonPressedRadius->value();
 
-        auto       color = button.bgcol;
+    // The window can move under a still cursor; hover is re-evaluated every frame as well.
+    m_iButtonHoverState = buttonHoverBits();
+    syncButtonAnimations();
+
+    int offset = BARPADDING * scale;
+    for (size_t i = 0; i < visibleCount; ++i) {
+        auto&       button           = g_pGlobalState->buttons[i];
+        const auto  scaledButtonSize = button.size * scale;
+        const auto  scaledButtonsPad = BARBUTTONPADDING * scale;
+        const float HOVER            = m_buttonHover[i]->value();
+        const float PRESS            = m_buttonPress[i]->value();
+
+        auto        color = button.bgcol;
 
         if (INACTIVECOLOR > 0) {
             color = m_bWindowHasFocus ? color : configColor(INACTIVECOLOR);
-            if (INVALIDATEICONS && button.userfg && button.iconTex)
-                button.iconTex = nullptr;
+            if (INVALIDATEICONS && button.userfg && button.iconTex) {
+                button.iconTex      = nullptr;
+                button.hoverIconTex = nullptr;
+            }
         }
+
+        if (button.hasHover)
+            color = mixColor(color, button.hoverBg, HOVER);
 
         color.a *= a;
 
-        CBox buttonBox = {barBox->x + (BUTTONSRIGHT ? barBox->w - offset - scaledButtonSize : offset), barBox->y + (barBox->h - scaledButtonSize) / 2.0, scaledButtonSize,
-                          scaledButtonSize};
+        // The button grows around its slot center; pressing morphs the circle into a rounded square.
+        const auto SIZE      = (button.size + GROW * HOVER) * scale;
+        const auto CENTERX   = barBox->x + (BUTTONSRIGHT ? barBox->w - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0);
+        const auto CENTERY   = barBox->y + barBox->h / 2.0;
+        CBox       buttonBox = {CENTERX - SIZE / 2.0, CENTERY - SIZE / 2.0, SIZE, SIZE};
         buttonBox.round();
 
-        g_pHyprOpenGL->renderRect(ctx, buttonBox, color, {.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F});
+        const double ROUND  = buttonBox.w / 2.0;
+        const double RADIUS = PRESSEDRADIUS < 0 ? ROUND : ROUND + (std::min<double>(PRESSEDRADIUS * scale, ROUND) - ROUND) * PRESS;
+
+        g_pHyprOpenGL->renderRect(ctx, buttonBox, color, {.round = sc<int>(std::round(RADIUS)), .roundingPower = 2.F});
 
         offset += scaledButtonsPad + scaledButtonSize;
     }
@@ -407,49 +442,47 @@ void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, c
     const auto visibleCount = getVisibleButtonCount(BARBUTTONPADDING, BARPADDING, Vector2D{barBox->w, barBox->h}, scale);
     const auto COORDS       = cursorRelativeToBar();
 
-    int        offset        = BARPADDING * scale;
-    float      noScaleOffset = BARPADDING;
+    const auto GROW = g_pGlobalState->config.buttonHoverGrow->value();
+
+    int        offset = BARPADDING * scale;
 
     for (size_t i = 0; i < visibleCount; ++i) {
-        auto&      button           = g_pGlobalState->buttons[i];
-        const auto scaledButtonSize = button.size * scale;
-        const auto scaledButtonsPad = BARBUTTONPADDING * scale;
-
-        // check if hovering here
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(HEIGHT)};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - button.size - noScaleOffset : noScaleOffset), (BARBUF.y - button.size) / 2.0}.floor();
-        bool       hovering   = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + button.size + BARBUTTONPADDING, currentPos.y + button.size);
-        noScaleOffset += BARBUTTONPADDING + button.size;
+        auto&       button           = g_pGlobalState->buttons[i];
+        const auto  scaledButtonSize = button.size * scale;
+        const auto  scaledButtonsPad = BARBUTTONPADDING * scale;
+        const float HOVER            = i < m_buttonHover.size() ? m_buttonHover[i]->value() : 0.F;
+        // Icons are rasterized once at the hovered size and scaled down while not hovered.
+        const auto MAXSIZE = (button.size + GROW) * scale;
+        const auto FONT    = button.font.empty() ? g_pGlobalState->config.barTextFont->value() : button.font;
 
         const bool NEEDICON = !button.icon.empty() &&
-            (!button.iconTex || button.iconTex->m_texID == 0 || !button.m_fIconScale.has_value() || std::abs(button.m_fIconScale.value_or(0.F) - scale) > 1e-6);
+            (!button.iconTex || button.iconTex->m_texID == 0 || (button.hasHover && (!button.hoverIconTex || button.hoverIconTex->m_texID == 0)) ||
+             !button.m_fIconScale.has_value() || std::abs(button.m_fIconScale.value_or(0.F) - scale) > 1e-6);
         if (NEEDICON) {
-            // render icon
             auto fgcol = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
 
-            button.iconTex =
-                g_pHyprRenderer->renderText(button.icon, fgcol, std::round(button.size * 0.62 * scale), false, g_pGlobalState->config.barTextFont->value(), scaledButtonSize);
+            button.iconTex      = g_pHyprRenderer->renderText(button.icon, fgcol, std::round(MAXSIZE * 0.62), false, FONT, MAXSIZE);
+            button.hoverIconTex = button.hasHover ? g_pHyprRenderer->renderText(button.icon, button.hoverFg, std::round(MAXSIZE * 0.62), false, FONT, MAXSIZE) : nullptr;
             button.m_fIconScale = scale;
         }
 
-        if (!button.iconTex || button.iconTex->m_texID == 0)
-            continue;
+        const bool SHOWN     = !ICONONHOVER || m_iButtonHoverState > 0;
+        const auto ICONSCALE = (button.size + GROW * HOVER) / std::max<double>(1.0, button.size + GROW);
+        const auto CENTERX   = barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0);
+        const auto CENTERY   = barBox->y + barBox->height / 2.0;
 
-        const auto iconX = barBox->x + (BUTTONSRIGHT ? barBox->width - offset - scaledButtonSize / 2.0 : offset + scaledButtonSize / 2.0) - button.iconTex->m_size.x / 2.0;
-        const auto iconY = barBox->y + barBox->height / 2.0 - button.iconTex->m_size.y / 2.0;
-        CBox       pos   = {iconX, iconY, button.iconTex->m_size.x, button.iconTex->m_size.y};
-        pos.round(); // snap to whole pixels, otherwise the icon is sampled at a half-pixel offset and blurs
-
-        if (!ICONONHOVER || (ICONONHOVER && m_iButtonHoverState > 0))
-            g_pHyprOpenGL->renderTexture(ctx, button.iconTex, pos, {.a = a});
-        offset += scaledButtonsPad + scaledButtonSize;
-
-        bool currentBit = (m_iButtonHoverState & (1 << i)) != 0;
-        if (hovering != currentBit) {
-            m_iButtonHoverState ^= (1 << i);
-            // damage to get rid of some artifacts when icons are "hidden"
-            damageEntire();
+        // Cross-fade between the resting and the hovered icon colors.
+        for (const auto& [TEX, ALPHA] : {std::pair{button.iconTex, button.hasHover ? 1.F - HOVER : 1.F}, std::pair{button.hoverIconTex, HOVER}}) {
+            if (!SHOWN || !TEX || TEX->m_texID == 0 || ALPHA <= 0.F)
+                continue;
+            const auto W   = TEX->m_size.x * ICONSCALE;
+            const auto H   = TEX->m_size.y * ICONSCALE;
+            CBox       pos = {CENTERX - W / 2.0, CENTERY - H / 2.0, W, H};
+            pos.round(); // snap to whole pixels, otherwise the icon is sampled at a half-pixel offset and blurs
+            g_pHyprOpenGL->renderTexture(ctx, TEX, pos, {.a = a * ALPHA});
         }
+
+        offset += scaledButtonsPad + scaledButtonSize;
     }
 }
 
@@ -702,28 +735,45 @@ void CHyprBar::updateRules() {
         m_bTitleColorChanged = true;
 }
 
-void CHyprBar::damageOnButtonHover() {
+unsigned int CHyprBar::buttonHoverBits() {
     const auto BARPADDING       = g_pGlobalState->config.barPadding->value();
     const auto BARBUTTONPADDING = g_pGlobalState->config.barButtonPadding->value();
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
-    const auto ALIGNBUTTONS     = g_pGlobalState->config.barButtonsAlignment->value();
-    const bool BUTTONSRIGHT     = ALIGNBUTTONS != "left";
+    const bool   BUTTONSRIGHT     = g_pGlobalState->config.barButtonsAlignment->value() != "left";
+    const auto   COORDS           = cursorRelativeToBar();
+    const auto   BARBUF           = Vector2D{assignedBoxGlobal().w, sc<double>(HEIGHT)};
 
-    float      offset = BARPADDING;
-
-    const auto COORDS = cursorRelativeToBar();
-
-    for (auto& b : g_pGlobalState->buttons) {
-        const auto BARBUF     = Vector2D{assignedBoxGlobal().w, sc<double>(HEIGHT)};
-        Vector2D   currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
-
-        bool       hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size);
-
-        if (hover != m_bButtonHovered) {
-            m_bButtonHovered = hover;
-            damageEntire();
-        }
-
+    unsigned int bits   = 0;
+    float        offset = BARPADDING;
+    for (size_t i = 0; i < g_pGlobalState->buttons.size() && i < sizeof(bits) * CHAR_BIT; ++i) {
+        const auto& b          = g_pGlobalState->buttons[i];
+        Vector2D    currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
+        if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size))
+            bits |= 1u << i;
         offset += BARBUTTONPADDING + b.size;
+    }
+    return bits;
+}
+
+void CHyprBar::syncButtonAnimations() {
+    const auto& BUTTONS = g_pGlobalState->buttons;
+    while (m_buttonHover.size() < BUTTONS.size()) {
+        for (auto* vars : {&m_buttonHover, &m_buttonPress}) {
+            PHLANIMVAR<float> var;
+            Animation::mgr()->createAnimation(0.F, var, Config::animationTree()->getAnimationPropertyConfig("border"), m_pWindow.lock(), AVARDAMAGE_NONE);
+            var->setUpdateCallback([this](auto) { damageEntire(); });
+            vars->push_back(std::move(var));
+        }
+    }
+    m_buttonHover.resize(BUTTONS.size());
+    m_buttonPress.resize(BUTTONS.size());
+
+    for (size_t i = 0; i < BUTTONS.size(); ++i) {
+        const float HOVER = i < sizeof(m_iButtonHoverState) * CHAR_BIT && (m_iButtonHoverState & (1u << i)) ? 1.F : 0.F;
+        const float PRESS = m_pressedButton == i ? 1.F : 0.F;
+        if (m_buttonHover[i]->goal() != HOVER)
+            *m_buttonHover[i] = HOVER;
+        if (m_buttonPress[i]->goal() != PRESS)
+            *m_buttonPress[i] = PRESS;
     }
 }
