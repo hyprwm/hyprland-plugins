@@ -12,6 +12,7 @@
 #include <hyprland/src/keybinds/Manager.hpp>
 #include <hyprland/src/managers/SeatManager.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/config/shared/animation/AnimationTree.hpp>
@@ -105,7 +106,9 @@ bool CHyprBar::inputIsValid() {
     auto                    focusState = Desktop::focusState();
     auto                    window     = focusState->window();
 
-    if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
+    // The focused window's bar can sit under another window, and a press there
+    // belongs to that window.
+    if (WINDOWATCURSOR != m_pWindow && (m_pWindow != window || WINDOWATCURSOR))
         return false;
 
     PHLLS    foundSurface = nullptr;
@@ -145,7 +148,10 @@ void CHyprBar::onTouchDown(Event::SCallbackInfo& info, ITouch::SDownEvent e) {
 }
 
 void CHyprBar::onTouchUp(Event::SCallbackInfo& info, ITouch::SUpEvent e) {
-    if (!m_bDragPending || !m_bTouchEv || e.touchID != m_touchId)
+    // A tap on a button, or a double tap, leaves no drag pending, and its press
+    // was taken all the same: left armed, the bar would swallow the release of
+    // the next mouse click in the window.
+    if (!m_bTouchEv || e.touchID != m_touchId || !(m_bDragPending || m_bCancelledDown || m_bDraggingThis))
         return;
 
     handleUpEvent(info);
@@ -219,6 +225,12 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 
     const bool BUTTONSRIGHT = ALIGNBUTTONS != "left";
 
+    // Hyprland measures its border resize band from the window's content, so for
+    // a titled window the band sits under the bar and the edge above the bar
+    // never resizes. A press in the band above the bar starts that resize here.
+    if (!m_bTouchEv && startTopEdgeResize(info, PWINDOW, COORDS))
+        return;
+
     if (!VECINRECT(COORDS, 0, 0, assignedBoxGlobal().w, HEIGHT - 1)) {
 
         if (m_bDraggingThis) {
@@ -260,10 +272,40 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     }
 }
 
-void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
-    if (m_pWindow.lock() != Desktop::focusState()->window())
-        return;
+bool CHyprBar::startTopEdgeResize(Event::SCallbackInfo& info, PHLWINDOW window, const Vector2D& coords) {
+    static const auto RESIZEONBORDER = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static const auto EXTENDGRAB     = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
 
+    if (!*RESIZEONBORDER || !window || !window->isFloating() || Fullscreen::controller()->isFullscreen(window))
+        return false;
+
+    // The band runs from the top of the bar out over the border and the grab
+    // area beyond it, across the bar's width and the grab area at its corners.
+    const double GRAB  = window->presentation().borderSize() + *EXTENDGRAB;
+    const double WIDTH = assignedBoxGlobal().w;
+    if (coords.y >= 0 || coords.y < -GRAB || coords.x < -GRAB || coords.x >= WIDTH + GRAB)
+        return false;
+
+    if (Desktop::focusState()->window() != window)
+        Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_CLICK);
+    Desktop::windowState()->raise(window);
+
+    g_layoutManager->beginDragTarget(window->layoutTarget(), MBIND_RESIZE);
+
+    // The press never reaches Hyprland, so neither does the release: the up
+    // handler ends the resize the way it ends a titlebar drag.
+    info.cancelled   = true;
+    m_bCancelledDown = true;
+    m_bDraggingThis  = true;
+    m_bDragPending   = false;
+    return true;
+}
+
+void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
+    // Only the bar that took the press gets here, and its window can have lost
+    // focus by the release, as one minimized from its own button has. The
+    // release is still this bar's: left armed, it would swallow the release of
+    // a later click in the window, and the app would see the button held down.
     if (m_bCancelledDown)
         info.cancelled = true;
 
