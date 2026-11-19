@@ -45,6 +45,8 @@ plugin {
 `icon_on_hover` | bool | whether the icons show on mouse hovering over the buttons | `false`
 `buttons_on_hover` | bool | whether the buttons are only drawn while the cursor is over the bar | `false`
 `inactive_button_color` | col | buttons bg color when window isn't focused
+`button_hover_grow` | int | pixels a button grows by while hovered (animated with the `border` animation) | `0`
+`button_pressed_radius` | int | corner radius a pressed button morphs to, `-1` keeps it round | `-1`
 `on_double_click` | str | command to run on double click of the bar (not on a button)
 
 ## Buttons Config
@@ -78,6 +80,8 @@ hl.plugin.hyprbars.add_button({
     action = "hyprctl dispatch 'hl.dsp.window.close()'",
 })
 
+-- optional: hover_bg_color / hover_fg_color blend the button to these colors while hovered,
+-- font renders the icon with a font of its own (bar_text_font by default)
 hl.plugin.hyprbars.add_button({
     bg_color = "rgb(eeee11)",
     fg_color = "rgb(000000)",

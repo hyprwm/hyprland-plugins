@@ -66,7 +66,6 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                       m_bWindowSizeChanged = false;
     bool                       m_hidden             = false;
     bool                       m_bTitleColorChanged = false;
-    bool                       m_bButtonHovered     = false;
     bool                       m_bBarHovered        = false;
     bool                       m_bLastEnabledState  = false;
     bool                       m_bWindowHasFocus    = false;
@@ -84,7 +83,10 @@ class CHyprBar : public IHyprWindowDecoration {
     void                       renderBarTitle(const Vector2D& bufferSize, const float scale);
     void renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
     void renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
-    void damageOnButtonHover();
+    std::vector<PHLANIMVAR<float>> m_buttonHover, m_buttonPress;
+    std::optional<size_t>          m_pressedButton;
+    unsigned int                   buttonHoverBits();
+    void                           syncButtonAnimations();
 
     bool inputIsValid();
     void onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e);
