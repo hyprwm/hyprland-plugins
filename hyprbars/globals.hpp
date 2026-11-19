@@ -7,6 +7,7 @@
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
 #include <hyprland/src/config/values/types/FontWeightValue.hpp>
+#include <hyprland/src/managers/eventLoop/EventLoopTimer.hpp>
 
 #include <optional>
 
@@ -32,6 +33,12 @@ struct SGlobalState {
     uint32_t                  barColorRuleIdx   = 0;
     uint32_t                  titleColorRuleIdx = 0;
 
+    // buttons_on_super: Super is held down, and has been for buttons_on_super_delay
+    uint32_t            buttonsOnSuperRuleIdx = 0;
+    bool                superHeld             = false;
+    bool                superRevealed         = false;
+    SP<CEventLoopTimer> superTimer;
+
     struct {
         SP<Config::Values::CColorValue>      barColor, textColor, inactiveButtonColor;
         SP<Config::Values::CIntValue>        barHeight;
@@ -39,7 +46,9 @@ struct SGlobalState {
         SP<Config::Values::CFontWeightValue> barTextWeight;
         SP<Config::Values::CIntValue>        barPadding;
         SP<Config::Values::CIntValue>        barButtonPadding;
-        SP<Config::Values::CBoolValue>       barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover, buttonsOnHover;
+        SP<Config::Values::CIntValue>        buttonsOnSuperDelay;
+        SP<Config::Values::CBoolValue>       barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover, buttonsOnHover, barOverlay;
+        SP<Config::Values::CBoolValue>       hideOnCsd, buttonsOnSuper;
         SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;
     } config;
 };
