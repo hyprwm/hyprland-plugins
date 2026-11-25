@@ -556,7 +556,8 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     const auto RAWROUND = PWINDOW->presentation().rounding();
     const auto ROUNDING = !RAWROUND.isRounded() ? Math::SCornerRadii{0.F} : RAWROUND.expanded(PRECEDENCE ? 0 : PWINDOW->presentation().borderSize());
 
-    const auto scaledRounding = ROUNDING.isRounded() ? (ROUNDING * pMonitor->m_scale).expanded(-2.F) : Math::SCornerRadii{0.F}; /* idk why but otherwise it looks bad due to the gaps */
+    const auto scaledRounding =
+        ROUNDING.isRounded() ? (ROUNDING * pMonitor->m_scale).expanded(-2.F) : Math::SCornerRadii{0.F}; /* idk why but otherwise it looks bad due to the gaps */
 
     m_seExtents = {{0, sc<int>(HEIGHT)}, {}};
 
@@ -606,12 +607,10 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRect(
-            ctx, titleBarBox, color,
-            CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower(), .blur = true, .blurA = a});
-    else
         g_pHyprOpenGL->renderRect(ctx, titleBarBox, color,
-                                  CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower()});
+                                  CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower(), .blur = true, .blurA = a});
+    else
+        g_pHyprOpenGL->renderRect(ctx, titleBarBox, color, CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower()});
 
     // render title
     const int  SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
