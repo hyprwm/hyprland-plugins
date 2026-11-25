@@ -553,9 +553,11 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     const auto PWORKSPACE      = PWINDOW->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    const auto ROUNDING = PWINDOW->presentation().rounding() + (PRECEDENCE ? 0 : PWINDOW->presentation().borderSize());
+    const auto RAWROUND = PWINDOW->presentation().rounding();
+    const auto ROUNDING = !RAWROUND.isRounded() ? Math::SCornerRadii{0.F} : RAWROUND.expanded(PRECEDENCE ? 0 : PWINDOW->presentation().borderSize());
 
-    const auto scaledRounding = ROUNDING > 0 ? ROUNDING * pMonitor->m_scale - 2 /* idk why but otherwise it looks bad due to the gaps */ : 0;
+    const auto scaledRounding =
+        ROUNDING.isRounded() ? (ROUNDING * pMonitor->m_scale).expanded(-2.F) : Math::SCornerRadii{0.F}; /* idk why but otherwise it looks bad due to the gaps */
 
     m_seExtents = {{0, sc<int>(HEIGHT)}, {}};
 
@@ -564,7 +566,7 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     const auto BARBUF = DECOBOX.size() * pMonitor->m_scale;
 
     CBox       titleBarBox = {DECOBOX.x - pMonitor->m_position.x, DECOBOX.y - pMonitor->m_position.y, DECOBOX.w,
-                              DECOBOX.h + ROUNDING * 3 /* to fill the bottom cuz we can't disable rounding there */};
+                              DECOBOX.h + ROUNDING.max() * 3 /* to fill the bottom cuz we can't disable rounding there */};
 
     titleBarBox.translate(PWINDOW->presentation().floatingOffset()).scale(pMonitor->m_scale).round();
 
@@ -573,7 +575,7 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
 
     g_pHyprOpenGL->scissor(ctx, titleBarBox);
 
-    if (ROUNDING) {
+    if (ROUNDING.isRounded()) {
         // the +1 is a shit garbage temp fix until renderRect supports an alpha matte
         CBox windowBox = {PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x + PWINDOW->presentation().floatingOffset().x - pMonitor->m_position.x + 1,
                           PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT).y + PWINDOW->presentation().floatingOffset().y - pMonitor->m_position.y + 1,
@@ -597,7 +599,7 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
 
         windowBox.translate(WORKSPACEOFFSET).scale(pMonitor->m_scale).round();
         g_pHyprOpenGL->renderRect(ctx, windowBox, CHyprColor(0, 0, 0, 0),
-                                  CHyprOpenGLImpl::SRectRenderData{.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->presentation().roundingPower()});
+                                  CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower()});
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_NOTEQUAL, 1, -1);
@@ -605,12 +607,10 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
     }
 
     if (SHOULDBLUR)
-        g_pHyprOpenGL->renderRect(
-            ctx, titleBarBox, color,
-            CHyprOpenGLImpl::SRectRenderData{.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->presentation().roundingPower(), .blur = true, .blurA = a});
-    else
         g_pHyprOpenGL->renderRect(ctx, titleBarBox, color,
-                                  CHyprOpenGLImpl::SRectRenderData{.round = sc<int>(scaledRounding), .roundingPower = m_pWindow->presentation().roundingPower()});
+                                  CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower(), .blur = true, .blurA = a});
+    else
+        g_pHyprOpenGL->renderRect(ctx, titleBarBox, color, CHyprOpenGLImpl::SRectRenderData{.round = scaledRounding, .roundingPower = m_pWindow->presentation().roundingPower()});
 
     // render title
     const int  SCALEDTEXTSIZE = std::round(g_pGlobalState->config.barTextSize->value() * pMonitor->m_scale);
@@ -622,7 +622,7 @@ void CHyprBar::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, cons
         m_iLastScaledTextSize = SCALEDTEXTSIZE;
     }
 
-    if (ROUNDING) {
+    if (ROUNDING.isRounded()) {
         // cleanup stencil
         glClearStencil(0);
         glClear(GL_STENCIL_BUFFER_BIT);
