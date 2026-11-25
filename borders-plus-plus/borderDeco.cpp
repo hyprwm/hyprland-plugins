@@ -5,6 +5,7 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/desktop/view/window/WindowPresentation.hpp>
+#include <hyprland/src/helpers/math/CornerRadii.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;
@@ -100,9 +101,10 @@ void CBordersPlusPlus::drawPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor
     const auto PWORKSPACE      = PWINDOW->m_workspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    auto       rounding      = PWINDOW->presentation().rounding() == 0 ? 0 : (PWINDOW->presentation().rounding() + *PBORDERSIZE) * pMonitor->m_scale;
+    const auto RAWROUND      = PWINDOW->presentation().rounding();
+    auto       rounding      = !RAWROUND.isRounded() ? Math::SCornerRadii{0.F} : RAWROUND.expanded(*PBORDERSIZE) * pMonitor->m_scale;
     const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
-    const auto ORIGINALROUND = rounding == 0 ? 0 : (PWINDOW->presentation().rounding() + *PBORDERSIZE) * pMonitor->m_scale;
+    const auto ORIGINALROUND = rounding;
 
     CBox       fullBox = m_bAssignedGeometry;
     fullBox.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
@@ -126,7 +128,7 @@ void CBordersPlusPlus::drawPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor
         const int THISBORDERSIZE       = vars.borderSizes[i]->value() == -1 ? *PBORDERSIZE : vars.borderSizes[i]->value();
 
         if (i != 0) {
-            rounding += rounding == 0 ? 0 : PREVBORDERSIZESCALED;
+            rounding = !rounding.isRounded() ? Math::SCornerRadii{0.F} : rounding.expanded(PREVBORDERSIZESCALED);
             fullBox.x -= PREVBORDERSIZESCALED;
             fullBox.y -= PREVBORDERSIZESCALED;
             fullBox.width += PREVBORDERSIZESCALED * 2;
@@ -139,11 +141,11 @@ void CBordersPlusPlus::drawPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor
         g_pHyprOpenGL->scissor(ctx, nullptr);
 
         g_pHyprOpenGL->renderBorder(ctx, fullBox, Config::CGradientValueData(CHyprColor{static_cast<uint64_t>(vars.borderColors[i]->value())}),
-                                    CHyprOpenGLImpl::SBorderRenderData{.round         = NATURALROUND ? sc<int>(ORIGINALROUND) : sc<int>(rounding),
+                                    CHyprOpenGLImpl::SBorderRenderData{.round         = NATURALROUND ? ORIGINALROUND : rounding,
                                                                        .roundingPower = ROUNDINGPOWER,
                                                                        .borderSize    = THISBORDERSIZE,
                                                                        .a             = a,
-                                                                       .outerRound    = NATURALROUND ? sc<int>(ORIGINALROUND) : -1});
+                                                                       .outerRound    = NATURALROUND ? ORIGINALROUND : Math::SCornerRadii{-1.F}});
     }
 
     m_seExtents = {{fullThickness, fullThickness}, {fullThickness, fullThickness}};
